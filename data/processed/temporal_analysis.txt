@@ -1,0 +1,21 @@
+TEMPORAL ANALYSIS SUMMARY - BANGKOK
+==================================================
+Total accidents analyzed: 2669
+
+Peak danger hours:
+- 10:00-11:00: 175 accidents
+- 16:00-17:00: 164 accidents
+- 19:00-20:00: 162 accidents
+
+Most dangerous days of week:
+- Saturday: 450 accidents
+- Friday: 435 accidents
+- Monday: 394 accidents
+
+Rush hour statistics:
+- Rush hour accidents: 981
+- Non-rush accidents: 1688
+- Rush hour percentage: 36.76%
+
+Saved chart: data/processed/accidents_by_hour.png
+Saved chart: data/processed/accidents_by_day.png

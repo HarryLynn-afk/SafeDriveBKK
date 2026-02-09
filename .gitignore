@@ -1,0 +1,7 @@
+.playwright-browsers/
+data/raw/*.csv
+__pycache__/
+*.pyc
+.DS_Store
+venv/
+env/

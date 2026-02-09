@@ -1,0 +1,128 @@
+{% extends "base.html" %}
+
+{% block extra_head %}
+<link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" crossorigin="">
+{% endblock %}
+
+{% block content %}
+<div class="container">
+    <section class="hero-section p-4 p-md-5 mb-4">
+        <h1 class="display-6 fw-bold mb-2">Route Comparison</h1>
+        <p class="lead mb-0">
+            Compare fast and safer route options using Bangkok accident risk grids.
+        </p>
+    </section>
+
+    <section class="mb-4">
+        <h2 class="h4 mb-3">Trip Inputs</h2>
+        <form id="route-compare-form" class="row g-3">
+            <div class="col-md-3">
+                <label for="start-lat" class="form-label">Start Latitude</label>
+                <input id="start-lat" name="start_lat" type="number" step="any" class="form-control" placeholder="13.7563" required>
+            </div>
+            <div class="col-md-3">
+                <label for="start-lon" class="form-label">Start Longitude</label>
+                <input id="start-lon" name="start_lon" type="number" step="any" class="form-control" placeholder="100.5018" required>
+            </div>
+            <div class="col-md-3">
+                <label for="end-lat" class="form-label">End Latitude</label>
+                <input id="end-lat" name="end_lat" type="number" step="any" class="form-control" placeholder="13.7999" required>
+            </div>
+            <div class="col-md-3">
+                <label for="end-lon" class="form-label">End Longitude</label>
+                <input id="end-lon" name="end_lon" type="number" step="any" class="form-control" placeholder="100.5502" required>
+            </div>
+            <div class="col-12">
+                <button id="route-compare-submit-btn" type="submit" class="btn btn-primary">Compare Routes</button>
+            </div>
+        </form>
+        <div class="mt-3">
+            <div class="small text-muted mb-2">Quick examples (cross high-risk corridors):</div>
+            <div class="d-flex flex-wrap gap-2">
+                <button
+                    type="button"
+                    class="btn btn-outline-secondary btn-sm route-example-btn"
+                    data-start-lat="13.72"
+                    data-start-lon="100.51"
+                    data-end-lat="13.77"
+                    data-end-lon="100.56">
+                    Example 1: Central High-Risk
+                </button>
+                <button
+                    type="button"
+                    class="btn btn-outline-secondary btn-sm route-example-btn"
+                    data-start-lat="13.65"
+                    data-start-lon="100.48"
+                    data-end-lat="13.82"
+                    data-end-lon="100.68">
+                    Example 2: Multi-Zone Long Route
+                </button>
+                <button
+                    type="button"
+                    class="btn btn-outline-secondary btn-sm route-example-btn"
+                    data-start-lat="13.70"
+                    data-start-lon="100.70"
+                    data-end-lat="13.76"
+                    data-end-lon="100.75">
+                    Example 3: Eastern Corridor
+                </button>
+            </div>
+        </div>
+    </section>
+
+    <section class="mb-4">
+        <h2 class="h4 mb-3">Comparison Results</h2>
+        <div id="route-compare-result" class="mb-3">
+            <div class="alert alert-secondary mb-0">Submit start and end points to compare route options.</div>
+        </div>
+        <div class="table-responsive">
+            <table class="table table-bordered align-middle route-table" id="route-compare-table">
+                <thead class="table-light">
+                    <tr>
+                        <th>Metric</th>
+                        <th>Route A (Fast)</th>
+                        <th>Route B (Safe)</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    <tr>
+                        <td>Distance</td>
+                        <td id="fast-distance">-</td>
+                        <td id="safe-distance">-</td>
+                    </tr>
+                    <tr>
+                        <td>Estimated Time</td>
+                        <td id="fast-time">-</td>
+                        <td id="safe-time">-</td>
+                    </tr>
+                    <tr>
+                        <td>Risk Score</td>
+                        <td id="fast-risk">-</td>
+                        <td id="safe-risk">-</td>
+                    </tr>
+                    <tr>
+                        <td>Risk Level</td>
+                        <td id="fast-level">-</td>
+                        <td id="safe-level">-</td>
+                    </tr>
+                    <tr>
+                        <td>Time Difference</td>
+                        <td>-</td>
+                        <td id="safe-time-diff">-</td>
+                    </tr>
+                </tbody>
+            </table>
+        </div>
+        <div id="route-recommendation" class="recommendation-box mt-3">Recommendation will appear after comparison.</div>
+    </section>
+
+    <section class="mb-4">
+        <h2 class="h4 mb-3">Route Map</h2>
+        <div id="route-map" class="route-map"></div>
+    </section>
+</div>
+{% endblock %}
+
+{% block extra_scripts %}
+<script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js" crossorigin=""></script>
+{% endblock %}

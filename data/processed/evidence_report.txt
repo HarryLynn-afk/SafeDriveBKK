@@ -1,0 +1,24 @@
+ROADRISK BANGKOK - EVIDENCE METRICS
+============================================================
+
+Coverage & Lift
+ top_percent  n_grids  accidents_covered  coverage_percent  lift_factor
+           1       25               1041              40.0         40.0
+           5      121               2277              87.4         17.5
+          10      242               2571              98.7          9.9
+          20      484               2605             100.0          5.0
+
+Top 5% coverage: 87.4%
+Top 5% lift: 17.5x
+
+Density Comparison
+High-risk density: 18.27 accidents/km^2
+City average density: 1.08 accidents/km^2
+High vs average ratio: 17.0x
+
+Temporal Validation
+Saturday 10:00 multiplier: 1.52x
+
+Holdout Validation
+Capture rate: 83.8%
+Lift vs random grid selection: 1.95x

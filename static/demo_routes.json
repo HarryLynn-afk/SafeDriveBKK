@@ -1,0 +1,26 @@
+{
+  "huai_khwang": {
+    "name": "Huai Khwang",
+    "start": {
+      "lat": 13.7467,
+      "lon": 100.5348
+    },
+    "end": {
+      "lat": 13.76,
+      "lon": 100.75
+    },
+    "waypoints": null
+  },
+  "phaya_thai": {
+    "name": "Phaya Thai",
+    "start": {
+      "lat": 13.7467,
+      "lon": 100.5348
+    },
+    "end": {
+      "lat": 13.78,
+      "lon": 100.58
+    },
+    "waypoints": null
+  }
+}

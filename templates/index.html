@@ -1,0 +1,124 @@
+{% extends "base.html" %}
+
+{% block content %}
+<div class="container">
+    <div style="background: linear-gradient(90deg, #ffc107 0%, #ff9800 100%); color: #000; padding: 16px 20px; text-align: center; font-weight: 600; box-shadow: 0 2px 8px rgba(0,0,0,0.1); margin-bottom: 24px;">
+        ⚠️ <strong>New Year 2026:</strong> 991 crashes, 171 deaths in 4 days (DDPM, Jan 3, 2026). Bangkok recorded highest death toll (14).
+        <a href="/about" style="color: #000; text-decoration: underline; margin-left: 8px;">See how data can reduce future risk →</a>
+    </div>
+
+    <section class="hero-section p-4 p-md-5 mb-4">
+        <h1 class="display-6 fw-bold mb-2">Bangkok Road Risk Prediction System</h1>
+        <p class="lead mb-0">
+            Interactive accident risk intelligence from Bangkok grid-level spatial and temporal analysis.
+        </p>
+        <div class="hero-stats">
+            <div class="hero-stat">
+                <span class="hero-stat-value">87.4%</span>
+                <span class="hero-stat-label">Accident Coverage</span>
+                <div style="font-size: 12px; opacity: 0.85; margin-top: 4px;">Top 5% of zones</div>
+            </div>
+            <div class="hero-stat">
+                <span class="hero-stat-value">17×</span>
+                <span class="hero-stat-label">Better Than Random</span>
+                <div style="font-size: 12px; opacity: 0.85; margin-top: 4px;">Proven effectiveness</div>
+            </div>
+            <div class="hero-stat">
+                <span class="hero-stat-value">83.8%</span>
+                <span class="hero-stat-label">Predictive Accuracy</span>
+                <div style="font-size: 12px; opacity: 0.85; margin-top: 4px;">Holdout validation</div>
+            </div>
+        </div>
+    </section>
+
+    {% if error_message %}
+    <div class="alert alert-danger mb-4" role="alert">
+        Failed to load dashboard data: {{ error_message }}
+    </div>
+    {% endif %}
+
+    <div style="margin: 32px 0;">
+        <h3 style="text-align: center; font-size: 28px; font-weight: 700; margin-bottom: 24px; color: #212529;">
+            📊 Proven Effectiveness
+        </h3>
+        <p style="text-align: center; color: #6c757d; margin-bottom: 32px; font-size: 16px;">
+            Our risk zones show extreme concentration and predictive power
+        </p>
+
+        <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(250px, 1fr)); gap: 24px; max-width: 1200px; margin: 0 auto 48px;">
+            <div style="background: white; border-radius: 12px; padding: 24px; box-shadow: 0 4px 12px rgba(0,0,0,0.1); text-align: center; border-left: 4px solid #667eea;">
+                <div style="font-size: 14px; color: #6c757d; text-transform: uppercase; margin-bottom: 8px;">Coverage</div>
+                <div style="font-size: 48px; font-weight: 800; color: #667eea; margin-bottom: 8px;">87.4%</div>
+                <div style="font-size: 14px; color: #495057; line-height: 1.5;">Top 5% of area contains 87.4% of accidents<br><strong>17.5× better than random</strong></div>
+            </div>
+
+            <div style="background: white; border-radius: 12px; padding: 24px; box-shadow: 0 4px 12px rgba(0,0,0,0.1); text-align: center; border-left: 4px solid #dc3545;">
+                <div style="font-size: 14px; color: #6c757d; text-transform: uppercase; margin-bottom: 8px;">Danger Intensity</div>
+                <div style="font-size: 48px; font-weight: 800; color: #dc3545; margin-bottom: 8px;">17×</div>
+                <div style="font-size: 14px; color: #495057; line-height: 1.5;">High-risk zones are<br><strong>17× more dangerous</strong><br>than city average</div>
+            </div>
+
+            <div style="background: white; border-radius: 12px; padding: 24px; box-shadow: 0 4px 12px rgba(0,0,0,0.1); text-align: center; border-left: 4px solid #28a745;">
+                <div style="font-size: 14px; color: #6c757d; text-transform: uppercase; margin-bottom: 8px;">Predictive Power</div>
+                <div style="font-size: 48px; font-weight: 800; color: #28a745; margin-bottom: 8px;">83.8%</div>
+                <div style="font-size: 14px; color: #495057; line-height: 1.5;">Trained on Jan-Sep, captured<br><strong>84% of Oct-Dec accidents</strong></div>
+            </div>
+        </div>
+    </div>
+
+    <section class="row g-3 mb-4">
+        <div class="col-md-3">
+            <div class="stats-card">
+                <div class="stats-label">Bangkok 2024: 2,669 Accidents Analyzed</div>
+                <div class="stats-value">{{ "{:,}".format(total_accidents) }}</div>
+            </div>
+        </div>
+        <div class="col-md-3">
+            <div class="stats-card warning">
+                <div class="stats-label">126 High-Risk Zones Identified</div>
+                <div class="stats-value">{{ "{:,}".format(high_risk_zones) }}</div>
+            </div>
+        </div>
+        <div class="col-md-3">
+            <div class="stats-card">
+                <div class="stats-label">Peak Danger: 10:00-11:00 AM</div>
+                <div class="stats-value">{{ peak_time }}</div>
+            </div>
+        </div>
+        <div class="col-md-3">
+            <div class="stats-card">
+                <div class="stats-label">Most Dangerous: Saturday</div>
+                <div class="stats-value">{{ dangerous_day }}</div>
+            </div>
+        </div>
+    </section>
+
+    <section class="mb-4">
+        <h2 class="h4 mb-3">Bangkok Risk Map</h2>
+        {% if map_available %}
+        <div class="map-wrapper">
+            <iframe
+                src="{{ url_for('static', filename='bangkok_risk_heatmap.html') }}"
+                class="risk-map-frame"
+                title="Bangkok Risk Map"
+                loading="lazy"></iframe>
+        </div>
+        {% else %}
+        <div class="alert alert-warning" role="alert">
+            Risk heat map file is missing. Generate it via <code>python3 src/create_heatmap_html.py</code>.
+        </div>
+        {% endif %}
+    </section>
+
+    <div style="text-align: center; margin: 48px 0;">
+        <a href="/trip-planner" style="display: inline-block; background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); color: white; padding: 20px 48px; border-radius: 50px; text-decoration: none; font-size: 20px; font-weight: 600; box-shadow: 0 8px 24px rgba(102, 126, 234, 0.3); transition: transform 0.3s ease;">
+            🚗 Plan Your Safe Route Now
+        </a>
+        <p style="margin-top: 16px; color: #6c757d; font-size: 14px;">
+            Experience real-time risk alerts and navigation •
+            <a href="/about" style="color: #667eea; text-decoration: none;">Learn more about our methodology →</a>
+        </p>
+    </div>
+
+</div>
+{% endblock %}

@@ -1,0 +1,429 @@
+{% extends "base.html" %}
+
+{% block title %}About - RoadRisk Bangkok{% endblock %}
+
+{% block extra_css %}
+<style>
+.about-hero {
+    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+    color: white;
+    padding: 60px 20px;
+    text-align: center;
+    margin-bottom: 40px;
+}
+
+.about-hero h1 {
+    font-size: 42px;
+    font-weight: 700;
+    margin-bottom: 16px;
+}
+
+.about-hero p {
+    font-size: 20px;
+    opacity: 0.95;
+    max-width: 800px;
+    margin: 0 auto;
+}
+
+.section {
+    max-width: 1000px;
+    margin: 0 auto 60px;
+    padding: 0 20px;
+}
+
+.section-title {
+    font-size: 32px;
+    font-weight: 700;
+    margin-bottom: 24px;
+    color: #212529;
+}
+
+.section-subtitle {
+    font-size: 20px;
+    font-weight: 600;
+    margin-top: 32px;
+    margin-bottom: 16px;
+    color: #495057;
+}
+
+.metric-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+    gap: 24px;
+    margin: 32px 0;
+}
+
+.metric-card {
+    background: white;
+    border-radius: 12px;
+    padding: 24px;
+    box-shadow: 0 2px 8px rgba(0,0,0,0.08);
+    border-left: 4px solid #667eea;
+}
+
+.metric-value {
+    font-size: 36px;
+    font-weight: 700;
+    color: #667eea;
+    margin-bottom: 8px;
+}
+
+.metric-label {
+    font-size: 14px;
+    color: #6c757d;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+}
+
+.metric-description {
+    font-size: 15px;
+    color: #495057;
+    margin-top: 12px;
+    line-height: 1.6;
+}
+
+.context-box {
+    background: #fff3cd;
+    border-left: 4px solid #ffc107;
+    padding: 20px;
+    border-radius: 8px;
+    margin: 24px 0;
+}
+
+.context-box h4 {
+    color: #856404;
+    margin-bottom: 12px;
+    font-size: 18px;
+    font-weight: 600;
+}
+
+.context-box p {
+    color: #856404;
+    margin-bottom: 8px;
+    line-height: 1.6;
+}
+
+.responsible-ai-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+    gap: 24px;
+    margin: 32px 0;
+}
+
+.ai-card {
+    background: #f8f9fa;
+    border-radius: 12px;
+    padding: 24px;
+}
+
+.ai-card h4 {
+    font-size: 18px;
+    font-weight: 600;
+    margin-bottom: 16px;
+    color: #212529;
+}
+
+.ai-card ul {
+    list-style: none;
+    padding: 0;
+    margin: 0;
+}
+
+.ai-card li {
+    padding: 8px 0;
+    color: #495057;
+    line-height: 1.6;
+}
+
+.ai-card li:before {
+    content: "✓ ";
+    color: #28a745;
+    font-weight: bold;
+    margin-right: 8px;
+}
+
+.ai-card.warning li:before {
+    content: "⚠️ ";
+}
+
+.ai-card.limitation li:before {
+    content: "📊 ";
+}
+
+.methodology {
+    background: #e7f3ff;
+    border-radius: 12px;
+    padding: 32px;
+    margin: 32px 0;
+}
+
+.methodology h4 {
+    color: #004085;
+    margin-bottom: 16px;
+    font-size: 20px;
+}
+
+.methodology p {
+    color: #004085;
+    line-height: 1.8;
+    margin-bottom: 12px;
+}
+
+.cta-section {
+    background: linear-gradient(135deg, #28a745 0%, #20c997 100%);
+    color: white;
+    padding: 48px 32px;
+    border-radius: 16px;
+    text-align: center;
+    margin: 48px 0;
+}
+
+.cta-section h3 {
+    font-size: 28px;
+    margin-bottom: 16px;
+}
+
+.cta-section p {
+    font-size: 18px;
+    margin-bottom: 24px;
+    opacity: 0.95;
+}
+
+.cta-button {
+    display: inline-block;
+    background: white;
+    color: #28a745;
+    padding: 16px 48px;
+    border-radius: 8px;
+    text-decoration: none;
+    font-weight: 600;
+    font-size: 18px;
+    transition: transform 0.2s;
+}
+
+.cta-button:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 8px 16px rgba(0,0,0,0.2);
+}
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="about-hero">
+    <h1>🛡️ RoadRisk Bangkok</h1>
+    <p>Prevention Through Awareness - Using Data Science to Save Lives on Bangkok Roads</p>
+</div>
+
+<div class="section">
+    <h2 class="section-title">📰 The Problem is Real and Urgent</h2>
+
+    <div class="context-box">
+        <h4>New Year 2026: A Deadly Holiday</h4>
+        <p><strong>991 road crashes</strong> and <strong>171 deaths</strong> in just 4 days (Dec 30, 2025 - Jan 2, 2026)</p>
+        <p>• Bangkok recorded the <strong>highest death toll: 14 deaths</strong></p>
+        <p>• Phuket had the most accidents: 39 crashes</p>
+        <p>• Leading causes: Speeding (35.3%) and Drink-driving (21.4%)</p>
+        <p>• Motorcycles involved in 72.9% of crashes</p>
+        <p>• Peak accident time: 3:01 PM - 6:00 PM (26.2%)</p>
+        <p style="margin-top: 16px; font-style: italic; line-height: 1.6;">
+            <strong>Source:</strong> Thailand Department of Disaster Prevention and Mitigation (DDPM) New Year Road Safety Campaign Summary, January 3, 2026.<br>
+            Published in: <a href="https://www.nationthailand.com/news/general/40060713" target="_blank" style="color: #856404; text-decoration: underline;">"New Year road toll hits 171 in four days; Phuket tops crashes, Bangkok records most deaths"</a> - The Nation Thailand, Saturday, January 3, 2026.<br>
+            <em>These statistics provide context for the ongoing urgency of road safety in Thailand. Our system uses 2024 accident data to identify persistent danger zones.</em>
+        </p>
+    </div>
+
+    <p style="font-size: 18px; line-height: 1.8; margin-top: 24px;">
+        While the government tracks accidents <strong>after they happen</strong>, RoadRisk Bangkok uses historical data
+        to <strong>identify persistent danger zones before drivers enter them</strong>. Our system analyzes 2024 accident patterns
+        to provide advance awareness, enabling drivers to exercise extra caution in high-risk areas. The goal is not to prevent
+        all accidents, but to reduce risk through informed decision-making.
+    </p>
+</div>
+
+<div class="section">
+    <h2 class="section-title">📊 Evidence: Our System Works</h2>
+
+    <h3 class="section-subtitle">1. Extreme Risk Concentration</h3>
+    <div class="metric-grid">
+        <div class="metric-card">
+            <div class="metric-value">5%</div>
+            <div class="metric-label">OF BANGKOK AREA</div>
+            <div class="metric-description">Just 121 high-risk grid zones (1km² each) out of 2,418 total grids</div>
+        </div>
+        <div class="metric-card">
+            <div class="metric-value">87.4%</div>
+            <div class="metric-label">OF ALL ACCIDENTS</div>
+            <div class="metric-description">These 121 zones contain 2,277 of 2,605 Bangkok accidents in 2024</div>
+        </div>
+        <div class="metric-card">
+            <div class="metric-value">17.5×</div>
+            <div class="metric-label">BETTER THAN RANDOM</div>
+            <div class="metric-description">Our zones are 17.5 times more effective than randomly selecting areas</div>
+        </div>
+    </div>
+
+    <h3 class="section-subtitle">2. Danger Zone Intensity</h3>
+    <div class="metric-grid">
+        <div class="metric-card">
+            <div class="metric-value">18.3</div>
+            <div class="metric-label">ACCIDENTS PER KM²</div>
+            <div class="metric-description">High-risk zones average 18.3 accidents per square kilometer</div>
+        </div>
+        <div class="metric-card">
+            <div class="metric-value">1.1</div>
+            <div class="metric-label">CITY AVERAGE</div>
+            <div class="metric-description">Bangkok city-wide average is only 1.1 accidents per km²</div>
+        </div>
+        <div class="metric-card">
+            <div class="metric-value">17×</div>
+            <div class="metric-label">MORE DANGEROUS</div>
+            <div class="metric-description">High-risk zones are 17 times more dangerous than city average</div>
+        </div>
+    </div>
+
+    <h3 class="section-subtitle">3. Predictive Validation (Holdout Test)</h3>
+    <div class="metric-grid">
+        <div class="metric-card">
+            <div class="metric-value">Jan-Sep</div>
+            <div class="metric-label">TRAINING PERIOD</div>
+            <div class="metric-description">Built risk zones using 2,036 accidents from first 9 months of 2024</div>
+        </div>
+        <div class="metric-card">
+            <div class="metric-value">Oct-Dec</div>
+            <div class="metric-label">TEST PERIOD</div>
+            <div class="metric-description">Validated predictions on 569 unseen accidents from last 3 months</div>
+        </div>
+        <div class="metric-card" style="border-left-color: #28a745;">
+            <div class="metric-value" style="color: #28a745;">83.8%</div>
+            <div class="metric-label">CAPTURE RATE</div>
+            <div class="metric-description">Our zones correctly predicted where 84% of future accidents would occur</div>
+        </div>
+    </div>
+
+    <p style="font-size: 18px; line-height: 1.8; margin-top: 32px; background: #e8f5e9; padding: 24px; border-radius: 8px; border-left: 4px solid #28a745;">
+        <strong>Key Finding:</strong> Risk zones are not just descriptive statistics - they have <strong>predictive power</strong>.
+        Zones identified from past data successfully predict where future accidents will occur with 83.8% accuracy.
+    </p>
+</div>
+
+<div class="section">
+    <h2 class="section-title">🤖 Responsible AI & Ethics</h2>
+
+    <div class="responsible-ai-grid">
+        <div class="ai-card">
+            <h4>🔒 Data Privacy</h4>
+            <ul>
+                <li>No personal data collected</li>
+                <li>GPS processed in-memory only</li>
+                <li>No user tracking or identification</li>
+                <li>Public aggregate data only</li>
+            </ul>
+        </div>
+
+        <div class="ai-card warning">
+            <h4>⚠️ Transparency & Limitations</h4>
+            <ul>
+                <li>Based on 2024 historical data</li>
+                <li>Not a guarantee of future safety</li>
+                <li>Cannot predict individual risk</li>
+                <li>1km grid resolution (local variations exist)</li>
+            </ul>
+        </div>
+
+        <div class="ai-card limitation">
+            <h4>📊 Known Biases</h4>
+            <ul>
+                <li>Reporting bias: Not all accidents reported</li>
+                <li>GPS accuracy: 8.5% missing location data</li>
+                <li>Urban bias: Bangkok coverage only</li>
+                <li>Temporal: 2024 data, infrastructure changes</li>
+            </ul>
+        </div>
+    </div>
+
+    <div class="methodology">
+        <h4>✅ Appropriate Use Cases</h4>
+        <p>✓ Route planning awareness tool for daily commuters</p>
+        <p>✓ Fleet safety decision support for logistics companies</p>
+        <p>✓ City infrastructure planning and resource allocation</p>
+        <p>✓ Public awareness campaigns for high-risk areas</p>
+
+        <h4 style="margin-top: 24px;">❌ Inappropriate Use Cases</h4>
+        <p>✗ Discriminatory insurance pricing based on location</p>
+        <p>✗ Restricting access or stigmatizing neighborhoods</p>
+        <p>✗ Replacement for safe driving practices and vigilance</p>
+        <p>✗ Legal liability determination in accident cases</p>
+    </div>
+</div>
+
+<div class="section">
+    <h2 class="section-title">🔬 Methodology</h2>
+
+    <div class="methodology">
+        <h4>Data Sources</h4>
+        <p>• <strong>Primary:</strong> Thai Ministry of Transport Open Data Portal - 23,952 road accidents nationwide in 2024</p>
+        <p>• <strong>Coverage:</strong> 2,669 accidents within Bangkok metropolitan area (13.5-14.0°N, 100.3-100.9°E)</p>
+        <p>• <strong>Quality:</strong> 91.5% GPS accuracy, 100% datetime parsing success</p>
+
+        <h4 style="margin-top: 24px;">Risk Calculation Method</h4>
+        <p><strong>Spatial Aggregation:</strong> Bangkok divided into 2,418 grid cells (1km × 1km resolution)</p>
+        <p><strong>Risk Score Formula:</strong> Risk = min(100, (Total Accidents × 1.2) + (Temporal Boost × 2.5))</p>
+        <p style="margin-left: 20px;">Formula dynamically weights historical accident frequency with temporal danger patterns</p>
+        <p style="margin-left: 20px;">Scores capped at 100 to maintain interpretable 0-100 scale</p>
+        <p><strong>Classification Thresholds:</strong></p>
+        <p style="margin-left: 20px;">• High Risk (🔴): Score ≥55 (typically 5+ accidents per grid)</p>
+        <p style="margin-left: 20px;">• Medium Risk (⚠️): Score 30-54 (typically 2-4 accidents per grid)</p>
+        <p style="margin-left: 20px;">• Low Risk (🟢): Score &lt;30 (typically 0-1 accidents per grid)</p>
+
+        <h4 style="margin-top: 24px;">Temporal Analysis</h4>
+        <p>• Peak danger day: <strong>Saturday</strong> (16.9% of accidents - 1.52× average)</p>
+        <p>• Peak danger hour: <strong>10:00-10:59 AM</strong> (highest concentration)</p>
+        <p>• Secondary peak: <strong>3:00-6:00 PM</strong> (rush hour - matches 2026 New Year data)</p>
+
+        <h4 style="margin-top: 24px;">Technology Stack</h4>
+        <p><strong>Backend:</strong> Python 3.11, Flask, Pandas, NumPy, Folium</p>
+        <p><strong>Routing:</strong> OSRM (Open Source Routing Machine) for realistic road paths</p>
+        <p><strong>Frontend:</strong> Bootstrap 5, Leaflet.js for interactive maps, JavaScript for real-time simulation</p>
+        <p><strong>Geospatial:</strong> Nominatim for address autocomplete, Haversine distance calculations</p>
+    </div>
+</div>
+
+<div class="section">
+    <div class="cta-section">
+        <h3>🚗 Ready to Plan Safer Routes?</h3>
+        <p>Experience real-time risk alerts and navigation through Bangkok's danger zones</p>
+        <a href="/trip-planner" class="cta-button">Try Trip Planner →</a>
+    </div>
+</div>
+
+<div class="section" style="margin-bottom: 80px;">
+    <h2 class="section-title">🚀 Future Roadmap</h2>
+    <div class="methodology">
+        <h4>Phase 1: Current (Hackathon Prototype)</h4>
+        <p>✓ Historical risk zone identification</p>
+        <p>✓ Route risk analysis and comparison</p>
+        <p>✓ Real-time driving simulation with alerts</p>
+        <p>✓ Web-based demonstration platform</p>
+
+        <h4 style="margin-top: 24px;">Phase 2: Mobile Deployment (Q2 2026)</h4>
+        <p>• Native iOS and Android applications</p>
+        <p>• Real GPS tracking integration</p>
+        <p>• Voice navigation with risk alerts</p>
+        <p>• Offline map support</p>
+
+        <h4 style="margin-top: 24px;">Phase 3: Advanced Features (Q3-Q4 2026)</h4>
+        <p>• Real-time traffic integration</p>
+        <p>• Weather-adjusted risk scoring</p>
+        <p>• Machine learning predictions (time/conditions)</p>
+        <p>• Crowdsourced incident reporting</p>
+        <p>• Fleet management dashboard</p>
+        <p>• API for third-party integration</p>
+
+        <h4 style="margin-top: 24px;">Phase 4: Expansion (2027+)</h4>
+        <p>• Coverage expansion to major Thai cities</p>
+        <p>• International deployment (SEA region)</p>
+        <p>• Insurance partner integration</p>
+        <p>• Government collaboration for infrastructure planning</p>
+    </div>
+</div>
+{% endblock %}

@@ -1,0 +1,200 @@
+{% extends "base.html" %}
+
+{% block extra_css %}
+<link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css"
+      integrity="sha256-p4NxAoJBhIIN+hmNHrzRCf9tD/miZyoHS5obTRR9BMY="
+      crossorigin=""/>
+<link rel="stylesheet" href="{{ url_for('static', filename='css/driving-mode.css') }}">
+{% endblock %}
+
+{% block extra_js %}
+<script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"
+        integrity="sha256-20nQCchB9co0qIjJZRGuk2/Z9VM+kNiyxNV1lvTlZBo="
+        crossorigin=""></script>
+{% endblock %}
+
+{% block title %}Route Risk Analysis{% endblock %}
+
+{% block content %}
+<div class="container mt-4">
+    <div class="row">
+        <div class="col-12">
+            <div class="alert alert-primary">
+                <h4 class="alert-heading">🚗 Route Risk Analysis</h4>
+                <p class="mb-0">Analyze accident risk zones on your Bangkok route with real-time driving alerts</p>
+            </div>
+        </div>
+    </div>
+
+    <div class="card mb-4">
+        <div class="card-body">
+            <h5 class="card-title">Trip Inputs</h5>
+            <div class="row mb-3">
+                <div class="col-md-3">
+                    <label class="form-label">Start Latitude</label>
+                    <input type="number" step="0.0001" name="start_lat" class="form-control" value="13.72">
+                </div>
+                <div class="col-md-3">
+                    <label class="form-label">Start Longitude</label>
+                    <input type="number" step="0.0001" name="start_lon" class="form-control" value="100.51">
+                </div>
+                <div class="col-md-3">
+                    <label class="form-label">End Latitude</label>
+                    <input type="number" step="0.0001" name="end_lat" class="form-control" value="13.77">
+                </div>
+                <div class="col-md-3">
+                    <label class="form-label">End Longitude</label>
+                    <input type="number" step="0.0001" name="end_lon" class="form-control" value="100.56">
+                </div>
+            </div>
+            <button class="btn btn-primary" onclick="analyzeRoute(event)">
+                🔍 Analyze Route
+            </button>
+
+            <hr class="my-3">
+
+            <p class="text-muted mb-2"><small>Quick examples (cross high-risk corridors):</small></p>
+            <div class="btn-group btn-group-sm" role="group">
+                <button class="btn btn-outline-secondary" onclick="fillExample(13.72, 100.51, 13.77, 100.56)">Example 1: Central</button>
+                <button class="btn btn-outline-secondary" onclick="fillExample(13.65, 100.48, 13.82, 100.68)">Example 2: Long Route</button>
+                <button class="btn btn-outline-secondary" onclick="fillExample(13.7, 100.7, 13.76, 100.75)">Example 3: High-Risk</button>
+            </div>
+        </div>
+    </div>
+
+    <div class="card mb-4" id="route-overview" style="display:none;">
+        <div class="card-header">
+            <h5>Route Overview</h5>
+        </div>
+        <div class="card-body">
+            <div class="row">
+                <div class="col-md-3">
+                    <strong>Distance:</strong> <span id="route-distance"></span> km
+                </div>
+                <div class="col-md-3">
+                    <strong>Time:</strong> <span id="route-time"></span> min
+                </div>
+                <div class="col-md-3">
+                    <strong>Risk Score:</strong> <span id="route-risk"></span>/100
+                </div>
+                <div class="col-md-3">
+                    <strong>Risk Level:</strong> <span id="route-level" class="badge"></span>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="card mb-4" id="alerts-card" style="display:none;">
+        <div class="card-header">
+            <h5>⚠️ Route Alerts</h5>
+        </div>
+        <div class="card-body">
+            <div id="alerts-list"></div>
+        </div>
+    </div>
+
+    <!-- Driving Simulation -->
+    <div class="card mb-4" id="driving-card" style="display:none;">
+        <div class="card-header">
+            <h5 class="mb-0">🚗 Driving Simulation</h5>
+        </div>
+        <div class="card-body text-center">
+            <p class="text-muted mb-4">Experience real-time risk alerts as you drive through Bangkok</p>
+            <button class="btn btn-success btn-lg px-5 py-4"
+                    onclick="startSimpleDriving()"
+                    style="font-size: 22px; box-shadow: 0 4px 12px rgba(40,167,69,0.4);">
+                🚗 Start Driving Simulation
+            </button>
+        </div>
+    </div>
+
+    <!-- Simple Fullscreen Driving Mode -->
+    <div id="simple-driving-fullscreen" class="driving-mode-fullscreen">
+        <div class="status-bar">
+            <div class="status-bar-left">
+                <button class="btn btn-sm btn-link text-white" onclick="exitSimpleDriving()">
+                    ← Exit Driving
+                </button>
+            </div>
+            <div class="status-bar-right">
+                <span class="text-white">🕐 <span id="simple-time">12:30</span></span>
+            </div>
+        </div>
+
+        <div class="driving-container">
+            <!-- Map -->
+            <div class="driving-map-container">
+                <div id="simple-driving-map" style="height: 100%;"></div>
+            </div>
+
+            <!-- Alert Box -->
+            <div id="simple-alert-box" class="driving-alert-box safe">
+                <div id="simple-alert-message">Ready to start</div>
+                <div id="simple-alert-detail" style="font-size: 16px; margin-top: 10px; font-weight: normal;"></div>
+            </div>
+
+            <!-- Stats -->
+            <div class="driving-stats">
+                <div class="stat-item">
+                    <div class="stat-value"><span id="simple-current-km">0.0</span> km</div>
+                    <div class="stat-label">Current Position</div>
+                </div>
+                <div class="stat-item">
+                    <div class="stat-value"><span id="simple-speed">40</span> km/h</div>
+                    <div class="stat-label">Speed</div>
+                </div>
+                <div class="stat-item">
+                    <div class="stat-value"><span id="simple-total-km">0.0</span> km</div>
+                    <div class="stat-label">Total Distance</div>
+                </div>
+            </div>
+
+            <!-- Progress Bar -->
+            <div class="driving-progress-container">
+                <div class="driving-progress-bar">
+                    <div class="driving-progress-fill" id="simple-progress-fill" style="width: 0%">
+                        <span id="simple-progress-text">0%</span>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Controls -->
+            <div class="driving-controls">
+                <button class="driving-btn driving-btn-exit" onclick="exitSimpleDriving()">
+                    Exit
+                </button>
+                <button class="driving-btn driving-btn-pause" id="simple-pause-btn" onclick="pauseSimpleDriving()">
+                    ⏸️ Pause
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <div class="card mb-4" id="map-card" style="display:none;">
+        <div class="card-header">
+            <h5>Route Map</h5>
+        </div>
+        <div class="card-body">
+            <div id="route-map" style="height: 520px;"></div>
+        </div>
+    </div>
+
+    <div class="card mb-4" id="segments-card" style="display:none;">
+        <div class="card-header">
+            <h5>Route Segments</h5>
+        </div>
+        <div class="card-body">
+            <table class="table table-sm">
+                <thead>
+                    <tr>
+                        <th>Distance (km)</th>
+                        <th>Risk Level</th>
+                        <th>Risk Score</th>
+                    </tr>
+                </thead>
+                <tbody id="segments-table"></tbody>
+            </table>
+        </div>
+    </div>
+</div>
+{% endblock %}
