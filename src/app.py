@@ -909,6 +909,115 @@ def compare_routes():
         return jsonify({"error": str(exc)}), 500
 
 
+DEMO_ROUTE_DEFS = {
+    "ratchada": {
+        "name": "Ratchada (High Risk)",
+        "start": {"lat": 13.7467, "lon": 100.5348},
+        "end": {"lat": 13.73, "lon": 100.72},
+    },
+    "din_daeng": {
+        "name": "Din Daeng (High Risk)",
+        "start": {"lat": 13.7467, "lon": 100.5348},
+        "end": {"lat": 13.73, "lon": 100.74},
+    },
+    "asok": {
+        "name": "Asok (High Risk)",
+        "start": {"lat": 13.7467, "lon": 100.5348},
+        "end": {"lat": 13.74, "lon": 100.56},
+    },
+    "huai_khwang": {
+        "name": "Huai Khwang (High Risk)",
+        "start": {"lat": 13.7467, "lon": 100.5348},
+        "end": {"lat": 13.76, "lon": 100.75},
+    },
+}
+
+
+def _interpolate_waypoints(waypoints, target_count):
+    """Interpolate waypoints to reach a target density."""
+    if len(waypoints) >= target_count:
+        return waypoints
+
+    cum = [0.0]
+    for i in range(1, len(waypoints)):
+        cum.append(
+            cum[-1]
+            + _haversine_km(waypoints[i - 1][0], waypoints[i - 1][1], waypoints[i][0], waypoints[i][1])
+        )
+    total = cum[-1]
+    if total == 0:
+        return waypoints
+
+    result = []
+    step = total / (target_count - 1)
+    for i in range(target_count):
+        target_dist = i * step
+        for j in range(1, len(cum)):
+            if cum[j] >= target_dist:
+                seg_len = cum[j] - cum[j - 1]
+                frac = 0 if seg_len == 0 else (target_dist - cum[j - 1]) / seg_len
+                lat = waypoints[j - 1][0] + frac * (waypoints[j][0] - waypoints[j - 1][0])
+                lon = waypoints[j - 1][1] + frac * (waypoints[j][1] - waypoints[j - 1][1])
+                result.append([round(lat, 6), round(lon, 6)])
+                break
+        else:
+            result.append(list(waypoints[-1]))
+    return result
+
+
+@app.route("/api/refresh-demo-routes", methods=["POST"])
+def refresh_demo_routes():
+    """Fetch fresh OSRM full-geometry routes and update demo_routes.json."""
+    import json as _json
+
+    demo_routes_path = Path(app.static_folder) / "demo_routes.json"
+    result = {}
+    errors = []
+
+    for key, route_def in DEMO_ROUTE_DEFS.items():
+        s = route_def["start"]
+        e = route_def["end"]
+        osrm = get_osrm_route(s["lat"], s["lon"], e["lat"], e["lon"])
+
+        if osrm:
+            raw_count = len(osrm["waypoints"])
+            min_points = max(200, int(osrm["distance_km"] * 25))
+            target = max(min_points, raw_count)
+
+            if raw_count < target:
+                dense = _interpolate_waypoints(osrm["waypoints"], target)
+            else:
+                dense = osrm["waypoints"]
+
+            result[key] = {
+                "name": route_def["name"],
+                "start": route_def["start"],
+                "end": route_def["end"],
+                "waypoints": dense,
+                "distance": osrm["distance_km"],
+                "duration": osrm["duration_min"],
+                "osrm_source": True,
+                "osrm_raw_points": raw_count,
+            }
+        else:
+            errors.append(key)
+
+    if not result:
+        return jsonify({"error": "OSRM unavailable for all routes", "failed": errors}), 503
+
+    # Merge with existing (keep old data for routes that failed)
+    try:
+        existing = _json.loads(demo_routes_path.read_text())
+    except Exception:
+        existing = {}
+
+    existing.update(result)
+
+    demo_routes_path.write_text(_json.dumps(existing))
+    summary = {k: {"waypoints": len(v["waypoints"]), "distance": v["distance"]} for k, v in result.items()}
+    return jsonify({"success": True, "updated": summary, "failed": errors})
+
+
 if __name__ == "__main__":
     print("=" * 64)
     print("RoadRisk Bangkok Flask app starting...")
@@ -921,6 +1030,7 @@ if __name__ == "__main__":
     print("  GET  /api/temporal-stats")
     print("  POST /api/analyze-route")
     print("  POST /api/compare-routes")
+    print("  POST /api/refresh-demo-routes")
     print("=" * 64)
     port = int(os.environ.get("PORT", 5000))
     app.run(debug=False, host="0.0.0.0", port=port)
