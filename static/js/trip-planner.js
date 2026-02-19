@@ -10,7 +10,7 @@ let lastAlertSegmentIndex = -1;
 let spokenAlerts = new Set();
 let lastAlertTime = 0;
 const ALERT_COOLDOWN = 5000; // 5 seconds between alerts minimum
-const TRIP_PLANNER_JS_VERSION = "2026-02-09.3";
+const TRIP_PLANNER_JS_VERSION = "2026-02-19.1";
 const SIMULATION_STEP_KM = 0.2;
 const SIMULATION_TICK_MS = 500;
 const DEMO_ROUTE_NAMES = {
@@ -388,16 +388,59 @@ async function loadDemoRoute(routeName) {
 }
 
 async function useDemoRoute(demoRoute, destName, startLat, startLon) {
-    try {
-        showElement("loading-route");
-        document.getElementById("preview-title").textContent = "Loading demo route to " + destName + "...";
-        showElement("route-preview");
-        document.getElementById("preview-time").textContent = "--";
-        document.getElementById("preview-distance").textContent = "--";
-        document.getElementById("risk-text").textContent = "ANALYZING...";
-        document.getElementById("risk-details").textContent = "Applying pre-saved demo route...";
+    showElement("loading-route");
+    document.getElementById("preview-title").textContent = "Loading route to " + destName + "...";
+    showElement("route-preview");
+    document.getElementById("preview-time").textContent = "--";
+    document.getElementById("preview-distance").textContent = "--";
+    document.getElementById("risk-text").textContent = "ANALYZING...";
+    document.getElementById("risk-details").textContent = "Connecting to routing service...";
 
-        const payload = {
+    // === HYBRID STRATEGY: Try OSRM first, fall back to embedded dense waypoints ===
+
+    // 1) Try OSRM (live routing with perfect road geometry)
+    try {
+        console.log("[Hybrid] Trying OSRM live routing first...");
+        document.getElementById("risk-details").textContent = "Fetching live OSRM route...";
+
+        const osrmPayload = {
+            start_lat: startLat,
+            start_lon: startLon,
+            end_lat: demoRoute.end.lat,
+            end_lon: demoRoute.end.lon,
+            // No waypoints = backend will call OSRM for fresh routing
+        };
+
+        const osrmResponse = await fetch("/api/analyze-route", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify(osrmPayload),
+        });
+
+        if (osrmResponse.ok) {
+            const osrmData = await osrmResponse.json();
+            if (osrmData.success) {
+                console.log(
+                    `[Hybrid] OSRM success: ${osrmData.route.waypoints.length} waypoints, `
+                    + `${osrmData.route.distance_km} km`
+                );
+                setTripPlannerRouteData(osrmData);
+                displayRoutePreview(osrmData, destName);
+                hideElement("loading-route");
+                return true;
+            }
+        }
+        console.warn("[Hybrid] OSRM response not ok, falling back to embedded waypoints");
+    } catch (osrmError) {
+        console.warn("[Hybrid] OSRM failed:", osrmError.message, "- using embedded fallback");
+    }
+
+    // 2) Fallback: Use embedded dense waypoints from demo_routes.json
+    try {
+        console.log("[Hybrid] Using embedded dense waypoints as fallback...");
+        document.getElementById("risk-details").textContent = "Using pre-computed route...";
+
+        const fallbackPayload = {
             start_lat: startLat,
             start_lon: startLon,
             end_lat: demoRoute.end.lat,
@@ -405,38 +448,40 @@ async function useDemoRoute(demoRoute, destName, startLat, startLon) {
         };
 
         if (Array.isArray(demoRoute.waypoints) && demoRoute.waypoints.length > 1) {
-            payload.waypoints = demoRoute.waypoints;
+            fallbackPayload.waypoints = demoRoute.waypoints;
             if (demoRoute.distance !== undefined) {
-                payload.distance_km = demoRoute.distance;
+                fallbackPayload.distance_km = demoRoute.distance;
             }
             if (demoRoute.duration !== undefined) {
-                payload.duration_min = demoRoute.duration;
+                fallbackPayload.duration_min = demoRoute.duration;
             }
         }
 
-        const response = await fetch("/api/analyze-route", {
+        const fallbackResponse = await fetch("/api/analyze-route", {
             method: "POST",
-            headers: {
-                "Content-Type": "application/json",
-            },
-            body: JSON.stringify(payload),
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify(fallbackPayload),
         });
 
-        if (!response.ok) {
-            throw new Error("Demo route analysis failed");
+        if (!fallbackResponse.ok) {
+            throw new Error("Fallback route analysis failed");
         }
 
-        const data = await response.json();
-        if (!data.success) {
-            throw new Error(data.error || "Unknown demo route error");
+        const fallbackData = await fallbackResponse.json();
+        if (!fallbackData.success) {
+            throw new Error(fallbackData.error || "Unknown fallback error");
         }
 
-        setTripPlannerRouteData(data);
-        displayRoutePreview(data, destName);
+        console.log(
+            `[Hybrid] Fallback success: ${fallbackData.route.waypoints.length} waypoints `
+            + `(embedded dense)`
+        );
+        setTripPlannerRouteData(fallbackData);
+        displayRoutePreview(fallbackData, destName);
         hideElement("loading-route");
         return true;
-    } catch (error) {
-        console.error("Demo route error:", error);
+    } catch (fallbackError) {
+        console.error("[Hybrid] Both OSRM and fallback failed:", fallbackError);
         hideElement("loading-route");
         return false;
     }
@@ -933,6 +978,28 @@ document.addEventListener("DOMContentLoaded", () => {
     console.log("Ready for destination input");
 });
 
+// === AUTO-REFRESH DEMO ROUTES ON STARTUP ===
+// Attempt to refresh demo_routes.json with real OSRM data on first load.
+// This upgrades interpolated fallback waypoints to real road geometry.
+async function tryRefreshDemoRoutes() {
+    try {
+        const response = await fetch("/api/refresh-demo-routes", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+        });
+        if (response.ok) {
+            const data = await response.json();
+            if (data.success) {
+                console.log("[DemoRoutes] Refreshed with OSRM data:", data.updated);
+                // Invalidate cache so next loadDemoRoute picks up fresh data
+                demoRoutesCache = null;
+            }
+        }
+    } catch (err) {
+        console.log("[DemoRoutes] Auto-refresh skipped (OSRM unavailable)");
+    }
+}
+
 // Check network status
 window.addEventListener("load", () => {
     if (!navigator.onLine) {
@@ -940,6 +1007,8 @@ window.addEventListener("load", () => {
         console.warn("Offline mode - limited functionality");
     } else {
         setNetworkStatusVisibility(false);
+        // Try to upgrade demo routes with real OSRM data in the background
+        tryRefreshDemoRoutes();
     }
 });
 
@@ -949,4 +1018,6 @@ window.addEventListener("offline", () => {
 
 window.addEventListener("online", () => {
     setNetworkStatusVisibility(false);
+    // Try refreshing demo routes when coming back online
+    tryRefreshDemoRoutes();
 });
