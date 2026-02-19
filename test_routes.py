@@ -1,4 +1,4 @@
-"""Test natural risk levels for each quick destination."""
+"""Test natural risk levels for 20 destinations — find best demo routes."""
 import sys, os
 sys.path.insert(0, os.path.join(os.path.dirname(__file__), "src"))
 
@@ -30,8 +30,7 @@ def _haversine_km(lat1, lon1, lat2, lon2):
 
 
 def _load_grid_stats():
-    df = pd.read_csv(GRID_STATS_PATH)
-    return df
+    return pd.read_csv(GRID_STATS_PATH)
 
 
 def _find_grid_for_point(lat, lon, grid_df):
@@ -48,8 +47,7 @@ def _find_grid_for_point(lat, lon, grid_df):
     return None
 
 
-def generate_dense_waypoints(start_lat, start_lon, end_lat, end_lon, num_points=30):
-    """Generate dense waypoints along a straight line (OSRM fallback equivalent)."""
+def generate_dense_waypoints(start_lat, start_lon, end_lat, end_lon, num_points=50):
     waypoints = []
     for i in range(num_points + 1):
         t = i / num_points
@@ -110,6 +108,8 @@ def calculate_route_risk(waypoints, grid_df):
         "medium_risk_zones": medium_risk_zones,
         "low_risk_zones": low_risk_zones,
         "matched_grids": matched_grid_count,
+        "max_accidents": max_accidents_in_grid,
+        "avg_accidents": round(avg_accidents, 2),
     }
 
 
@@ -124,7 +124,6 @@ def calculate_distance(waypoints):
 
 
 def analyze_segments(waypoints, grid_df, segment_count=10):
-    """Break route into segments and classify each."""
     pts_per_seg = max(1, len(waypoints) // segment_count)
     segments = {"high": 0, "medium": 0, "low": 0}
     for i in range(0, len(waypoints), pts_per_seg):
@@ -148,23 +147,35 @@ def analyze_segments(waypoints, grid_df, segment_count=10):
     return segments
 
 
-# --- Destinations ---
+# ─── Config ───
 START = (13.7467, 100.5348)  # Siam Paragon
 
 DESTINATIONS = [
-    ("Chatuchak", 13.80, 100.55),
-    ("Victory Monument", 13.765, 100.538),
-    ("Huai Khwang", 13.76, 100.75),
-    ("Phaya Thai", 13.78, 100.58),
+    ("Ratchada",          13.73, 100.72),
+    ("Din Daeng",         13.73, 100.74),
+    ("Bang Sue",          13.82, 100.55),
+    ("Lat Phrao",         13.79, 100.60),
+    ("Rama IX",           13.76, 100.57),
+    ("Asok",              13.74, 100.56),
+    ("Ekkamai",           13.72, 100.58),
+    ("Thong Lo",          13.73, 100.59),
+    ("Phra Khanong",      13.71, 100.60),
+    ("On Nut",            13.70, 100.61),
+    ("Bearing",           13.66, 100.62),
+    ("Samut Prakan",      13.60, 100.60),
+    ("Rangsit",           14.03, 100.60),
+    ("Don Mueang",        13.92, 100.61),
+    ("Saphan Mai",        13.88, 100.57),
+    ("Chatuchak",         13.80, 100.55),
+    ("Huai Khwang",       13.76, 100.75),
+    ("Ramkhamhaeng",      13.75, 100.62),
+    ("Min Buri",          13.82, 100.72),
+    ("Lak Si",            13.88, 100.54),
 ]
 
 grid_df = _load_grid_stats()
 
-print("=" * 70)
-print("  NATURAL RISK ANALYSIS — Siam Paragon → Quick Destinations")
-print("  (No artificial shortcuts — real grid-based scoring)")
-print("=" * 70)
-
+# ─── Analyze all routes ───
 results = []
 for name, end_lat, end_lon in DESTINATIONS:
     waypoints = generate_dense_waypoints(START[0], START[1], end_lat, end_lon, num_points=50)
@@ -173,37 +184,78 @@ for name, end_lat, end_lon in DESTINATIONS:
     risk = calculate_route_risk(waypoints, grid_df)
     segments = analyze_segments(waypoints, grid_df)
 
+    # Determine demo-worthiness
+    variety = segments["high"] + segments["medium"]
+    if risk["risk_level"] == "HIGH" and variety >= 2:
+        demo = "GREAT"
+    elif risk["risk_level"] == "HIGH":
+        demo = "YES"
+    elif risk["risk_level"] == "MEDIUM" and variety >= 3:
+        demo = "GOOD"
+    elif risk["risk_level"] == "MEDIUM":
+        demo = "OK"
+    else:
+        demo = "-"
+
     results.append({
         "name": name,
+        "lat": end_lat,
+        "lon": end_lon,
         "distance": distance,
         "duration": duration,
         "risk": risk,
         "segments": segments,
+        "variety": variety,
+        "demo": demo,
     })
 
-# Print results
-for r in results:
-    risk = r["risk"]
-    seg = r["segments"]
+# Sort by risk score descending
+results.sort(key=lambda r: (-r["risk"]["risk_score"], -r["variety"]))
+
+# ─── Full ranking table ───
+print("=" * 90)
+print("  ROUTE RISK SCAN — 20 Destinations from Siam Paragon")
+print("  Sorted by risk score (highest first)")
+print("=" * 90)
+print()
+print(f"  {'#':>2}  {'Destination':<18} {'km':>6} {'min':>4}  {'Risk':>4} {'Level':>6}  "
+      f"{'H':>2} {'M':>2} {'L':>2}  {'MaxAcc':>6} {'AvgAcc':>6}  {'Demo?':>5}")
+print(f"  {'─'*2}  {'─'*18} {'─'*6} {'─'*4}  {'─'*4} {'─'*6}  "
+      f"{'─'*2} {'─'*2} {'─'*2}  {'─'*6} {'─'*6}  {'─'*5}")
+
+for i, r in enumerate(results, 1):
+    rk = r["risk"]
+    sg = r["segments"]
+    level_tag = rk["risk_level"]
+    print(f"  {i:>2}  {r['name']:<18} {r['distance']:>5.1f} {r['duration']:>4}  "
+          f"{rk['risk_score']:>4} {level_tag:>6}  "
+          f"{sg['high']:>2} {sg['medium']:>2} {sg['low']:>2}  "
+          f"{rk['max_accidents']:>6} {rk['avg_accidents']:>6}  "
+          f"{r['demo']:>5}")
+
+# ─── Top 5 demo picks ───
+top = [r for r in results if r["demo"] in ("GREAT", "YES", "GOOD")][:5]
+if len(top) < 5:
+    top += [r for r in results if r not in top and r["demo"] == "OK"][:5 - len(top)]
+if len(top) < 5:
+    top += [r for r in results if r not in top][:5 - len(top)]
+
+print()
+print("=" * 90)
+print("  TOP 5 DEMO ROUTES")
+print("=" * 90)
+
+for i, r in enumerate(top, 1):
+    rk = r["risk"]
+    sg = r["segments"]
     print()
-    print(f"  📍 {r['name']}")
-    print(f"  ├─ Distance:      {r['distance']:.2f} km")
-    print(f"  ├─ Duration:      {r['duration']} min")
-    print(f"  ├─ Risk Score:    {risk['risk_score']}/100")
-    print(f"  ├─ Risk Level:    {risk['risk_level']}")
-    print(f"  ├─ Matched Grids: {risk['matched_grids']}")
-    print(f"  └─ Segments:      {seg['high']} high | {seg['medium']} medium | {seg['low']} low")
+    print(f"  #{i}  {r['name']}")
+    print(f"      Coords:     ({r['lat']}, {r['lon']})")
+    print(f"      Distance:   {r['distance']:.2f} km  |  Duration: {r['duration']} min")
+    print(f"      Risk Score: {rk['risk_score']}/100  ({rk['risk_level']})")
+    print(f"      Segments:   {sg['high']} high (red) | {sg['medium']} medium (yellow) | {sg['low']} low (green)")
+    print(f"      Max accidents in a grid: {rk['max_accidents']}  |  Avg: {rk['avg_accidents']}")
+    print(f"      Demo grade: {r['demo']}")
 
 print()
-print("=" * 70)
-
-# Summary table
-print()
-print(f"  {'Destination':<20} {'Dist(km)':>9} {'Time(min)':>10} {'Risk':>5} {'Level':>7}  {'H':>2} {'M':>2} {'L':>2}")
-print(f"  {'─'*20} {'─'*9} {'─'*10} {'─'*5} {'─'*7}  {'─'*2} {'─'*2} {'─'*2}")
-for r in results:
-    risk = r["risk"]
-    seg = r["segments"]
-    print(f"  {r['name']:<20} {r['distance']:>8.2f}  {r['duration']:>9}  {risk['risk_score']:>4}  {risk['risk_level']:>7}  {seg['high']:>2} {seg['medium']:>2} {seg['low']:>2}")
-
-print()
+print("=" * 90)
