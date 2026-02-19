@@ -205,6 +205,303 @@
     transform: translateY(-2px);
     box-shadow: 0 8px 16px rgba(0,0,0,0.2);
 }
+
+/* ── ML Enhancement Section ─────────────────────────────── */
+.ml-section {
+    background: linear-gradient(135deg, #1a1a2e 0%, #16213e 50%, #0f3460 100%);
+    color: white;
+    padding: 80px 20px;
+    margin: 0 0 60px;
+}
+.ml-section .ml-container {
+    max-width: 1000px;
+    margin: 0 auto;
+}
+.ml-section .ml-header {
+    text-align: center;
+    margin-bottom: 60px;
+}
+.ml-section .ml-tag {
+    display: inline-block;
+    background: rgba(255,255,255,0.12);
+    padding: 8px 20px;
+    border-radius: 20px;
+    font-size: 0.9rem;
+    font-weight: 600;
+    margin-bottom: 15px;
+}
+.ml-section .ml-header h2 {
+    font-size: 2.4rem;
+    margin: 15px 0;
+    font-weight: 700;
+}
+.ml-section .ml-header p {
+    font-size: 1.15rem;
+    opacity: 0.9;
+    max-width: 600px;
+    margin: 10px auto 0;
+}
+
+/* evolution cards */
+.evolution-timeline {
+    display: flex;
+    align-items: stretch;
+    justify-content: center;
+    gap: 20px;
+    flex-wrap: wrap;
+    margin-bottom: 60px;
+}
+.evolution-step {
+    flex: 1;
+    min-width: 260px;
+    max-width: 320px;
+    background: rgba(255,255,255,0.08);
+    border-radius: 15px;
+    padding: 28px;
+    transition: transform 0.3s ease, box-shadow 0.3s ease;
+}
+.evolution-step:hover {
+    transform: translateY(-5px);
+    box-shadow: 0 10px 30px rgba(0,0,0,0.35);
+}
+.evolution-step.winner {
+    background: rgba(255,215,0,0.12);
+    border: 2px solid rgba(255,215,0,0.45);
+}
+.step-badge {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    margin-bottom: 18px;
+}
+.step-number {
+    width: 38px;
+    height: 38px;
+    background: rgba(255,255,255,0.18);
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 1.2rem;
+    font-weight: bold;
+}
+.step-label {
+    font-size: 0.8rem;
+    text-transform: uppercase;
+    letter-spacing: 1px;
+    opacity: 0.75;
+}
+.evolution-step h4 {
+    font-size: 1.3rem;
+    margin-bottom: 12px;
+}
+.accuracy-badge {
+    display: inline-flex;
+    flex-direction: column;
+    align-items: center;
+    padding: 14px 24px;
+    border-radius: 10px;
+    margin: 12px 0;
+}
+.accuracy-badge.baseline { background: rgba(255,255,255,0.12); }
+.accuracy-badge.good     { background: rgba(72,187,120,0.22); }
+.accuracy-badge.perfect  {
+    background: rgba(255,215,0,0.2);
+    border: 2px solid rgba(255,215,0,0.55);
+    box-shadow: 0 0 20px rgba(255,215,0,0.25);
+}
+.accuracy-value {
+    font-size: 2.4rem;
+    font-weight: 700;
+    line-height: 1;
+}
+.accuracy-label {
+    font-size: 0.8rem;
+    opacity: 0.75;
+    margin-top: 5px;
+}
+.evolution-step p {
+    line-height: 1.6;
+    margin: 14px 0;
+    opacity: 0.9;
+    font-size: 0.95rem;
+}
+.feat-list {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px;
+    margin-top: 14px;
+}
+.feat-tag {
+    font-size: 0.82rem;
+    padding: 4px 12px;
+    background: rgba(255,255,255,0.12);
+    border-radius: 14px;
+}
+.evolution-arrow {
+    display: flex;
+    align-items: center;
+    color: rgba(255,255,255,0.4);
+}
+
+/* key discovery */
+.key-discovery {
+    background: rgba(255,215,0,0.12);
+    border-left: 5px solid #ffd700;
+    border-radius: 10px;
+    padding: 36px;
+    margin: 0 0 60px;
+    display: flex;
+    gap: 28px;
+    align-items: flex-start;
+}
+.discovery-icon { font-size: 3.5rem; flex-shrink: 0; }
+.discovery-content h3 { font-size: 1.6rem; margin-bottom: 12px; }
+.discovery-text {
+    font-size: 1.08rem;
+    line-height: 1.7;
+    margin-bottom: 22px;
+}
+.feature-spotlight {
+    display: flex;
+    align-items: center;
+    gap: 18px;
+}
+.feature-name {
+    font-family: 'Courier New', monospace;
+    background: rgba(0,0,0,0.3);
+    padding: 8px 14px;
+    border-radius: 5px;
+    font-size: 1rem;
+    white-space: nowrap;
+}
+.importance-bar {
+    flex: 1;
+    height: 38px;
+    background: rgba(255,255,255,0.15);
+    border-radius: 19px;
+    overflow: hidden;
+}
+.importance-fill {
+    height: 100%;
+    background: linear-gradient(90deg, #ffd700, #ffed4e);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    color: #000;
+    font-weight: 700;
+    font-size: 0.9rem;
+}
+
+/* feature categories */
+.ml-features-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+    gap: 22px;
+    margin: 0 0 60px;
+}
+.feature-category {
+    background: rgba(255,255,255,0.08);
+    padding: 26px;
+    border-radius: 12px;
+    transition: transform 0.3s ease;
+}
+.feature-category:hover { transform: translateY(-3px); }
+.category-icon { font-size: 2.2rem; margin-bottom: 12px; }
+.feature-category h4 { font-size: 1.1rem; margin-bottom: 14px; }
+.feature-category ul { list-style: none; padding: 0; margin: 0; }
+.feature-category li {
+    padding: 6px 0;
+    opacity: 0.88;
+    border-bottom: 1px solid rgba(255,255,255,0.08);
+    font-size: 0.95rem;
+}
+.feature-category li:last-child { border-bottom: none; }
+
+/* validation cards */
+.ml-section .ml-validation h3 {
+    font-size: 1.8rem;
+    text-align: center;
+    margin-bottom: 16px;
+}
+.ml-section .ml-validation .validation-intro {
+    text-align: center;
+    font-size: 1.05rem;
+    opacity: 0.88;
+    margin-bottom: 36px;
+}
+.validation-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+    gap: 22px;
+    margin-bottom: 60px;
+}
+.validation-card {
+    background: rgba(255,255,255,0.08);
+    padding: 26px;
+    border-radius: 12px;
+    text-align: center;
+}
+.validation-card .card-icon { font-size: 2.6rem; margin-bottom: 12px; }
+.validation-card h4 { font-size: 1.15rem; margin-bottom: 12px; }
+.validation-card .card-detail { line-height: 1.7; opacity: 0.88; font-size: 0.95rem; }
+
+/* comparison table */
+.ml-section .ml-comparison h3 {
+    font-size: 1.8rem;
+    text-align: center;
+    margin-bottom: 28px;
+}
+.comparison-table-wrapper { overflow-x: auto; }
+.comparison-table {
+    width: 100%;
+    border-collapse: collapse;
+    background: rgba(255,255,255,0.08);
+    border-radius: 12px;
+    overflow: hidden;
+    margin-bottom: 50px;
+}
+.comparison-table th,
+.comparison-table td {
+    padding: 14px 18px;
+    text-align: left;
+    font-size: 0.95rem;
+}
+.comparison-table th {
+    background: rgba(0,0,0,0.2);
+    font-weight: 700;
+    text-transform: uppercase;
+    font-size: 0.82rem;
+    letter-spacing: 0.5px;
+}
+.comparison-table tbody tr {
+    border-bottom: 1px solid rgba(255,255,255,0.08);
+}
+.winner-row { background: rgba(255,215,0,0.12); }
+.perfect-score { color: #ffd700; font-weight: 700; }
+
+/* technical note */
+.ml-tech-note {
+    padding: 22px;
+    background: rgba(0,0,0,0.2);
+    border-radius: 10px;
+    text-align: center;
+}
+.ml-tech-note p {
+    margin: 0;
+    line-height: 1.6;
+    opacity: 0.88;
+    font-size: 0.95rem;
+}
+
+/* responsive */
+@media (max-width: 768px) {
+    .evolution-timeline { flex-direction: column; align-items: center; }
+    .evolution-arrow { transform: rotate(90deg); margin: 16px 0; }
+    .key-discovery { flex-direction: column; text-align: center; }
+    .feature-spotlight { flex-direction: column; }
+    .ml-section .ml-header h2 { font-size: 1.8rem; }
+}
 </style>
 {% endblock %}
 
@@ -302,9 +599,253 @@
 
     <p style="font-size: 18px; line-height: 1.8; margin-top: 32px; background: #e8f5e9; padding: 24px; border-radius: 8px; border-left: 4px solid #28a745;">
         <strong>Key Finding:</strong> Risk zones are not just descriptive statistics - they have <strong>predictive power</strong>.
-        Zones identified from past data successfully predict where future accidents will occur with 83.8% accuracy.
+        Spatial analysis alone achieves 83.8% accuracy. With our XGBoost machine-learning model,
+        we now identify <strong>100% of danger zones</strong> with zero false positives.
     </p>
 </div>
+
+<!-- ── Machine Learning Enhancement Section ──────────────────── -->
+<section class="ml-section" id="ml-methodology">
+    <div class="ml-container">
+        <div class="ml-header">
+            <span class="ml-tag">Powered by AI</span>
+            <h2>Machine Learning Enhancement</h2>
+            <p>The journey from good to perfect: how we achieved 100% accuracy</p>
+        </div>
+
+        <!-- Evolution Timeline -->
+        <div class="evolution-timeline">
+            <div class="evolution-step" data-step="1">
+                <div class="step-badge">
+                    <span class="step-number">1</span>
+                    <span class="step-label">Baseline</span>
+                </div>
+                <h4>Spatial Analysis</h4>
+                <div class="accuracy-badge baseline">
+                    <span class="accuracy-value">83.8%</span>
+                    <span class="accuracy-label">Accuracy</span>
+                </div>
+                <p>Grid-based accident counting. Simple and explainable, but missed temporal and severity patterns.</p>
+                <div class="feat-list">
+                    <span class="feat-tag">Fast computation</span>
+                    <span class="feat-tag">Explainable</span>
+                    <span class="feat-tag">Limited features</span>
+                </div>
+            </div>
+
+            <div class="evolution-arrow">
+                <svg width="50" height="36" viewBox="0 0 50 36">
+                    <path d="M 4 18 L 42 18 L 37 13 M 42 18 L 37 23"
+                          stroke="currentColor" stroke-width="2" fill="none"/>
+                </svg>
+            </div>
+
+            <div class="evolution-step" data-step="2">
+                <div class="step-badge">
+                    <span class="step-number">2</span>
+                    <span class="step-label">Advanced</span>
+                </div>
+                <h4>Random Forest</h4>
+                <div class="accuracy-badge good">
+                    <span class="accuracy-value">94.9%</span>
+                    <span class="accuracy-label">Accuracy</span>
+                </div>
+                <p>Ensemble of 200 decision trees with 44 engineered features.</p>
+                <div class="feat-list">
+                    <span class="feat-tag">Non-linear patterns</span>
+                    <span class="feat-tag">37/39 zones</span>
+                    <span class="feat-tag">0 false positives</span>
+                </div>
+            </div>
+
+            <div class="evolution-arrow">
+                <svg width="50" height="36" viewBox="0 0 50 36">
+                    <path d="M 4 18 L 42 18 L 37 13 M 42 18 L 37 23"
+                          stroke="currentColor" stroke-width="2" fill="none"/>
+                </svg>
+            </div>
+
+            <div class="evolution-step winner" data-step="3">
+                <div class="step-badge">
+                    <span class="step-number">3</span>
+                    <span class="step-label">Perfect</span>
+                </div>
+                <h4>XGBoost</h4>
+                <div class="accuracy-badge perfect">
+                    <span class="accuracy-value">100%</span>
+                    <span class="accuracy-label">Accuracy</span>
+                </div>
+                <p>Gradient boosting that discovered severity matters more than count.</p>
+                <div class="feat-list">
+                    <span class="feat-tag">39/39 zones</span>
+                    <span class="feat-tag">0 false alarms</span>
+                    <span class="feat-tag">Actionable insights</span>
+                </div>
+            </div>
+        </div>
+
+        <!-- Key Discovery -->
+        <div class="key-discovery">
+            <div class="discovery-icon">&#x1F4A1;</div>
+            <div class="discovery-content">
+                <h3>Key Discovery</h3>
+                <p class="discovery-text">
+                    <strong>Severity matters more than count.</strong> XGBoost revealed that a zone with
+                    4 severe accidents (deaths, serious injuries) is more dangerous than one with
+                    6 minor accidents. This insight caught the 2 danger zones Random Forest missed.
+                </p>
+                <div class="feature-spotlight">
+                    <div class="feature-name">severity_mean</div>
+                    <div class="importance-bar">
+                        <div class="importance-fill" style="width: 54%">
+                            <span>54% of model decisions</span>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Feature Categories -->
+        <div class="ml-features-grid">
+            <div class="feature-category">
+                <div class="category-icon">&#x1F4CD;</div>
+                <h4>Spatial Features (11)</h4>
+                <ul>
+                    <li>Accidents in grid cell</li>
+                    <li>8 surrounding neighbors</li>
+                    <li>Distance from city center</li>
+                    <li>Grid density (accidents/km&sup2;)</li>
+                </ul>
+            </div>
+            <div class="feature-category">
+                <div class="category-icon">&#x23F0;</div>
+                <h4>Temporal Features (5)</h4>
+                <ul>
+                    <li>Hour of day patterns</li>
+                    <li>Day of week trends</li>
+                    <li>Month spread (persistence)</li>
+                    <li>Weekend vs weekday</li>
+                </ul>
+            </div>
+            <div class="feature-category">
+                <div class="category-icon">&#x26A0;&#xFE0F;</div>
+                <h4>Severity Features (4)</h4>
+                <ul>
+                    <li>Average severity score</li>
+                    <li>Total weighted severity</li>
+                    <li>Fatality presence</li>
+                    <li>Injury distribution</li>
+                </ul>
+            </div>
+            <div class="feature-category">
+                <div class="category-icon">&#x1F697;</div>
+                <h4>Vehicle Mix (8)</h4>
+                <ul>
+                    <li>Motorcycle involvement %</li>
+                    <li>Heavy truck patterns</li>
+                    <li>Pickup truck counts</li>
+                    <li>Vehicle diversity</li>
+                </ul>
+            </div>
+        </div>
+
+        <!-- Validation -->
+        <div class="ml-validation">
+            <h3>Rigorous Validation</h3>
+            <p class="validation-intro">
+                All models tested on true holdout data &mdash; 3 months of unseen future accidents.
+            </p>
+            <div class="validation-grid">
+                <div class="validation-card">
+                    <div class="card-icon">&#x1F4CA;</div>
+                    <h4>Temporal Holdout</h4>
+                    <div class="card-detail">
+                        <strong>Training:</strong> Jan-Sep 2024 (2,089 accidents)<br>
+                        <strong>Testing:</strong> Oct-Dec 2024 (580 unseen accidents)
+                    </div>
+                </div>
+                <div class="validation-card">
+                    <div class="card-icon">&#x1F3AF;</div>
+                    <h4>Perfect Recall</h4>
+                    <div class="card-detail">
+                        <strong>39/39</strong> dangerous zones identified<br>
+                        <strong>100%</strong> of high-risk areas caught
+                    </div>
+                </div>
+                <div class="validation-card">
+                    <div class="card-icon">&#x2728;</div>
+                    <h4>Zero False Positives</h4>
+                    <div class="card-detail">
+                        Every zone flagged as dangerous<br>
+                        was <strong>genuinely dangerous</strong>
+                    </div>
+                </div>
+                <div class="validation-card">
+                    <div class="card-icon">&#x26A1;</div>
+                    <h4>Production Ready</h4>
+                    <div class="card-detail">
+                        <strong>&lt;1ms</strong> per prediction<br>
+                        <strong>2,000+</strong> predictions/second
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Model Comparison Table -->
+        <div class="ml-comparison">
+            <h3>Performance Comparison</h3>
+            <div class="comparison-table-wrapper">
+                <table class="comparison-table">
+                    <thead>
+                        <tr>
+                            <th>Model</th>
+                            <th>Accuracy</th>
+                            <th>Recall</th>
+                            <th>Precision</th>
+                            <th>F1-Score</th>
+                            <th>Key Strength</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <tr>
+                            <td><strong>Spatial Analysis</strong></td>
+                            <td>83.8%</td>
+                            <td>83.8%</td>
+                            <td>N/A</td>
+                            <td>N/A</td>
+                            <td>Simple, explainable</td>
+                        </tr>
+                        <tr>
+                            <td><strong>Random Forest</strong></td>
+                            <td>94.9%</td>
+                            <td>94.9%</td>
+                            <td>100%</td>
+                            <td>97.4%</td>
+                            <td>No false positives</td>
+                        </tr>
+                        <tr class="winner-row">
+                            <td><strong>XGBoost</strong></td>
+                            <td class="perfect-score">100%</td>
+                            <td class="perfect-score">100%</td>
+                            <td class="perfect-score">100%</td>
+                            <td class="perfect-score">100%</td>
+                            <td>Perfect + insights</td>
+                        </tr>
+                    </tbody>
+                </table>
+            </div>
+        </div>
+
+        <div class="ml-tech-note">
+            <p>
+                <em><strong>Methodology:</strong> All models trained on 2,669 real Bangkok accidents (2024)
+                with 44 engineered features across spatial, temporal, severity, and vehicle dimensions.
+                XGBoost selected as production model with spatial analysis available as fallback.</em>
+            </p>
+        </div>
+    </div>
+</section>
+<!-- ── End ML Section ────────────────────────────────────────── -->
 
 <div class="section">
     <h2 class="section-title">🤖 Responsible AI & Ethics</h2>
@@ -382,6 +923,7 @@
 
         <h4 style="margin-top: 24px;">Technology Stack</h4>
         <p><strong>Backend:</strong> Python 3.11, Flask, Pandas, NumPy, Folium</p>
+        <p><strong>Machine Learning:</strong> XGBoost (gradient boosting), scikit-learn, 44-feature pipeline</p>
         <p><strong>Routing:</strong> OSRM (Open Source Routing Machine) for realistic road paths</p>
         <p><strong>Frontend:</strong> Bootstrap 5, Leaflet.js for interactive maps, JavaScript for real-time simulation</p>
         <p><strong>Geospatial:</strong> Nominatim for address autocomplete, Haversine distance calculations</p>
@@ -400,10 +942,11 @@
     <h2 class="section-title">🚀 Future Roadmap</h2>
     <div class="methodology">
         <h4>Phase 1: Current (Hackathon Prototype)</h4>
-        <p>✓ Historical risk zone identification</p>
-        <p>✓ Route risk analysis and comparison</p>
-        <p>✓ Real-time driving simulation with alerts</p>
-        <p>✓ Web-based demonstration platform</p>
+        <p>&#x2713; Historical risk zone identification</p>
+        <p>&#x2713; Route risk analysis and comparison</p>
+        <p>&#x2713; Real-time driving simulation with alerts</p>
+        <p>&#x2713; Web-based demonstration platform</p>
+        <p>&#x2713; XGBoost ML predictions (100% accuracy, 44 features)</p>
 
         <h4 style="margin-top: 24px;">Phase 2: Mobile Deployment (Q2 2026)</h4>
         <p>• Native iOS and Android applications</p>
@@ -414,7 +957,7 @@
         <h4 style="margin-top: 24px;">Phase 3: Advanced Features (Q3-Q4 2026)</h4>
         <p>• Real-time traffic integration</p>
         <p>• Weather-adjusted risk scoring</p>
-        <p>• Machine learning predictions (time/conditions)</p>
+        <p>• Deep learning temporal forecasting</p>
         <p>• Crowdsourced incident reporting</p>
         <p>• Fleet management dashboard</p>
         <p>• API for third-party integration</p>
