@@ -14,19 +14,20 @@ const TRIP_PLANNER_JS_VERSION = "2026-02-09.3";
 const SIMULATION_STEP_KM = 0.2;
 const SIMULATION_TICK_MS = 500;
 const DEMO_ROUTE_NAMES = {
+    "Ratchada": "ratchada",
+    "Din Daeng": "din_daeng",
+    "Asok": "asok",
     "Huai Khwang": "huai_khwang",
-    "Phaya Thai": "phaya_thai",
 };
 let demoRoutesCache = null;
 
 // Pre-defined backup destinations
 const BACKUP_DESTINATIONS = [
     { name: "Siam Paragon", lat: 13.7467, lon: 100.5348 },
-    { name: "Chatuchak Weekend Market", lat: 13.80, lon: 100.55 },
-    { name: "Victory Monument", lat: 13.765, lon: 100.538 },
+    { name: "Ratchada", lat: 13.73, lon: 100.72 },
+    { name: "Din Daeng", lat: 13.73, lon: 100.74 },
+    { name: "Asok", lat: 13.74, lon: 100.56 },
     { name: "Huai Khwang", lat: 13.76, lon: 100.75 },
-    { name: "Phaya Thai", lat: 13.78, lon: 100.58 },
-    { name: "Bang Sue Junction", lat: 13.82, lon: 100.68 },
     { name: "MBK Center", lat: 13.7447, lon: 100.5299 },
     { name: "Ari", lat: 13.7795, lon: 100.5362 }
 ];

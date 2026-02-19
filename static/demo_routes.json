@@ -1,26 +1,26 @@
 {
-  "huai_khwang": {
-    "name": "Huai Khwang",
-    "start": {
-      "lat": 13.7467,
-      "lon": 100.5348
-    },
-    "end": {
-      "lat": 13.76,
-      "lon": 100.75
-    },
+  "ratchada": {
+    "name": "Ratchada (High Risk)",
+    "start": {"lat": 13.7467, "lon": 100.5348},
+    "end": {"lat": 13.73, "lon": 100.72},
     "waypoints": null
   },
-  "phaya_thai": {
-    "name": "Phaya Thai",
-    "start": {
-      "lat": 13.7467,
-      "lon": 100.5348
-    },
-    "end": {
-      "lat": 13.78,
-      "lon": 100.58
-    },
+  "din_daeng": {
+    "name": "Din Daeng (High Risk)",
+    "start": {"lat": 13.7467, "lon": 100.5348},
+    "end": {"lat": 13.73, "lon": 100.74},
+    "waypoints": null
+  },
+  "asok": {
+    "name": "Asok (High Risk)",
+    "start": {"lat": 13.7467, "lon": 100.5348},
+    "end": {"lat": 13.74, "lon": 100.56},
+    "waypoints": null
+  },
+  "huai_khwang": {
+    "name": "Huai Khwang (High Risk)",
+    "start": {"lat": 13.7467, "lon": 100.5348},
+    "end": {"lat": 13.76, "lon": 100.75},
     "waypoints": null
   }
 }
