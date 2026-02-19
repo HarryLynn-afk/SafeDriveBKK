@@ -412,8 +412,6 @@ def calculate_route_risk_density_aware(waypoints, grid_df):
     if high_risk_zones > 0:
         risk_score = min(100, risk_score + (high_risk_zones * 12))
 
-    risk_score = max(risk_score, 20)
-
     if risk_score >= 55:
         risk_level = "high"
     elif risk_score >= 30:
@@ -728,49 +726,7 @@ def analyze_route():
                 route_duration_min = int((route_distance_km / 40) * 60) if route_distance_km > 0 else 0
             route_duration_min = max(0, route_duration_min)
         else:
-            HIGH_RISK_WAYPOINTS = {
-                "chatuchak": [
-                    [13.7467, 100.5348],  # Start: Siam
-                    [13.76, 100.55],  # Auto-selected danger zone
-                    [13.78, 100.53],  # Auto-selected danger zone
-                    [13.80, 100.55],  # End: Chatuchak
-                ],
-                "victory": [
-                    [13.7467, 100.5348],  # Start: Siam
-                    [13.76, 100.55],  # Auto-selected danger zone
-                    [13.765, 100.538],  # End: Victory
-                ],
-                "phaya_thai": [
-                    [13.7467, 100.5348],  # Start: Siam
-                    [13.74, 100.55],  # Auto-selected danger zone
-                    [13.76, 100.55],  # Auto-selected danger zone
-                    [13.75, 100.56],  # Auto-selected danger zone
-                    [13.78, 100.58],  # End: Phaya Thai
-                ],
-            }
-
-            route_key = None
-            if abs(end_lat - 13.80) < 0.01 and abs(end_lon - 100.55) < 0.01:
-                route_key = "chatuchak"
-            elif abs(end_lat - 13.765) < 0.01 and abs(end_lon - 100.538) < 0.01:
-                route_key = "victory"
-            elif abs(end_lat - 13.78) < 0.01 and abs(end_lon - 100.58) < 0.01:
-                route_key = "phaya_thai"
-
-            osrm_route = None
-            if route_key:
-                print(f"Forcing route through high-risk waypoints: {route_key}")
-
-                template_waypoints = [point[:] for point in HIGH_RISK_WAYPOINTS[route_key]]
-                template_waypoints[0] = [start_lat, start_lon]
-                template_waypoints[-1] = [end_lat, end_lon]
-
-                print(f"Adjusted waypoints: start={start_lat},{start_lon}, end={end_lat},{end_lon}")
-
-                osrm_route = get_osrm_route_from_waypoints(template_waypoints)
-
-            if not osrm_route:
-                osrm_route = get_osrm_route(start_lat, start_lon, end_lat, end_lon)
+            osrm_route = get_osrm_route(start_lat, start_lon, end_lat, end_lon)
             if not osrm_route:
                 return jsonify({"error": "Could not calculate route"}), 400
             waypoints = osrm_route["waypoints"]
@@ -876,13 +832,6 @@ def compare_routes():
             safe_distance = calculate_distance_from_waypoints(safe_waypoints)
             safe_time = int((safe_distance / 40) * 60)
 
-        # Ensure the safe route is never faster in the UI summary.
-        if safe_time <= fast_time:
-            if safe_waypoints == fast_waypoints:
-                safe_time = fast_time
-            else:
-                safe_time = fast_time + max(2, int(max(fast_time, 1) * 0.08))
-
         route_fast["distance_km"] = round(fast_distance, 2)
         route_safe["distance_km"] = round(safe_distance, 2)
         route_fast["time_min"] = fast_time
@@ -914,6 +863,8 @@ def compare_routes():
         time_diff = route_safe["time_min"] - route_fast["time_min"]
         if time_diff > 0:
             route_safe["time_difference"] = f"+{time_diff} min"
+        elif time_diff < 0:
+            route_safe["time_difference"] = f"{time_diff} min"
         else:
             route_safe["time_difference"] = "0 min"
 
@@ -923,7 +874,13 @@ def compare_routes():
             recommendation = "Fast route is already the safest available option. No safer alternative exists for this trip."
         else:
             risk_reduction_pct = int((1 - (safe_risk_score / fast_risk_score)) * 100) if fast_risk_score > 0 else 0
-            recommendation = f"Safe route reduces risk by {risk_reduction_pct}% for +{max(0, safe_time - fast_time)} minutes."
+            time_cost = safe_time - fast_time
+            if time_cost > 0:
+                recommendation = f"Safe route reduces risk by {risk_reduction_pct}% for +{time_cost} minutes."
+            elif time_cost < 0:
+                recommendation = f"Safe route reduces risk by {risk_reduction_pct}% and is {abs(time_cost)} minutes faster."
+            else:
+                recommendation = f"Safe route reduces risk by {risk_reduction_pct}% with no extra time."
 
         debug_data = {
             "fast_waypoints_sample": route_fast["waypoints"][:3],
