@@ -1,0 +1,86 @@
+{
+  "model": "XGBoost",
+  "best_iteration": 132,
+  "n_estimators_used": 133,
+  "scale_pos_weight": 20.59,
+  "train_accuracy": 100.0,
+  "test_accuracy": 100.0,
+  "test_precision_dangerous": 100.0,
+  "test_recall_dangerous": 100.0,
+  "test_f1_dangerous": 100.0,
+  "test_auc_roc": 100.0,
+  "dangerous_caught": "39/39",
+  "confusion_matrix": {
+    "true_negative": 2379,
+    "false_positive": 0,
+    "false_negative": 0,
+    "true_positive": 39
+  },
+  "spatial_baseline_capture": 83.8,
+  "rf_recall": 94.87,
+  "beats_spatial_baseline": true,
+  "beats_random_forest": true,
+  "winner_vs_rf": "XGBoost",
+  "top_15_features": [
+    {
+      "feature": "severity_mean",
+      "importance": 0.53624
+    },
+    {
+      "feature": "grid_density",
+      "importance": 0.19613
+    },
+    {
+      "feature": "month_spread",
+      "importance": 0.09755
+    },
+    {
+      "feature": "pickup_count",
+      "importance": 0.0739
+    },
+    {
+      "feature": "rush_hour_pct",
+      "importance": 0.02079
+    },
+    {
+      "feature": "type_ชนด้านข้าง",
+      "importance": 0.01817
+    },
+    {
+      "feature": "type_ชนท้าย",
+      "importance": 0.01757
+    },
+    {
+      "feature": "pickup_pct",
+      "importance": 0.01732
+    },
+    {
+      "feature": "accidents_neighbors_max",
+      "importance": 0.00834
+    },
+    {
+      "feature": "motorcycle_count",
+      "importance": 0.00335
+    },
+    {
+      "feature": "car_count",
+      "importance": 0.00327
+    },
+    {
+      "feature": "cause_คน/รถ/สัตว์ตัดหน้ากระชั้นชิด",
+      "importance": 0.00174
+    },
+    {
+      "feature": "motorcycle_pct",
+      "importance": 0.00161
+    },
+    {
+      "feature": "accidents_sw",
+      "importance": 0.00143
+    },
+    {
+      "feature": "severity_total",
+      "importance": 0.00073
+    }
+  ]
+}
