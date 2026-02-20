@@ -28,13 +28,18 @@
                     type="text"
                     id="start-location"
                     class="location-input"
-                    placeholder="Current location"
-                    value="Siam Paragon"
-                    readonly
+                    placeholder="Search start location..."
+                    autocomplete="off"
+                    oninput="searchStartLocations(this.value)"
                 >
-                <button class="gps-button" onclick="detectMyLocation()" title="Use my GPS">
+                <button class="gps-button" onclick="detectMyLocation()" title="Use my GPS" aria-label="Detect my GPS location">
                     📍
                 </button>
+            </div>
+
+            <!-- Start Suggestions Dropdown -->
+            <div id="start-suggestions-dropdown" class="suggestions-dropdown" style="display:none;">
+                <!-- Populated by JavaScript -->
             </div>
 
             <!-- Destination Input -->
@@ -98,9 +103,9 @@
                 </div>
             </div>
 
-            <div class="risk-indicator" id="risk-indicator">
+            <div class="risk-indicator" id="risk-indicator" role="status" aria-live="polite">
                 <div class="risk-badge" id="risk-badge">
-                    <span class="risk-icon">⚠️</span>
+                    <span class="risk-icon" aria-hidden="true">⚠️</span>
                     <span class="risk-text" id="risk-text">CALCULATING...</span>
                 </div>
                 <div class="risk-details" id="risk-details">
@@ -139,9 +144,9 @@
     </div>
 
     <!-- Navigation Alert Box -->
-    <div id="nav-alert-box" class="nav-alert-box safe">
+    <div id="nav-alert-box" class="nav-alert-box safe" role="alert" aria-live="assertive">
         <div class="alert-content">
-            <div class="alert-icon" id="nav-alert-icon">✓</div>
+            <div class="alert-icon" id="nav-alert-icon" aria-hidden="true">✓</div>
             <div class="alert-text">
                 <div class="alert-title" id="nav-alert-title">Ready to navigate</div>
                 <div class="alert-subtitle" id="nav-alert-subtitle">Drive safely</div>

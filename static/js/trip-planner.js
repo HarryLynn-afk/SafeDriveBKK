@@ -34,53 +34,53 @@ const BACKUP_DESTINATIONS = [
 
 // ===== ADDRESS AUTOCOMPLETE =====
 let searchTimeout = null;
+let startSearchTimeout = null;
 
-async function searchDestinations(query) {
-    // Clear previous timeout
-    if (searchTimeout) {
-        clearTimeout(searchTimeout);
-    }
+// Default start location (used as fallback only)
+const DEFAULT_START = { name: "Siam Paragon", lat: 13.7467, lon: 100.5348 };
 
-    // Hide suggestions if query is empty
-    if (!query || query.length < 2) {
-        hideElement("suggestions-dropdown");
-        return;
-    }
-
-    // Debounce search (wait 300ms after user stops typing)
-    searchTimeout = setTimeout(async () => {
-        try {
-            // Try Nominatim API first
-            const response = await fetch(
-                `https://nominatim.openstreetmap.org/search?`
-                + `q=${encodeURIComponent(query + " Bangkok Thailand")}&`
-                + `format=json&`
-                + `limit=5&`
-                + `addressdetails=1`
-            );
-
-            if (response.ok) {
-                const results = await response.json();
-                displaySuggestions(results, "api");
-            } else {
-                throw new Error("API failed");
-            }
-        } catch (error) {
-            console.log("API failed, using backup destinations");
-            // Fallback to backup destinations
-            const filtered = BACKUP_DESTINATIONS.filter((destination) =>
-                destination.name.toLowerCase().includes(query.toLowerCase())
-            );
-            displaySuggestions(filtered, "backup");
+async function searchLocations(query, dropdownId, onSelect) {
+    return new Promise((resolve) => {
+        const dropdown = document.getElementById(dropdownId);
+        if (!query || query.length < 2) {
+            hideElement(dropdownId);
+            resolve();
+            return;
         }
-    }, 300);
+
+        setTimeout(async () => {
+            try {
+                const response = await fetch(
+                    `https://nominatim.openstreetmap.org/search?`
+                    + `q=${encodeURIComponent(query + " Bangkok Thailand")}&`
+                    + `format=json&`
+                    + `limit=5&`
+                    + `addressdetails=1`
+                );
+
+                if (response.ok) {
+                    const results = await response.json();
+                    displayLocationSuggestions(results, "api", dropdownId, onSelect);
+                } else {
+                    throw new Error("API failed");
+                }
+            } catch (error) {
+                console.log("API failed, using backup destinations");
+                const filtered = BACKUP_DESTINATIONS.filter((destination) =>
+                    destination.name.toLowerCase().includes(query.toLowerCase())
+                );
+                displayLocationSuggestions(filtered, "backup", dropdownId, onSelect);
+            }
+            resolve();
+        }, 300);
+    });
 }
 
-function displaySuggestions(results, source) {
-    const dropdown = document.getElementById("suggestions-dropdown");
+function displayLocationSuggestions(results, source, dropdownId, onSelect) {
+    const dropdown = document.getElementById(dropdownId);
 
     if (!results || results.length === 0) {
-        hideElement("suggestions-dropdown");
+        hideElement(dropdownId);
         return;
     }
 
@@ -115,40 +115,87 @@ function displaySuggestions(results, source) {
             </div>
         `;
 
-        item.onclick = () => selectDestination(name, lat, lon);
+        item.onclick = () => onSelect(name, lat, lon);
         dropdown.appendChild(item);
     });
 
-    showElement("suggestions-dropdown");
+    showElement(dropdownId);
+}
+
+async function searchStartLocations(query) {
+    if (startSearchTimeout) {
+        clearTimeout(startSearchTimeout);
+    }
+    if (!query || query.length < 2) {
+        hideElement("start-suggestions-dropdown");
+        return;
+    }
+    startSearchTimeout = setTimeout(() => {
+        searchLocations(query, "start-suggestions-dropdown", selectStartLocation);
+    }, 300);
+}
+
+function selectStartLocation(name, lat, lon) {
+    console.log("Selected start:", name, lat, lon);
+    document.getElementById("start-location").value = name;
+    hideElement("start-suggestions-dropdown");
+    window.startLat = lat;
+    window.startLon = lon;
+
+    // If destination already selected, recalculate route
+    if (window.endLat && window.endLon) {
+        const destInput = document.getElementById("destination");
+        calculateRoute(lat, lon, window.endLat, window.endLon, destInput.value);
+    }
+}
+
+async function searchDestinations(query) {
+    if (searchTimeout) {
+        clearTimeout(searchTimeout);
+    }
+    if (!query || query.length < 2) {
+        hideElement("suggestions-dropdown");
+        return;
+    }
+    searchTimeout = setTimeout(() => {
+        searchLocations(query, "suggestions-dropdown", selectDestination);
+    }, 300);
 }
 
 function selectDestination(name, lat, lon) {
     console.log("Selected destination:", name, lat, lon);
 
-    // Update input
     document.getElementById("destination").value = name;
-
-    // Hide suggestions
     hideElement("suggestions-dropdown");
 
     window.endLat = lat;
     window.endLon = lon;
 
-    // Get start location (default Siam Paragon for now)
-    const startLat = window.startLat || 13.7467;
-    const startLon = window.startLon || 100.5348;
+    // Get start location — use user-selected or prompt them
+    const startLat = window.startLat;
+    const startLon = window.startLon;
 
-    // Calculate route
+    if (!startLat || !startLon) {
+        alert("Please set a start location first (search or use GPS).");
+        document.getElementById("start-location").focus();
+        return;
+    }
+
     calculateRoute(startLat, startLon, lat, lon, name);
 }
 
 // Close suggestions when clicking outside
 document.addEventListener("click", (event) => {
-    const dropdown = document.getElementById("suggestions-dropdown");
-    const input = document.getElementById("destination");
+    const destDropdown = document.getElementById("suggestions-dropdown");
+    const destInput = document.getElementById("destination");
+    const startDropdown = document.getElementById("start-suggestions-dropdown");
+    const startInput = document.getElementById("start-location");
 
-    if (event.target !== input && !dropdown.contains(event.target)) {
+    if (event.target !== destInput && !destDropdown.contains(event.target)) {
         hideElement("suggestions-dropdown");
+    }
+    if (event.target !== startInput && !startDropdown.contains(event.target)) {
+        hideElement("start-suggestions-dropdown");
     }
 });
 
@@ -187,7 +234,8 @@ function detectMyLocation() {
         },
         (error) => {
             alert("Unable to detect location: " + error.message);
-            startInput.value = "Siam Paragon";
+            startInput.value = "";
+            startInput.placeholder = "Search start location...";
         }
     );
 }
@@ -287,15 +335,6 @@ function displayRoutePreview(data, destName) {
     let riskIcon;
     let riskLabel;
     let riskClass;
-
-    // Debug logging
-    console.log("=== RISK CALCULATION DEBUG ===");
-    console.log("Risk level:", route.risk_level);
-    console.log("Risk score:", route.risk_score);
-    console.log("High-risk segments:", summary.high_risk_segments);
-    console.log("Medium-risk segments:", summary.medium_risk_segments);
-    console.log("Full route data:", data);
-    console.log("==============================");
 
     // Determine risk based on both score and level
     // Use score as primary, level as fallback
@@ -493,13 +532,20 @@ async function selectQuickDestination(name, lat, lon) {
     window.endLat = lat;
     window.endLon = lon;
 
+    // Require start location
+    if (!window.startLat || !window.startLon) {
+        alert("Please set a start location first (search or use GPS).");
+        document.getElementById("start-location").focus();
+        return;
+    }
+
     const demoRouteKey = DEMO_ROUTE_NAMES[name];
     if (demoRouteKey) {
         try {
             const demoRoute = await loadDemoRoute(demoRouteKey);
             if (demoRoute) {
-                const startLat = Number(demoRoute.start?.lat ?? window.startLat ?? 13.7467);
-                const startLon = Number(demoRoute.start?.lon ?? window.startLon ?? 100.5348);
+                const startLat = Number(window.startLat);
+                const startLon = Number(window.startLon);
                 const ok = await useDemoRoute(demoRoute, name, startLat, startLon);
                 if (ok) {
                     return;
@@ -511,8 +557,8 @@ async function selectQuickDestination(name, lat, lon) {
     }
 
     // Fallback to normal calculation
-    const startLat = window.startLat || 13.7467;
-    const startLon = window.startLon || 100.5348;
+    const startLat = window.startLat;
+    const startLon = window.startLon;
     await calculateRoute(startLat, startLon, window.endLat, window.endLon, name);
 }
 
@@ -806,17 +852,6 @@ function checkNavigationAlerts() {
     const currentSegment = tripPlannerRouteData.segments[segmentIndex];
     const segmentColor = String(currentSegment.color || "").toLowerCase().trim();
     const severity = currentSegment.ui_severity || getSegmentSeverity(currentSegment);
-
-    console.log("=== SEGMENT ALERT DEBUG ===");
-    console.log("Version:", TRIP_PLANNER_JS_VERSION);
-    console.log("Segment index:", segmentIndex);
-    console.log("Current segment color:", segmentColor);
-    console.log("Current segment severity:", severity);
-    console.log("Current segment risk_level:", currentSegment.risk_level);
-    console.log("Current segment risk_score:", currentSegment.risk_score);
-    console.log("Prev distance:", tripPreviousDistance.toFixed(2), "km");
-    console.log("Distance:", tripCurrentDistance.toFixed(2), "km");
-    console.log("==========================");
 
     let icon;
     let title;
