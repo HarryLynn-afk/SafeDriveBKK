@@ -40,25 +40,25 @@
     <section class="row g-3 mb-4">
         <div class="col-md-3">
             <div class="stats-card">
-                <div class="stats-label">Bangkok 2024: 2,669 Accidents Analyzed</div>
+                <div class="stats-label">Bangkok 2024 Accidents Analyzed</div>
                 <div class="stats-value">{{ "{:,}".format(total_accidents) }}</div>
             </div>
         </div>
         <div class="col-md-3">
             <div class="stats-card warning">
-                <div class="stats-label">126 High-Risk Zones Identified</div>
+                <div class="stats-label">High-Risk Zones Identified</div>
                 <div class="stats-value">{{ "{:,}".format(high_risk_zones) }}</div>
             </div>
         </div>
         <div class="col-md-3">
             <div class="stats-card">
-                <div class="stats-label">Peak Danger: 10:00-11:00 AM</div>
+                <div class="stats-label">Peak Danger Time</div>
                 <div class="stats-value">{{ peak_time }}</div>
             </div>
         </div>
         <div class="col-md-3">
             <div class="stats-card">
-                <div class="stats-label">Most Dangerous: Saturday</div>
+                <div class="stats-label">Most Dangerous Day</div>
                 <div class="stats-value">{{ dangerous_day }}</div>
             </div>
         </div>
@@ -86,7 +86,7 @@
             🚗 Plan Your Safe Route Now
         </a>
         <p style="margin-top: 16px; color: #6c757d; font-size: 14px;">
-            Experience real-time risk alerts and navigation •
+            <a href="/analytics" style="color: #667eea; text-decoration: none; font-weight: 500;">Explore Analytics Dashboard</a> •
             <a href="/about" style="color: #667eea; text-decoration: none;">Learn more about our methodology →</a>
         </p>
     </div>

@@ -1,0 +1,449 @@
+{% extends "base.html" %}
+
+{% block title %}Analytics Dashboard - RoadRisk Bangkok{% endblock %}
+
+{% block extra_css %}
+<style>
+.analytics-hero {
+    background: linear-gradient(135deg, #1d4ed8 0%, #7c3aed 100%);
+    color: white;
+    padding: 40px 20px;
+    text-align: center;
+    margin-bottom: 32px;
+}
+.analytics-hero h1 { font-size: 32px; font-weight: 700; margin-bottom: 8px; }
+.analytics-hero p { font-size: 16px; opacity: 0.9; }
+.analytics-container {
+    max-width: 1200px;
+    margin: 0 auto;
+    padding: 0 20px 60px;
+}
+.chart-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(480px, 1fr));
+    gap: 24px;
+    margin-bottom: 32px;
+}
+.chart-card {
+    background: white;
+    border-radius: 12px;
+    padding: 24px;
+    box-shadow: 0 2px 12px rgba(0,0,0,0.08);
+}
+.chart-card h3 {
+    font-size: 18px;
+    font-weight: 600;
+    margin-bottom: 16px;
+    color: #212529;
+}
+.chart-wrapper { position: relative; width: 100%; min-height: 300px; }
+.chart-card.full-width { grid-column: 1 / -1; }
+.summary-row {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+    gap: 16px;
+    margin-bottom: 32px;
+}
+.summary-card {
+    background: white;
+    border-radius: 12px;
+    padding: 20px;
+    text-align: center;
+    box-shadow: 0 2px 8px rgba(0,0,0,0.06);
+    border-top: 4px solid #1d4ed8;
+}
+.summary-card.danger { border-top-color: #dc2626; }
+.summary-card.warning { border-top-color: #f59e0b; }
+.summary-card.success { border-top-color: #16a34a; }
+.summary-value { font-size: 32px; font-weight: 700; color: #1d4ed8; }
+.summary-card.danger .summary-value { color: #dc2626; }
+.summary-card.warning .summary-value { color: #f59e0b; }
+.summary-card.success .summary-value { color: #16a34a; }
+.summary-label { font-size: 13px; color: #6b7280; text-transform: uppercase; letter-spacing: 0.5px; margin-top: 4px; }
+.top-zones-table {
+    width: 100%;
+    border-collapse: collapse;
+}
+.top-zones-table th {
+    background: #f8f9fa;
+    padding: 10px 14px;
+    text-align: left;
+    font-size: 13px;
+    text-transform: uppercase;
+    color: #6b7280;
+    letter-spacing: 0.5px;
+}
+.top-zones-table td {
+    padding: 10px 14px;
+    border-bottom: 1px solid #e5e7eb;
+    font-size: 14px;
+}
+.risk-badge {
+    display: inline-block;
+    padding: 2px 10px;
+    border-radius: 12px;
+    font-size: 12px;
+    font-weight: 600;
+    text-transform: uppercase;
+}
+.risk-badge.high { background: #fef2f2; color: #dc2626; }
+.risk-badge.medium { background: #fffbeb; color: #d97706; }
+.risk-badge.low { background: #f0fdf4; color: #16a34a; }
+.loading-spinner {
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    min-height: 200px;
+    color: #6b7280;
+    font-size: 16px;
+}
+@media (max-width: 768px) {
+    .chart-grid { grid-template-columns: 1fr; }
+    .summary-row { grid-template-columns: repeat(2, 1fr); }
+}
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="analytics-hero">
+    <h1>Analytics Dashboard</h1>
+    <p>Interactive exploration of Bangkok's 2024 accident data — 2,669 records across 2,418 grid zones</p>
+</div>
+
+<div class="analytics-container">
+    <!-- Summary Cards -->
+    <div class="summary-row" id="summary-row">
+        <div class="summary-card">
+            <div class="summary-value" id="stat-total">--</div>
+            <div class="summary-label">Total Accidents</div>
+        </div>
+        <div class="summary-card danger">
+            <div class="summary-value" id="stat-deaths">--</div>
+            <div class="summary-label">Fatalities</div>
+        </div>
+        <div class="summary-card warning">
+            <div class="summary-value" id="stat-serious">--</div>
+            <div class="summary-label">Serious Injuries</div>
+        </div>
+        <div class="summary-card success">
+            <div class="summary-value" id="stat-zones">--</div>
+            <div class="summary-label">Grid Zones Monitored</div>
+        </div>
+    </div>
+
+    <!-- Charts Row 1: Temporal patterns -->
+    <div class="chart-grid">
+        <div class="chart-card">
+            <h3>Accidents by Hour of Day</h3>
+            <div class="chart-wrapper">
+                <canvas id="chart-hourly" aria-label="Bar chart showing accidents by hour of day" role="img"></canvas>
+            </div>
+        </div>
+        <div class="chart-card">
+            <h3>Accidents by Day of Week</h3>
+            <div class="chart-wrapper">
+                <canvas id="chart-daily" aria-label="Bar chart showing accidents by day of week" role="img"></canvas>
+            </div>
+        </div>
+    </div>
+
+    <!-- Charts Row 2: Monthly trend + Severity -->
+    <div class="chart-grid">
+        <div class="chart-card">
+            <h3>Monthly Accident Trend</h3>
+            <div class="chart-wrapper">
+                <canvas id="chart-monthly" aria-label="Line chart showing monthly accident trend" role="img"></canvas>
+            </div>
+        </div>
+        <div class="chart-card">
+            <h3>Severity Breakdown</h3>
+            <div class="chart-wrapper">
+                <canvas id="chart-severity" aria-label="Doughnut chart showing severity breakdown" role="img"></canvas>
+            </div>
+        </div>
+    </div>
+
+    <!-- Charts Row 3: Vehicle types + Causes -->
+    <div class="chart-grid">
+        <div class="chart-card">
+            <h3>Vehicle Types Involved</h3>
+            <div class="chart-wrapper">
+                <canvas id="chart-vehicles" aria-label="Bar chart showing vehicle types" role="img"></canvas>
+            </div>
+        </div>
+        <div class="chart-card">
+            <h3>Top Accident Causes</h3>
+            <div class="chart-wrapper">
+                <canvas id="chart-causes" aria-label="Horizontal bar chart showing accident causes" role="img"></canvas>
+            </div>
+        </div>
+    </div>
+
+    <!-- Top 10 Dangerous Zones Table -->
+    <div class="chart-grid">
+        <div class="chart-card full-width">
+            <h3>Top 10 Most Dangerous Zones</h3>
+            <div id="top-zones-container">
+                <div class="loading-spinner">Loading data...</div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Risk Distribution + Weekend/Weekday -->
+    <div class="chart-grid">
+        <div class="chart-card">
+            <h3>Risk Level Distribution</h3>
+            <div class="chart-wrapper">
+                <canvas id="chart-risk-dist" aria-label="Pie chart showing risk level distribution" role="img"></canvas>
+            </div>
+        </div>
+        <div class="chart-card">
+            <h3>Weekend vs Weekday Accidents</h3>
+            <div class="chart-wrapper">
+                <canvas id="chart-weekend" aria-label="Doughnut chart showing weekend vs weekday" role="img"></canvas>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js"></script>
+<script>
+const COLORS = {
+    primary: '#1d4ed8',
+    danger: '#dc2626',
+    warning: '#f59e0b',
+    success: '#16a34a',
+    purple: '#7c3aed',
+    teal: '#0d9488',
+    pink: '#db2777',
+    orange: '#ea580c',
+    indigo: '#4f46e5',
+    slate: '#64748b',
+};
+const PALETTE = ['#1d4ed8','#dc2626','#f59e0b','#16a34a','#7c3aed','#0d9488','#db2777','#ea580c','#4f46e5','#64748b'];
+
+function createBarChart(canvasId, labels, data, color, label) {
+    return new Chart(document.getElementById(canvasId), {
+        type: 'bar',
+        data: {
+            labels: labels,
+            datasets: [{
+                label: label,
+                data: data,
+                backgroundColor: color + 'cc',
+                borderColor: color,
+                borderWidth: 1,
+                borderRadius: 4,
+            }]
+        },
+        options: {
+            responsive: true,
+            maintainAspectRatio: false,
+            plugins: { legend: { display: false } },
+            scales: {
+                y: { beginAtZero: true, grid: { color: '#f1f5f9' } },
+                x: { grid: { display: false } }
+            }
+        }
+    });
+}
+
+async function loadAnalytics() {
+    try {
+        const response = await fetch('/api/analytics-data');
+        if (!response.ok) throw new Error('Failed to load analytics');
+        const data = await response.json();
+
+        // Summary cards
+        document.getElementById('stat-total').textContent = data.total_accidents.toLocaleString();
+        document.getElementById('stat-deaths').textContent = data.severity.Deaths.toLocaleString();
+        document.getElementById('stat-serious').textContent = data.severity['Serious Injuries'].toLocaleString();
+        document.getElementById('stat-zones').textContent = data.total_grids.toLocaleString();
+
+        // Hourly chart
+        const hours = Array.from({length: 24}, (_, i) => i);
+        const hourlyData = hours.map(h => data.by_hour[h] || 0);
+        const hourLabels = hours.map(h => h.toString().padStart(2, '0') + ':00');
+        createBarChart('chart-hourly', hourLabels, hourlyData, COLORS.primary, 'Accidents');
+
+        // Daily chart
+        const dayOrder = ['Monday','Tuesday','Wednesday','Thursday','Friday','Saturday','Sunday'];
+        const dayLabels = dayOrder.map(d => d.slice(0,3));
+        const dailyData = dayOrder.map(d => data.by_day[d] || 0);
+        const dayColors = dayOrder.map(d => (d === 'Saturday' || d === 'Sunday') ? COLORS.danger + 'cc' : COLORS.primary + 'cc');
+        new Chart(document.getElementById('chart-daily'), {
+            type: 'bar',
+            data: {
+                labels: dayLabels,
+                datasets: [{
+                    label: 'Accidents',
+                    data: dailyData,
+                    backgroundColor: dayColors,
+                    borderRadius: 4,
+                }]
+            },
+            options: {
+                responsive: true, maintainAspectRatio: false,
+                plugins: { legend: { display: false } },
+                scales: { y: { beginAtZero: true, grid: { color: '#f1f5f9' } }, x: { grid: { display: false } } }
+            }
+        });
+
+        // Monthly trend
+        const monthOrder = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
+        const monthlyData = monthOrder.map(m => data.by_month[m] || 0);
+        new Chart(document.getElementById('chart-monthly'), {
+            type: 'line',
+            data: {
+                labels: monthOrder,
+                datasets: [{
+                    label: 'Accidents',
+                    data: monthlyData,
+                    borderColor: COLORS.purple,
+                    backgroundColor: COLORS.purple + '20',
+                    fill: true,
+                    tension: 0.3,
+                    pointBackgroundColor: COLORS.purple,
+                    pointRadius: 5,
+                }]
+            },
+            options: {
+                responsive: true, maintainAspectRatio: false,
+                plugins: { legend: { display: false } },
+                scales: { y: { beginAtZero: true, grid: { color: '#f1f5f9' } }, x: { grid: { display: false } } }
+            }
+        });
+
+        // Severity doughnut
+        new Chart(document.getElementById('chart-severity'), {
+            type: 'doughnut',
+            data: {
+                labels: Object.keys(data.severity),
+                datasets: [{
+                    data: Object.values(data.severity),
+                    backgroundColor: [COLORS.danger, COLORS.warning, COLORS.success],
+                    borderWidth: 2,
+                    borderColor: '#fff',
+                }]
+            },
+            options: {
+                responsive: true, maintainAspectRatio: false,
+                plugins: { legend: { position: 'bottom' } }
+            }
+        });
+
+        // Vehicle types
+        const vehicleLabels = Object.keys(data.by_vehicle);
+        const vehicleData = Object.values(data.by_vehicle);
+        new Chart(document.getElementById('chart-vehicles'), {
+            type: 'bar',
+            data: {
+                labels: vehicleLabels,
+                datasets: [{
+                    label: 'Involved',
+                    data: vehicleData,
+                    backgroundColor: PALETTE.slice(0, vehicleLabels.length).map(c => c + 'cc'),
+                    borderRadius: 4,
+                }]
+            },
+            options: {
+                responsive: true, maintainAspectRatio: false,
+                indexAxis: 'y',
+                plugins: { legend: { display: false } },
+                scales: { x: { beginAtZero: true, grid: { color: '#f1f5f9' } }, y: { grid: { display: false } } }
+            }
+        });
+
+        // Accident causes (horizontal bar)
+        const causeLabels = Object.keys(data.by_cause).map(c => c.length > 30 ? c.slice(0, 30) + '...' : c);
+        const causeData = Object.values(data.by_cause);
+        new Chart(document.getElementById('chart-causes'), {
+            type: 'bar',
+            data: {
+                labels: causeLabels,
+                datasets: [{
+                    label: 'Accidents',
+                    data: causeData,
+                    backgroundColor: PALETTE.slice(0, causeLabels.length).map(c => c + 'cc'),
+                    borderRadius: 4,
+                }]
+            },
+            options: {
+                responsive: true, maintainAspectRatio: false,
+                indexAxis: 'y',
+                plugins: { legend: { display: false } },
+                scales: { x: { beginAtZero: true, grid: { color: '#f1f5f9' } }, y: { grid: { display: false }, ticks: { font: { size: 11 } } } }
+            }
+        });
+
+        // Top 10 zones table
+        const container = document.getElementById('top-zones-container');
+        if (data.top_zones && data.top_zones.length > 0) {
+            let html = '<table class="top-zones-table"><thead><tr><th>#</th><th>Zone ID</th><th>Accidents</th><th>Risk Level</th><th>Location</th></tr></thead><tbody>';
+            data.top_zones.forEach((zone, i) => {
+                const riskClass = (zone.risk_level || '').toLowerCase();
+                html += `<tr>
+                    <td>${i + 1}</td>
+                    <td><strong>${zone.grid_id}</strong></td>
+                    <td>${zone.total_accidents}</td>
+                    <td><span class="risk-badge ${riskClass}">${zone.risk_level}</span></td>
+                    <td>${Number(zone.center_lat).toFixed(4)}, ${Number(zone.center_lon).toFixed(4)}</td>
+                </tr>`;
+            });
+            html += '</tbody></table>';
+            container.innerHTML = html;
+        } else {
+            container.innerHTML = '<p>No zone data available.</p>';
+        }
+
+        // Risk distribution pie
+        const riskColors = { high: COLORS.danger, medium: COLORS.warning, low: COLORS.success };
+        const riskLabels = Object.keys(data.risk_distribution);
+        const riskData = Object.values(data.risk_distribution);
+        new Chart(document.getElementById('chart-risk-dist'), {
+            type: 'pie',
+            data: {
+                labels: riskLabels.map(l => l.charAt(0).toUpperCase() + l.slice(1) + ' Risk'),
+                datasets: [{
+                    data: riskData,
+                    backgroundColor: riskLabels.map(l => riskColors[l.toLowerCase()] || COLORS.slate),
+                    borderWidth: 2,
+                    borderColor: '#fff',
+                }]
+            },
+            options: {
+                responsive: true, maintainAspectRatio: false,
+                plugins: { legend: { position: 'bottom' } }
+            }
+        });
+
+        // Weekend vs Weekday doughnut
+        new Chart(document.getElementById('chart-weekend'), {
+            type: 'doughnut',
+            data: {
+                labels: ['Weekday', 'Weekend'],
+                datasets: [{
+                    data: [data.weekend_vs_weekday.Weekday, data.weekend_vs_weekday.Weekend],
+                    backgroundColor: [COLORS.primary, COLORS.orange],
+                    borderWidth: 2,
+                    borderColor: '#fff',
+                }]
+            },
+            options: {
+                responsive: true, maintainAspectRatio: false,
+                plugins: { legend: { position: 'bottom' } }
+            }
+        });
+
+    } catch (error) {
+        console.error('Analytics load error:', error);
+        document.getElementById('top-zones-container').innerHTML =
+            '<p style="color: #dc2626;">Failed to load analytics data. Please try refreshing the page.</p>';
+    }
+}
+
+document.addEventListener('DOMContentLoaded', loadAnalytics);
+</script>
+{% endblock %}
