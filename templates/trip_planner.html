@@ -132,6 +132,41 @@
     </div>
 </div>
 
+<!-- AI Analyzing Overlay (shown while /api/compare-routes is in-flight) -->
+<div id="ai-analyzing-overlay" class="ai-analyzing-overlay" style="display:none;">
+    <div class="ai-analyzing-content">
+        <div class="ai-spinner">
+            <div class="spinner-ring"></div>
+            <div class="ai-icon">🤖</div>
+        </div>
+
+        <h3>AI Analyzing Routes</h3>
+        <p id="analysis-status">Requesting route alternatives from OSRM...</p>
+
+        <div class="analysis-progress">
+            <div class="progress-step" id="step-1">
+                <div class="step-icon">📍</div>
+                <div class="step-text">Getting route options</div>
+                <div class="step-status">⏳</div>
+            </div>
+            <div class="progress-step" id="step-2">
+                <div class="step-icon">🤖</div>
+                <div class="step-text">XGBoost analyzing risks</div>
+                <div class="step-status">⏳</div>
+            </div>
+            <div class="progress-step" id="step-3">
+                <div class="step-icon">⚖️</div>
+                <div class="step-text">Comparing routes</div>
+                <div class="step-status">⏳</div>
+            </div>
+        </div>
+
+        <div class="analysis-stats">
+            <span id="routes-analyzed">0</span> routes analyzed
+        </div>
+    </div>
+</div>
+
 <!-- Navigation Fullscreen Mode -->
 <div id="navigation-fullscreen" class="navigation-fullscreen">
     <div class="nav-header">
@@ -188,5 +223,5 @@
 
 {% block extra_js %}
 <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
-<script src="{{ url_for('static', filename='js/trip-planner.js', v='20260226-1') }}"></script>
+<script src="{{ url_for('static', filename='js/trip-planner.js', v='20260226-2') }}"></script>
 {% endblock %}

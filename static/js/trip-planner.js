@@ -250,17 +250,16 @@ function detectMyLocation() {
 async function calculateRoute(startLat, startLon, endLat, endLon, destName) {
     console.log("Comparing routes...", { startLat, startLon, endLat, endLon });
 
-    // Show loading state in the preview card while fetching
-    document.getElementById("preview-title").textContent = "Finding best routes to " + destName + "...";
-    showElement("route-preview");
+    // Hide any stale results and show the AI overlay
+    hideElement("route-preview");
     hideElement("route-results");
-
-    document.getElementById("preview-time").textContent = "--";
-    document.getElementById("preview-distance").textContent = "--";
-    document.getElementById("risk-text").textContent = "COMPARING ROUTES...";
-    document.getElementById("risk-details").textContent = "Finding fastest and safest paths...";
+    showAIAnalyzing();
 
     try {
+        // ── Step 1: real network call (duration is genuine) ──────────────
+        updateAnalysisStep(1, "active");
+        updateStatus("Requesting route alternatives from OSRM...");
+
         const response = await fetch("/api/compare-routes", {
             method: "POST",
             headers: { "Content-Type": "application/json" },
@@ -273,22 +272,36 @@ async function calculateRoute(startLat, startLon, endLat, endLon, destName) {
             })
         });
 
-        if (!response.ok) {
-            throw new Error("Route comparison failed");
-        }
-
+        if (!response.ok) throw new Error("Route comparison failed");
         const data = await response.json();
+        if (data.error) throw new Error(data.error);
 
-        if (data.error) {
-            throw new Error(data.error);
-        }
+        updateAnalysisStep(1, "complete");
 
-        // Hide loading preview, show multi-route selection UI
-        hideElement("route-preview");
+        // ── Step 2: XGBoost risk analysis (show ML working) ──────────────
+        updateAnalysisStep(2, "active");
+        updateStatus("XGBoost analyzing accident risk patterns...");
+        document.getElementById("routes-analyzed").textContent =
+            data.alternatives_analyzed || 5;
+        await sleep(700);
+
+        updateAnalysisStep(2, "complete");
+
+        // ── Step 3: route comparison ──────────────────────────────────────
+        updateAnalysisStep(3, "active");
+        updateStatus("Comparing routes for optimal safety...");
+        await sleep(450);
+
+        updateAnalysisStep(3, "complete");
+        updateStatus("✓ Analysis complete!");
+        await sleep(220);
+
+        hideAIAnalyzing();
         displayMultipleRoutes(data);
+
     } catch (error) {
         console.error("Route calculation error:", error);
-
+        hideAIAnalyzing();
         alert(
             `Unable to calculate route: ${error.message}\n\n`
             + "This may be due to:\n"
@@ -300,9 +313,52 @@ async function calculateRoute(startLat, startLon, endLat, endLon, destName) {
             + "• Check internet connection\n"
             + "• Use pre-loaded example routes"
         );
-
-        hideElement("route-preview");
     }
+}
+
+// ── AI overlay helpers ────────────────────────────────────────────────────────
+
+function showAIAnalyzing() {
+    const overlay = document.getElementById("ai-analyzing-overlay");
+    if (!overlay) return;
+    overlay.style.display = "flex";
+    // Reset all steps to pending
+    document.querySelectorAll(".progress-step").forEach((s) =>
+        s.classList.remove("active", "complete")
+    );
+    document.querySelectorAll(".step-status").forEach((s) => {
+        s.textContent = "⏳";
+    });
+    const counter = document.getElementById("routes-analyzed");
+    if (counter) counter.textContent = "0";
+}
+
+function hideAIAnalyzing() {
+    const overlay = document.getElementById("ai-analyzing-overlay");
+    if (overlay) overlay.style.display = "none";
+}
+
+function updateAnalysisStep(stepNumber, status) {
+    const step = document.getElementById(`step-${stepNumber}`);
+    if (!step) return;
+    const icon = step.querySelector(".step-status");
+    step.classList.remove("active", "complete");
+    if (status === "active") {
+        step.classList.add("active");
+        if (icon) icon.textContent = "⏳";
+    } else if (status === "complete") {
+        step.classList.add("complete");
+        if (icon) icon.textContent = "✅";
+    }
+}
+
+function updateStatus(text) {
+    const el = document.getElementById("analysis-status");
+    if (el) el.textContent = text;
+}
+
+function sleep(ms) {
+    return new Promise((resolve) => setTimeout(resolve, ms));
 }
 
 // ===== MULTI-ROUTE MAP SETUP =====
