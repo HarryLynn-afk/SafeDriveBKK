@@ -333,23 +333,30 @@ function displayMultipleRoutes(data) {
     // Reveal results container (map + selection cards are inside)
     showElement("route-results");
 
-    // Init map and clear any previous route lines
-    initCompareMap();
-    clearPreviewMap();
-
-    // Draw both routes: blue = fast, green = safe
-    displayRouteOnMap(data.fast_route, "fast", "#3B82F6", 0.75);
-    displayRouteOnMap(data.safe_route, "safe", "#10B981", 0.75);
-
-    // Fit map bounds to encompass both routes
-    const allLayers = Object.values(routeLayers);
-    if (allLayers.length > 0) {
-        const group = L.featureGroup(allLayers);
-        tripCompareMap.fitBounds(group.getBounds(), { padding: [50, 50] });
-    }
-
-    // Render route selection cards below the map
+    // Render route selection cards immediately (doesn't depend on map)
     showRouteSelectionUI(data);
+
+    // Defer Leaflet map init so the browser has time to paint the container
+    // before Leaflet measures its dimensions. Without this delay the map
+    // renders as a grey box because the element reports 0×0 size.
+    setTimeout(() => {
+        initCompareMap();
+        clearPreviewMap();
+
+        // Draw both routes: blue = fast, green = safe
+        displayRouteOnMap(data.fast_route, "fast", "#3B82F6", 0.75);
+        displayRouteOnMap(data.safe_route, "safe", "#10B981", 0.75);
+
+        // Fit map bounds to encompass both routes
+        const allLayers = Object.values(routeLayers);
+        if (allLayers.length > 0) {
+            const group = L.featureGroup(allLayers);
+            tripCompareMap.fitBounds(group.getBounds(), { padding: [50, 50] });
+        }
+
+        // Second invalidateSize after fitBounds for reliable tile loading
+        setTimeout(() => tripCompareMap.invalidateSize(), 100);
+    }, 50);
 }
 
 function displayRouteOnMap(route, routeId, color, opacity) {
@@ -839,7 +846,6 @@ async function useDemoRoute(demoRoute, destName, startLat, startLon) {
     }
 }
 
-// Update selectQuickDestination to use demo routes when available.
 async function selectQuickDestination(name, lat, lon) {
     document.getElementById("destination").value = name;
     window.endLat = lat;
@@ -852,27 +858,9 @@ async function selectQuickDestination(name, lat, lon) {
         return;
     }
 
-    const demoRouteKey = DEMO_ROUTE_NAMES[name];
-    if (demoRouteKey) {
-        try {
-            const demoRoute = await loadDemoRoute(demoRouteKey);
-            if (demoRoute) {
-                const startLat = Number(window.startLat);
-                const startLon = Number(window.startLon);
-                const ok = await useDemoRoute(demoRoute, name, startLat, startLon);
-                if (ok) {
-                    return;
-                }
-            }
-        } catch (error) {
-            console.warn("Demo route failed, using normal calculation:", error);
-        }
-    }
-
-    // Fallback to normal calculation
-    const startLat = window.startLat;
-    const startLon = window.startLon;
-    await calculateRoute(startLat, startLon, window.endLat, window.endLon, name);
+    // Always go through the multi-route compare-routes flow so all chips
+    // show the Waze-style route selection UI (not the old single-route card).
+    await calculateRoute(window.startLat, window.startLon, lat, lon, name);
 }
 
 function haversineKm(lat1, lon1, lat2, lon2) {
@@ -1012,6 +1000,19 @@ function initializeNavigationMap() {
             opacity: 0.8
         }).addTo(tripNavigationMap);
     });
+
+    // Fallback: when no segment data exists (compare-routes path), draw the
+    // full route as a single blue polyline so the map isn't blank.
+    if (tripPlannerRouteData.segments.length === 0) {
+        const fallbackWp = tripPlannerRouteData.route.waypoints;
+        if (fallbackWp && fallbackWp.length >= 2) {
+            L.polyline(fallbackWp, {
+                color: "#3B82F6",
+                weight: 7,
+                opacity: 0.85
+            }).addTo(tripNavigationMap);
+        }
+    }
 
     const allWaypoints = tripPlannerRouteData.route.waypoints;
     const routeEnd = allWaypoints[allWaypoints.length - 1];
