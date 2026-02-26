@@ -1218,6 +1218,140 @@ body.demo-mode .start-nav-button {
     color: var(--primary-blue);
 }
 
+/* ===== AI ANALYZING OVERLAY ===== */
+
+.ai-analyzing-overlay {
+    position: fixed;
+    inset: 0;
+    background: rgba(0, 0, 0, 0.78);
+    backdrop-filter: blur(8px);
+    -webkit-backdrop-filter: blur(8px);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    z-index: 10000;
+}
+
+.ai-analyzing-content {
+    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+    padding: 44px 40px;
+    border-radius: 20px;
+    color: white;
+    text-align: center;
+    width: min(480px, 92vw);
+    box-shadow: 0 24px 64px rgba(0, 0, 0, 0.50);
+}
+
+/* Spinner + robot icon */
+.ai-spinner {
+    position: relative;
+    width: 96px;
+    height: 96px;
+    margin: 0 auto 28px;
+}
+
+.spinner-ring {
+    position: absolute;
+    inset: 0;
+    border: 6px solid rgba(255, 255, 255, 0.22);
+    border-top-color: white;
+    border-radius: 50%;
+    animation: spin 1.4s linear infinite;
+}
+
+.ai-icon {
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    font-size: 2.8rem;
+    line-height: 1;
+    animation: ai-pulse 2s ease-in-out infinite;
+}
+
+@keyframes ai-pulse {
+    0%, 100% { transform: translate(-50%, -50%) scale(1); }
+    50%       { transform: translate(-50%, -50%) scale(1.12); }
+}
+
+.ai-analyzing-content h3 {
+    font-size: 1.7rem;
+    font-weight: 700;
+    margin-bottom: 10px;
+}
+
+.ai-analyzing-content > p {
+    font-size: 0.95rem;
+    opacity: 0.88;
+    margin-bottom: 24px;
+    min-height: 1.4em; /* prevents layout shift as text changes */
+}
+
+/* Progress steps */
+.analysis-progress {
+    background: rgba(255, 255, 255, 0.10);
+    padding: 16px;
+    border-radius: 12px;
+    margin-bottom: 20px;
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+}
+
+.progress-step {
+    display: flex;
+    align-items: center;
+    gap: 14px;
+    padding: 11px 14px;
+    background: rgba(255, 255, 255, 0.05);
+    border-radius: 8px;
+    transition: background 0.25s ease, transform 0.25s ease;
+}
+
+.progress-step.active {
+    background: rgba(255, 255, 255, 0.18);
+    transform: scale(1.02);
+}
+
+.progress-step.complete {
+    background: rgba(16, 185, 129, 0.22);
+}
+
+.step-icon {
+    font-size: 1.35rem;
+    width: 1.6rem;
+    text-align: center;
+}
+
+.step-text {
+    flex: 1;
+    text-align: left;
+    font-size: 0.9rem;
+    font-weight: 500;
+}
+
+.step-status {
+    font-size: 1.1rem;
+    width: 1.4rem;
+    text-align: center;
+}
+
+/* Routes analyzed counter */
+.analysis-stats {
+    background: rgba(255, 255, 255, 0.15);
+    padding: 14px 20px;
+    border-radius: 10px;
+    font-size: 1rem;
+}
+
+.analysis-stats span {
+    color: #FCD34D;
+    font-size: 1.9rem;
+    font-weight: 700;
+    vertical-align: middle;
+    margin-right: 4px;
+}
+
 @media (max-width: 480px) {
     .route-options-grid {
         grid-template-columns: 1fr;
