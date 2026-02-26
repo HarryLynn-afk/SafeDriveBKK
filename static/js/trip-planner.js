@@ -1,6 +1,12 @@
 // ===== GLOBAL STATE =====
 let tripPlannerRouteData = null;
 let tripNavigationMap = null;
+
+// ===== MULTI-ROUTE COMPARISON STATE =====
+let routeOptions = {};   // { fast: routeObj, safe: routeObj }
+let routeLayers = {};    // { fast: L.Polyline, safe: L.Polyline }
+let selectedRoute = null;
+let tripCompareMap = null;
 let tripNavigationInterval = null;
 let tripCurrentDistance = 0;
 let tripMovingMarker = null;
@@ -242,52 +248,47 @@ function detectMyLocation() {
 
 // ===== ROUTE CALCULATION =====
 async function calculateRoute(startLat, startLon, endLat, endLon, destName) {
-    console.log("Calculating route...", {
-        startLat, startLon, endLat, endLon
-    });
+    console.log("Comparing routes...", { startLat, startLon, endLat, endLon });
 
-    // Show preview card with loading state
-    document.getElementById("preview-title").textContent = "Calculating route to " + destName + "...";
+    // Show loading state in the preview card while fetching
+    document.getElementById("preview-title").textContent = "Finding best routes to " + destName + "...";
     showElement("route-preview");
+    hideElement("route-results");
 
     document.getElementById("preview-time").textContent = "--";
     document.getElementById("preview-distance").textContent = "--";
-    document.getElementById("risk-text").textContent = "ANALYZING...";
-    document.getElementById("risk-details").textContent = "Calculating route risk...";
+    document.getElementById("risk-text").textContent = "COMPARING ROUTES...";
+    document.getElementById("risk-details").textContent = "Finding fastest and safest paths...";
 
     try {
-        // Call your existing analyze-route API
-        const response = await fetch("/api/analyze-route", {
+        const response = await fetch("/api/compare-routes", {
             method: "POST",
-            headers: {
-                "Content-Type": "application/json",
-            },
+            headers: { "Content-Type": "application/json" },
             body: JSON.stringify({
                 start_lat: startLat,
                 start_lon: startLon,
                 end_lat: endLat,
-                end_lon: endLon
+                end_lon: endLon,
+                destination_name: destName
             })
         });
 
         if (!response.ok) {
-            throw new Error("Route calculation failed");
+            throw new Error("Route comparison failed");
         }
 
         const data = await response.json();
 
-        if (!data.success) {
-            throw new Error(data.error || "Unknown error");
+        if (data.error) {
+            throw new Error(data.error);
         }
 
-        setTripPlannerRouteData(data);
-
-        // Update preview with real data
-        displayRoutePreview(data, destName);
+        // Hide loading preview, show multi-route selection UI
+        hideElement("route-preview");
+        displayMultipleRoutes(data);
     } catch (error) {
         console.error("Route calculation error:", error);
 
-        // Show user-friendly error with fallback options
         alert(
             `Unable to calculate route: ${error.message}\n\n`
             + "This may be due to:\n"
@@ -302,6 +303,318 @@ async function calculateRoute(startLat, startLon, endLat, endLon, destName) {
 
         hideElement("route-preview");
     }
+}
+
+// ===== MULTI-ROUTE MAP SETUP =====
+
+function initCompareMap() {
+    if (!tripCompareMap) {
+        tripCompareMap = L.map("route-compare-map", {
+            zoomControl: true,
+            scrollWheelZoom: false
+        }).setView([13.75, 100.53], 12);
+
+        L.tileLayer("https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png", {
+            attribution: "© OpenStreetMap contributors"
+        }).addTo(tripCompareMap);
+    }
+    tripCompareMap.invalidateSize();
+    return tripCompareMap;
+}
+
+function displayMultipleRoutes(data) {
+    // Store both routes for later use
+    routeOptions = {
+        fast: data.fast_route,
+        safe: data.safe_route
+    };
+    selectedRoute = null;
+
+    // Reveal results container (map + selection cards are inside)
+    showElement("route-results");
+
+    // Init map and clear any previous route lines
+    initCompareMap();
+    clearPreviewMap();
+
+    // Draw both routes: blue = fast, green = safe
+    displayRouteOnMap(data.fast_route, "fast", "#3B82F6", 0.75);
+    displayRouteOnMap(data.safe_route, "safe", "#10B981", 0.75);
+
+    // Fit map bounds to encompass both routes
+    const allLayers = Object.values(routeLayers);
+    if (allLayers.length > 0) {
+        const group = L.featureGroup(allLayers);
+        tripCompareMap.fitBounds(group.getBounds(), { padding: [50, 50] });
+    }
+
+    // Render route selection cards below the map
+    showRouteSelectionUI(data);
+}
+
+function displayRouteOnMap(route, routeId, color, opacity) {
+    if (!tripCompareMap) return;
+
+    // Waypoints from compare-routes are [[lat, lon], ...] arrays
+    const waypoints = route.waypoints.map((wp) => (Array.isArray(wp) ? [wp[0], wp[1]] : [wp.lat, wp.lon]));
+    if (waypoints.length < 2) return;
+
+    const routeLine = L.polyline(waypoints, {
+        color: color,
+        weight: 6,
+        opacity: opacity,
+        interactive: true
+    });
+
+    routeLine.on("click", () => selectRoute(routeId));
+    routeLine.bindTooltip(routeId === "fast" ? "🚀 Fastest Route" : "🛡️ Safest Route", {
+        permanent: false,
+        direction: "center"
+    });
+
+    routeLine.addTo(tripCompareMap);
+    routeLayers[routeId] = routeLine;
+}
+
+function clearPreviewMap() {
+    Object.values(routeLayers).forEach((layer) => {
+        if (tripCompareMap) tripCompareMap.removeLayer(layer);
+    });
+    routeLayers = {};
+}
+
+// ===== ROUTE SELECTION UI =====
+
+function showRouteSelectionUI(data) {
+    const fastRoute = data.fast_route;
+    const safeRoute = data.safe_route;
+
+    const fastTime = fastRoute.time_min || 0;
+    const safeTime = safeRoute.time_min || 0;
+    const fastRiskScore = Math.round(fastRoute.risk_score || 0);
+    const safeRiskScore = Math.round(safeRoute.risk_score || 0);
+    const fastHighRisk = fastRoute.high_risk_zones || 0;
+    const safeHighRisk = safeRoute.high_risk_zones || 0;
+
+    const timeDiff = safeTime - fastTime;
+    const timeDiffText = timeDiff > 0
+        ? `+${timeDiff} min longer`
+        : timeDiff < 0
+            ? `${Math.abs(timeDiff)} min faster`
+            : "Same time";
+
+    const routeSelectionHTML = `
+        <div class="route-selection-container">
+            <h3>🗺️ Choose Your Route</h3>
+            <p class="subtitle">Select a route to begin navigation</p>
+
+            <div class="route-options-grid">
+                <!-- Fast Route Card -->
+                <div class="route-card" id="route-card-fast" onclick="selectRoute('fast')">
+                    <div class="route-badge fastest">🚀 FASTEST</div>
+                    <div class="route-time">${fastTime} min</div>
+                    <div class="route-distance">${(fastRoute.distance_km || 0).toFixed(1)} km</div>
+                    <div class="route-card-risk ${fastRoute.risk_level}">
+                        ${getRiskIcon(fastRoute.risk_level)} ${(fastRoute.risk_level || "unknown").toUpperCase()} RISK
+                    </div>
+                    <div class="risk-score">${fastRiskScore}/100</div>
+                    ${fastHighRisk > 0
+                        ? `<div class="warning-note">⚠️ Passes ${fastHighRisk} danger zone${fastHighRisk > 1 ? "s" : ""}</div>`
+                        : '<div class="safe-note">✅ No major danger zones</div>'}
+                    <button class="select-route-btn" onclick="selectRoute('fast'); event.stopPropagation();">
+                        Select This Route
+                    </button>
+                </div>
+
+                <!-- Safe Route Card -->
+                <div class="route-card recommended" id="route-card-safe" onclick="selectRoute('safe')">
+                    <div class="route-badge safest">🛡️ SAFEST</div>
+                    ${safeRiskScore < fastRiskScore ? '<div class="recommended-badge">⭐ RECOMMENDED</div>' : ""}
+                    <div class="route-time">${safeTime} min</div>
+                    <div class="route-distance">${(safeRoute.distance_km || 0).toFixed(1)} km</div>
+                    <div class="route-card-risk ${safeRoute.risk_level}">
+                        ${getRiskIcon(safeRoute.risk_level)} ${(safeRoute.risk_level || "unknown").toUpperCase()} RISK
+                    </div>
+                    <div class="risk-score">${safeRiskScore}/100</div>
+                    <div class="time-difference">${timeDiffText}</div>
+                    ${safeHighRisk > 0
+                        ? `<div class="warning-note">⚠️ Passes ${safeHighRisk} danger zone${safeHighRisk > 1 ? "s" : ""}</div>`
+                        : '<div class="safe-note">✅ No major danger zones</div>'}
+                    <button class="select-route-btn primary" onclick="selectRoute('safe'); event.stopPropagation();">
+                        Select This Route
+                    </button>
+                </div>
+            </div>
+
+            ${data.recommendation
+                ? `<div class="ai-recommendation">🤖 AI Recommendation: ${data.recommendation}</div>`
+                : ""}
+        </div>
+    `;
+
+    const selectionContent = document.getElementById("route-selection-content");
+    if (selectionContent) {
+        selectionContent.innerHTML = routeSelectionHTML;
+    }
+}
+
+function getRiskIcon(level) {
+    switch (level) {
+        case "high": return "🔴";
+        case "medium": return "🟡";
+        case "low": return "🟢";
+        default: return "⚪";
+    }
+}
+
+// ===== ROUTE SELECTION LOGIC =====
+
+function selectRoute(routeId) {
+    selectedRoute = routeId;
+
+    // Highlight selected route on map, fade the other
+    Object.keys(routeLayers).forEach((id) => {
+        const layer = routeLayers[id];
+        if (id === routeId) {
+            layer.setStyle({
+                weight: 9,
+                opacity: 1.0,
+                color: id === "fast" ? "#1D4ED8" : "#059669"
+            });
+            layer.bringToFront();
+        } else {
+            layer.setStyle({ weight: 4, opacity: 0.3 });
+        }
+    });
+
+    // Highlight the selected card
+    document.querySelectorAll(".route-card").forEach((card) => card.classList.remove("selected"));
+    const card = document.getElementById(`route-card-${routeId}`);
+    if (card) card.classList.add("selected");
+
+    // Show detailed info + Start Navigation button
+    showRouteDetails(routeOptions[routeId]);
+}
+
+function showRouteDetails(route) {
+    const detailsHTML = `
+        <div class="selected-route-details">
+            <h3>📍 Selected Route Details</h3>
+            <div class="route-summary">
+                <div class="summary-item">
+                    <span class="label">Duration</span>
+                    <span class="value">${route.time_min} min</span>
+                </div>
+                <div class="summary-item">
+                    <span class="label">Distance</span>
+                    <span class="value">${(route.distance_km || 0).toFixed(1)} km</span>
+                </div>
+                <div class="summary-item">
+                    <span class="label">Risk Level</span>
+                    <span class="value ${route.risk_level}">${(route.risk_level || "").toUpperCase()}</span>
+                </div>
+                <div class="summary-item">
+                    <span class="label">Risk Score</span>
+                    <span class="value">${Math.round(route.risk_score || 0)}/100</span>
+                </div>
+            </div>
+            ${(route.high_risk_zones || 0) > 0
+                ? `<div class="danger-zones-preview">
+                    <h4>⚠️ Danger Zones on This Route</h4>
+                    <p>This route crosses ${route.high_risk_zones} high-risk zone${route.high_risk_zones > 1 ? "s" : ""}.
+                       You'll receive alerts during navigation.</p>
+                   </div>`
+                : '<div class="safe-route-note">✅ This route avoids major danger zones</div>'}
+            <button class="start-navigation-btn" onclick="startNavigationWithSelected()">
+                🚗 Start Navigation
+            </button>
+            <button class="change-route-btn" onclick="changeRoute()">
+                ← Choose Different Route
+            </button>
+        </div>
+    `;
+
+    const container = document.querySelector(".route-selection-container");
+    const existing = document.querySelector(".selected-route-details");
+    if (existing) existing.remove();
+    if (container) container.insertAdjacentHTML("beforeend", detailsHTML);
+}
+
+function changeRoute() {
+    selectedRoute = null;
+
+    // Reset map route styles to original colours/opacity
+    Object.keys(routeLayers).forEach((id) => {
+        routeLayers[id].setStyle({
+            weight: 6,
+            opacity: 0.75,
+            color: id === "fast" ? "#3B82F6" : "#10B981"
+        });
+    });
+
+    document.querySelectorAll(".route-card").forEach((card) => card.classList.remove("selected"));
+
+    const details = document.querySelector(".selected-route-details");
+    if (details) details.remove();
+}
+
+async function startNavigationWithSelected() {
+    if (!selectedRoute) {
+        alert("Please select a route first");
+        return;
+    }
+
+    const route = routeOptions[selectedRoute];
+    const btn = document.querySelector(".start-navigation-btn");
+    if (btn) {
+        btn.textContent = "⏳ Loading route...";
+        btn.disabled = true;
+    }
+
+    try {
+        // Fetch full segment analysis for the selected route's waypoints
+        const response = await fetch("/api/analyze-route", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({
+                start_lat: window.startLat,
+                start_lon: window.startLon,
+                end_lat: window.endLat,
+                end_lon: window.endLon,
+                waypoints: route.waypoints
+            })
+        });
+
+        if (response.ok) {
+            const data = await response.json();
+            if (data.success) {
+                setTripPlannerRouteData(data);
+                startNavigation();
+                return;
+            }
+        }
+    } catch (err) {
+        console.warn("Full route analysis unavailable, using compare data:", err);
+    }
+
+    // Fallback: build minimal route data directly from compare-routes response
+    tripPlannerRouteData = {
+        route: {
+            waypoints: route.waypoints,
+            duration_min: route.time_min,
+            distance_km: route.distance_km,
+            risk_score: route.risk_score,
+            risk_level: route.risk_level
+        },
+        segments: [],
+        alerts: [],
+        summary: {
+            high_risk_segments: route.high_risk_zones || 0,
+            medium_risk_segments: route.medium_risk_zones || 0
+        }
+    };
+
+    startNavigation();
 }
 
 function setTripPlannerRouteData(data) {
