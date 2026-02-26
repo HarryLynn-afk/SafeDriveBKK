@@ -225,7 +225,7 @@ function detectMyLocation() {
             fetch(`https://nominatim.openstreetmap.org/reverse?lat=${lat}&lon=${lon}&format=json`)
                 .then((response) => response.json())
                 .then((data) => {
-                    const placeName = data.display_name.split(",")[0];
+                    const placeName = data.display_name ? data.display_name.split(",")[0] : "";
                     startInput.value = placeName || "Current Location";
 
                     // Store coordinates
@@ -762,7 +762,8 @@ function displayRoutePreview(data, destName) {
     }
 
     riskIndicator.className = "risk-indicator " + riskClass;
-    document.querySelector(".risk-icon").textContent = riskIcon;
+    const riskIconEl = document.querySelector(".risk-icon");
+    if (riskIconEl) riskIconEl.textContent = riskIcon;
     riskText.textContent = riskLabel;
 
     // Update details
@@ -836,7 +837,6 @@ async function loadDemoRoute(routeName) {
 }
 
 async function useDemoRoute(demoRoute, destName, startLat, startLon) {
-    showElement("loading-route");
     document.getElementById("preview-title").textContent = "Loading route to " + destName + "...";
     showElement("route-preview");
     document.getElementById("preview-time").textContent = "--";
@@ -1228,7 +1228,7 @@ function updateNavigationUI(totalDistance, waypoints) {
     const waypointIndex = getWaypointIndexForDistance(tripCurrentDistance);
     if (waypointIndex < waypoints.length) {
         const newPosition = waypoints[waypointIndex];
-        tripMovingMarker.setLatLng(newPosition);
+        if (tripMovingMarker) tripMovingMarker.setLatLng(newPosition);
 
         // Pan map to follow marker smoothly
         tripNavigationMap.panTo(newPosition, {
