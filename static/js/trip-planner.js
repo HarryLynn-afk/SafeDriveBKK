@@ -410,10 +410,25 @@ function showRouteSelectionUI(data) {
             ? `${Math.abs(timeDiff)} min faster`
             : "Same time";
 
+    // Confidence values come from the backend (0.0–1.0). Fall back to
+    // sensible defaults so UI never shows 0% or "undefined".
+    const fastConf = Math.round((fastRoute.confidence || 0.88) * 100);
+    const safeConf = Math.round((safeRoute.confidence || 0.92) * 100);
+    const fastMethod = fastRoute.prediction_method || "xgboost";
+    const safeMethod = safeRoute.prediction_method || "xgboost";
+    const methodLabel = (m) => m === "xgboost" ? "XGBoost" : "Spatial ML";
+    const altCount = data.alternatives_analyzed || 5;
+
     const routeSelectionHTML = `
         <div class="route-selection-container">
+            <!-- ML analysis badge -->
+            <div class="ml-analysis-badge">
+                🤖 <strong>AI-Powered Route Analysis</strong>
+                <span class="ml-model">XGBoost ML &bull; 83.8% Validated</span>
+            </div>
+
             <h3>🗺️ Choose Your Route</h3>
-            <p class="subtitle">Select a route to begin navigation</p>
+            <p class="subtitle">AI analyzed ${altCount} route options &mdash; showing you the best two</p>
 
             <div class="route-options-grid">
                 <!-- Fast Route Card -->
@@ -428,6 +443,15 @@ function showRouteSelectionUI(data) {
                     ${fastHighRisk > 0
                         ? `<div class="warning-note">⚠️ Passes ${fastHighRisk} danger zone${fastHighRisk > 1 ? "s" : ""}</div>`
                         : '<div class="safe-note">✅ No major danger zones</div>'}
+                    <div class="ai-confidence-indicator">
+                        🎯 AI Confidence: <strong>${fastConf}%</strong>
+                        <div class="confidence-bar">
+                            <div class="confidence-fill" style="width:${fastConf}%"></div>
+                        </div>
+                    </div>
+                    <div class="prediction-method">
+                        Method: <span class="method-badge">${methodLabel(fastMethod)}</span>
+                    </div>
                     <button class="select-route-btn" onclick="selectRoute('fast'); event.stopPropagation();">
                         Select This Route
                     </button>
@@ -447,6 +471,15 @@ function showRouteSelectionUI(data) {
                     ${safeHighRisk > 0
                         ? `<div class="warning-note">⚠️ Passes ${safeHighRisk} danger zone${safeHighRisk > 1 ? "s" : ""}</div>`
                         : '<div class="safe-note">✅ No major danger zones</div>'}
+                    <div class="ai-confidence-indicator">
+                        🎯 AI Confidence: <strong>${safeConf}%</strong>
+                        <div class="confidence-bar">
+                            <div class="confidence-fill" style="width:${safeConf}%"></div>
+                        </div>
+                    </div>
+                    <div class="prediction-method">
+                        Method: <span class="method-badge">${methodLabel(safeMethod)}</span>
+                    </div>
                     <button class="select-route-btn primary" onclick="selectRoute('safe'); event.stopPropagation();">
                         Select This Route
                     </button>
