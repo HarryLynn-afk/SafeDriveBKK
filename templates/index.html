@@ -3,8 +3,7 @@
 {% block content %}
 <div class="container">
     <div style="background: linear-gradient(90deg, #ffc107 0%, #ff9800 100%); color: #000; padding: 16px 20px; text-align: center; font-weight: 600; box-shadow: 0 2px 8px rgba(0,0,0,0.1); margin-bottom: 24px;">
-        ⚠️ <strong>New Year 2026:</strong> 991 crashes, 171 deaths in 4 days (DDPM, Jan 3, 2026). Bangkok recorded highest death toll (14).
-        <a href="/about" style="color: #000; text-decoration: underline; margin-left: 8px;">See how data can reduce future risk →</a>
+        <strong>New Year 2026:</strong> 991 crashes, 171 deaths in 4 days (DDPM, Jan 3, 2026). Bangkok recorded highest death toll (14).
     </div>
 
     <section class="hero-section p-4 p-md-5 mb-4">
@@ -19,14 +18,14 @@
                 <div style="font-size: 12px; opacity: 0.85; margin-top: 4px;">Top 5% of zones</div>
             </div>
             <div class="hero-stat">
-                <span class="hero-stat-value">17×</span>
+                <span class="hero-stat-value">17x</span>
                 <span class="hero-stat-label">Better Than Random</span>
                 <div style="font-size: 12px; opacity: 0.85; margin-top: 4px;">Proven effectiveness</div>
             </div>
             <div class="hero-stat">
-                <span class="hero-stat-value">83.8%</span>
-                <span class="hero-stat-label">Predictive Accuracy</span>
-                <div style="font-size: 12px; opacity: 0.85; margin-top: 4px;">Holdout validation</div>
+                <span class="hero-stat-value">39/39</span>
+                <span class="hero-stat-label">ML Zone Detection</span>
+                <div style="font-size: 12px; opacity: 0.85; margin-top: 4px;">XGBoost holdout test</div>
             </div>
         </div>
     </section>
@@ -80,16 +79,5 @@
         </div>
         {% endif %}
     </section>
-
-    <div style="text-align: center; margin: 48px 0;">
-        <a href="/trip-planner" style="display: inline-block; background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); color: white; padding: 20px 48px; border-radius: 50px; text-decoration: none; font-size: 20px; font-weight: 600; box-shadow: 0 8px 24px rgba(102, 126, 234, 0.3); transition: transform 0.3s ease;">
-            🚗 Plan Your Safe Route Now
-        </a>
-        <p style="margin-top: 16px; color: #6c757d; font-size: 14px;">
-            <a href="/analytics" style="color: #667eea; text-decoration: none; font-weight: 500;">Explore Analytics Dashboard</a> •
-            <a href="/about" style="color: #667eea; text-decoration: none;">Learn more about our methodology →</a>
-        </p>
-    </div>
-
 </div>
 {% endblock %}
