@@ -104,6 +104,38 @@ body {
     border: 0;
 }
 
+.cta-heatmap {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    background: linear-gradient(120deg, #dbeafe, #eff6ff);
+    border: 1px solid #bfdbfe;
+    border-radius: 0.9rem;
+    padding: 1.25rem 1.5rem;
+    text-decoration: none;
+    color: var(--rr-text);
+    transition: box-shadow 0.2s, border-color 0.2s;
+}
+
+.cta-heatmap:hover {
+    border-color: #93c5fd;
+    box-shadow: 0 4px 16px rgba(29, 78, 216, 0.12);
+    color: var(--rr-text);
+}
+
+.cta-heatmap p {
+    color: var(--rr-muted);
+    font-size: 0.9rem;
+}
+
+.cta-arrow {
+    font-size: 1.8rem;
+    font-weight: 700;
+    color: var(--rr-primary);
+    flex-shrink: 0;
+    margin-left: 1rem;
+}
+
 .rr-footer {
     border-top: 1px solid #e5e7eb;
     background-color: #ffffff;

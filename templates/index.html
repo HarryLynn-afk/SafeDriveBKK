@@ -64,20 +64,13 @@
     </section>
 
     <section class="mb-4">
-        <h2 class="h4 mb-3">Bangkok Risk Map</h2>
-        {% if map_available %}
-        <div class="map-wrapper">
-            <iframe
-                src="{{ url_for('static', filename='bangkok_risk_heatmap.html') }}"
-                class="risk-map-frame"
-                title="Bangkok Risk Map"
-                loading="lazy"></iframe>
-        </div>
-        {% else %}
-        <div class="alert alert-warning" role="alert">
-            Risk heat map file is missing. Generate it via <code>python3 src/create_heatmap_html.py</code>.
-        </div>
-        {% endif %}
+        <a href="{{ url_for('heatmap') }}" class="cta-heatmap">
+            <div>
+                <h2 class="h4 mb-1">Bangkok Risk Heatmap</h2>
+                <p class="mb-0">Explore the full interactive risk map with zone-level accident data</p>
+            </div>
+            <span class="cta-arrow">&rarr;</span>
+        </a>
     </section>
 </div>
 {% endblock %}
