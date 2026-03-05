@@ -1,0 +1,177 @@
+{% extends "base.html" %}
+
+{% block title %}Object Detection - RoadRisk Bangkok{% endblock %}
+
+{% block extra_head %}
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0"></script>
+{% endblock %}
+
+{% block content %}
+<div class="container">
+    <h1 class="mb-2">Traffic Scene Detection (AI Vision)</h1>
+    <p class="lead mb-4">YOLOv8 vehicle detection mapped to the same features our XGBoost model uses for risk prediction.</p>
+
+    <!-- Section 1: YOLO Gallery -->
+    {% if detection_data.image_results %}
+    <div class="stats-card mb-4">
+        <h3 class="mb-3">Detected Vehicles in Sample Images</h3>
+        <div class="row g-3">
+            {% for img in detection_data.image_results %}
+            <div class="col-md-6">
+                <div class="card">
+                    <img src="{{ url_for('static', filename=img.annotated_image) }}" class="card-img-top" alt="Detection: {{ img.image_name }}">
+                    <div class="card-body">
+                        <h5 class="card-title">{{ img.image_name }}</h5>
+                        <p class="card-text">
+                            Total vehicles: <strong>{{ img.total_vehicles }}</strong> |
+                            Cars: {{ img.vehicle_counts.car }} |
+                            Motorcycles: {{ img.vehicle_counts.motorcycle }} |
+                            Trucks: {{ img.vehicle_counts.truck }} |
+                            Buses: {{ img.vehicle_counts.bus }}
+                        </p>
+                    </div>
+                </div>
+            </div>
+            {% endfor %}
+        </div>
+    </div>
+    {% endif %}
+
+    <div class="row g-4 mb-4">
+        <!-- Section 2: Feature Mapping -->
+        <div class="col-md-6">
+            <div class="stats-card h-100">
+                <h3>YOLO → XGBoost Feature Mapping</h3>
+                {% if detection_data.comparisons %}
+                <div class="table-responsive">
+                    <table class="table table-sm table-bordered">
+                        <thead class="table-dark">
+                            <tr>
+                                <th>Feature</th>
+                                <th>YOLO (Snapshot)</th>
+                                <th>Historical (Model)</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% set comp = detection_data.comparisons[0] %}
+                            {% for key in ['motorcycle_count', 'car_count', 'heavy_truck_count', 'motorcycle_pct', 'car_pct', 'heavy_truck_pct'] %}
+                            <tr>
+                                <td><code>{{ key }}</code></td>
+                                <td>{{ comp.yolo_features[key] }}</td>
+                                <td>{{ comp.model_features[key] }}</td>
+                            </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+                <p class="text-muted small mt-2">{{ comp.narrative }}</p>
+                {% else %}
+                <p class="text-muted">Add sample images to <code>static/sample_images/</code> and run <code>python scripts/setup_nlp_detection.py</code> to generate comparisons.</p>
+                {% endif %}
+            </div>
+        </div>
+
+        <!-- Section 3: Vehicle Feature Importance -->
+        <div class="col-md-6">
+            <div class="stats-card h-100">
+                <h3>Vehicle Feature Importance in XGBoost</h3>
+                <canvas id="vehicleImportanceChart" height="280"></canvas>
+                {% if detection_data.vehicle_importance %}
+                <p class="text-muted small mt-2">
+                    Vehicle features total: <strong>{{ detection_data.vehicle_importance.total_vehicle_importance_pct }}%</strong> of model importance.
+                    {{ detection_data.vehicle_importance.limitation }}
+                </p>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+
+    <!-- Section 4: Comparisons / Validation -->
+    {% if detection_data.comparisons and detection_data.comparisons | length > 1 %}
+    <div class="stats-card mb-4">
+        <h3 class="mb-3">Zone-by-Zone Validation</h3>
+        <div class="row g-3">
+            {% for comp in detection_data.comparisons %}
+            <div class="col-md-6">
+                <div class="card">
+                    <div class="card-body">
+                        <h5>{{ comp.grid_id }} — {{ comp.description }}</h5>
+                        <span class="badge {% if comp.dangerous %}bg-danger{% else %}bg-success{% endif %} mb-2">
+                            {% if comp.dangerous %}DANGEROUS{% else %}SAFE{% endif %}
+                        </span>
+                        <p>{{ comp.narrative }}</p>
+                        <small class="text-muted">Total accidents: {{ comp.total_accidents }}</small>
+                    </div>
+                </div>
+            </div>
+            {% endfor %}
+        </div>
+    </div>
+    {% endif %}
+
+    <!-- Section 5: Future Vision Pipeline -->
+    <div class="stats-card mb-4">
+        <h3 class="mb-3">Real-Time Vision Pipeline</h3>
+        <p class="text-muted mb-3">{{ detection_data.pipeline.key_message }}</p>
+        <div class="row g-3 text-center">
+            {% for stage in detection_data.pipeline.stages %}
+            <div class="col">
+                <div class="p-3 border rounded h-100">
+                    <div style="font-size: 2rem;">
+                        {% if stage.icon == 'camera' %}📷{% elif stage.icon == 'eye' %}👁️{% elif stage.icon == 'grid' %}📊{% elif stage.icon == 'brain' %}🧠{% elif stage.icon == 'map' %}🗺️{% endif %}
+                    </div>
+                    <h6>Stage {{ stage.stage }}: {{ stage.title }}</h6>
+                    <small class="text-muted">{{ stage.description }}</small>
+                    {% if stage.features_produced %}
+                    <div class="mt-1">
+                        {% for f in stage.features_produced %}
+                        <span class="badge bg-secondary">{{ f }}</span>
+                        {% endfor %}
+                    </div>
+                    {% endif %}
+                </div>
+            </div>
+            {% if not loop.last %}
+            <div class="col-auto d-flex align-items-center" style="font-size: 1.5rem;">→</div>
+            {% endif %}
+            {% endfor %}
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+const DETECTION_DATA = {{ detection_data | tojson }};
+
+// --- Vehicle Feature Importance Chart ---
+(function() {
+    const vi = (DETECTION_DATA.vehicle_importance || {}).vehicle_features || [];
+    if (!vi.length) return;
+    const colors = vi.map(f => f.yolo_detectable ? '#0d6efd' : '#adb5bd');
+    new Chart(document.getElementById('vehicleImportanceChart'), {
+        type: 'bar',
+        data: {
+            labels: vi.map(f => f.feature),
+            datasets: [{
+                label: 'Importance %',
+                data: vi.map(f => f.importance_pct),
+                backgroundColor: colors
+            }]
+        },
+        options: {
+            indexAxis: 'y',
+            responsive: true,
+            plugins: {
+                legend: { display: false },
+                tooltip: {
+                    callbacks: {
+                        afterLabel: ctx => vi[ctx.dataIndex].yolo_detectable ? 'YOLO detectable' : 'Not in COCO'
+                    }
+                }
+            }
+        }
+    });
+})();
+</script>
+{% endblock %}

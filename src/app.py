@@ -3,9 +3,11 @@ Flask web app for Bangkok Road Risk system.
 
 Foundation version: basic routes + ML model loading + core API endpoints.
 Trip Planner, Analytics, and About pages will be built during the hackathon.
+NLP Analysis and Object Detection tracks are pre-built and serve from cache.
 """
 
 import json
+import logging
 import os
 import sys
 from pathlib import Path
@@ -14,6 +16,8 @@ import pandas as pd
 from flask import Flask, jsonify, render_template, send_file
 
 from ml_model import RiskPredictor
+
+LOGGER = logging.getLogger(__name__)
 
 BASE_DIR = Path(__file__).resolve().parent.parent
 DATA_DIR = BASE_DIR / "data" / "processed"
@@ -247,6 +251,158 @@ def model_info():
 
 
 # ---------------------------------------------------------------------------
+# NLP Analysis (Track 1) — serves from cache
+# ---------------------------------------------------------------------------
+NLP_CACHE_PATH = BASE_DIR / "static" / "nlp_cache.json"
+
+
+def _load_nlp_cache():
+    if NLP_CACHE_PATH.exists():
+        with open(NLP_CACHE_PATH, encoding="utf-8") as f:
+            return json.load(f)
+    return {}
+
+
+@app.route("/nlp")
+def nlp():
+    """NLP analysis page — Thai text → XGBoost features → recommendations."""
+    nlp_data = _load_nlp_cache()
+    return render_template("nlp.html", nlp_data=nlp_data)
+
+
+@app.route("/api/nlp/pipeline-demo")
+def nlp_pipeline_demo():
+    """Pipeline examples: Thai text → tokenization → XGBoost feature."""
+    cache = _load_nlp_cache()
+    return jsonify(cache.get("pipeline_demo", {}))
+
+
+@app.route("/api/nlp/cause-analysis")
+def nlp_cause_analysis():
+    """Accident cause frequency breakdown."""
+    cache = _load_nlp_cache()
+    return jsonify(cache.get("cause_analysis", {}))
+
+
+@app.route("/api/nlp/recommendations")
+def nlp_recommendations():
+    """Per-zone policy recommendations based on NLP-derived causes."""
+    cache = _load_nlp_cache()
+    return jsonify(cache.get("recommendations", []))
+
+
+@app.route("/api/nlp/wordcloud")
+def nlp_wordcloud():
+    """Thai keyword frequencies for word cloud visualization."""
+    cache = _load_nlp_cache()
+    return jsonify(cache.get("word_cloud", {}))
+
+
+# ---------------------------------------------------------------------------
+# Object Detection (Track 3) — serves from cache
+# ---------------------------------------------------------------------------
+DETECTION_CACHE_PATH = BASE_DIR / "static" / "detection_cache.json"
+
+
+def _load_detection_cache():
+    if DETECTION_CACHE_PATH.exists():
+        with open(DETECTION_CACHE_PATH, encoding="utf-8") as f:
+            return json.load(f)
+    # Return skeleton with pipeline data even without images
+    return {
+        "image_results": [],
+        "comparisons": [],
+        "vehicle_importance": _get_vehicle_importance_fallback(),
+        "pipeline": _get_pipeline_fallback(),
+        "total_images": 0,
+    }
+
+
+def _get_vehicle_importance_fallback():
+    """Vehicle feature importance from CSV when no detection cache exists."""
+    try:
+        imp_path = BASE_DIR / "models" / "xgb_feature_importance.csv"
+        if not imp_path.exists():
+            return {}
+        imp = pd.read_csv(imp_path)
+        imp_dict = dict(zip(imp["feature"], imp["importance"]))
+        vehicle_features = [
+            "pickup_count", "pickup_pct", "motorcycle_count", "car_count",
+            "motorcycle_pct", "car_pct", "heavy_truck_count", "heavy_truck_pct",
+            "max_vehicles",
+        ]
+        features = []
+        total = 0
+        for f in vehicle_features:
+            v = imp_dict.get(f, 0)
+            total += v
+            features.append({
+                "feature": f,
+                "importance_pct": round(v * 100, 3),
+                "yolo_detectable": f not in ("pickup_count", "pickup_pct", "max_vehicles"),
+            })
+        features.sort(key=lambda x: x["importance_pct"], reverse=True)
+        return {
+            "vehicle_features": features,
+            "total_vehicle_importance_pct": round(total * 100, 2),
+            "highlight": "pickup_count is #4 most important feature overall at 7.39%",
+            "limitation": "COCO has no pickup class; pickups classified as car/truck by YOLO",
+        }
+    except Exception:
+        return {}
+
+
+def _get_pipeline_fallback():
+    """Static pipeline diagram data."""
+    return {
+        "stages": [
+            {"stage": 1, "title": "Camera Feed", "description": "CCTV camera at Bangkok intersection", "icon": "camera"},
+            {"stage": 2, "title": "YOLOv8 Detection", "description": "Process frame, detect vehicles by type", "icon": "eye",
+             "features_produced": ["car_count", "motorcycle_count", "heavy_truck_count"]},
+            {"stage": 3, "title": "Feature Aggregation", "description": "Aggregate counts per grid cell per time window", "icon": "grid",
+             "features_produced": ["motorcycle_pct", "car_pct", "heavy_truck_pct"]},
+            {"stage": 4, "title": "XGBoost Prediction", "description": "Feed vehicle features into trained model", "icon": "brain"},
+            {"stage": 5, "title": "Dynamic Risk Map", "description": "Real-time risk score updates per zone", "icon": "map"},
+        ],
+        "key_message": "No model retraining needed. YOLO provides fresher values for features the model already understands.",
+    }
+
+
+@app.route("/detection")
+def detection():
+    """Object detection page — YOLO vehicle detection mapped to XGBoost features."""
+    detection_data = _load_detection_cache()
+    return render_template("detection.html", detection_data=detection_data)
+
+
+@app.route("/api/detection/results")
+def detection_results():
+    """All detection results from cache."""
+    cache = _load_detection_cache()
+    return jsonify({
+        "image_results": cache.get("image_results", []),
+        "total_images": cache.get("total_images", 0),
+    })
+
+
+@app.route("/api/detection/compare/<grid_id>")
+def detection_compare(grid_id):
+    """YOLO vs model comparison for a specific grid zone."""
+    cache = _load_detection_cache()
+    for comp in cache.get("comparisons", []):
+        if comp.get("grid_id") == grid_id:
+            return jsonify(comp)
+    return jsonify({"error": f"No comparison data for grid {grid_id}"}), 404
+
+
+@app.route("/api/detection/pipeline")
+def detection_pipeline():
+    """Future vision pipeline diagram data."""
+    cache = _load_detection_cache()
+    return jsonify(cache.get("pipeline", {}))
+
+
+# ---------------------------------------------------------------------------
 # Main
 # ---------------------------------------------------------------------------
 if __name__ == "__main__":
@@ -266,11 +422,15 @@ if __name__ == "__main__":
 
     print("-" * 64)
     print("Endpoints:")
-    print("  GET  /                   Home dashboard")
-    print("  GET  /heatmap            Risk heatmap")
-    print("  GET  /api/grid-stats     Grid statistics")
-    print("  GET  /api/heatmap-data   Heatmap data")
-    print("  GET  /api/model-info     ML model details")
+    print("  GET  /                          Home dashboard")
+    print("  GET  /heatmap                   Risk heatmap")
+    print("  GET  /nlp                       NLP analysis (Track 1)")
+    print("  GET  /detection                 Object detection (Track 3)")
+    print("  GET  /api/grid-stats            Grid statistics")
+    print("  GET  /api/heatmap-data          Heatmap data")
+    print("  GET  /api/model-info            ML model details")
+    print("  GET  /api/nlp/*                 NLP endpoints")
+    print("  GET  /api/detection/*           Detection endpoints")
     print("=" * 64)
     port = int(os.environ.get("PORT", 5000))
     print(f"Starting on http://0.0.0.0:{port}")

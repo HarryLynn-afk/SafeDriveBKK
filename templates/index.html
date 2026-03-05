@@ -72,5 +72,26 @@
             <span class="cta-arrow">&rarr;</span>
         </a>
     </section>
+
+    <section class="row g-3 mb-4">
+        <div class="col-md-6">
+            <a href="{{ url_for('nlp') }}" class="cta-heatmap">
+                <div>
+                    <h2 class="h5 mb-1">Accident Cause Analysis (NLP)</h2>
+                    <p class="mb-0">Thai text analysis → XGBoost features → actionable policy recommendations</p>
+                </div>
+                <span class="cta-arrow">&rarr;</span>
+            </a>
+        </div>
+        <div class="col-md-6">
+            <a href="{{ url_for('detection') }}" class="cta-heatmap">
+                <div>
+                    <h2 class="h5 mb-1">Traffic Scene Detection (AI Vision)</h2>
+                    <p class="mb-0">YOLOv8 vehicle detection mapped to XGBoost risk prediction features</p>
+                </div>
+                <span class="cta-arrow">&rarr;</span>
+            </a>
+        </div>
+    </section>
 </div>
 {% endblock %}
