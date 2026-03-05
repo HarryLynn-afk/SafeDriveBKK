@@ -1,0 +1,22 @@
+[
+  {
+    "image": "bangkok_highway_01.jpg",
+    "grid_id": "G020_002",
+    "description": "Highway near Bangna - 85 recorded accidents"
+  },
+  {
+    "image": "bangkok_intersection_02.jpg",
+    "grid_id": "G014_041",
+    "description": "Intersection at Lat Krabang - 69 recorded accidents"
+  },
+  {
+    "image": "bangkok_street_03.jpg",
+    "grid_id": "G017_020",
+    "description": "Sukhumvit Road area"
+  },
+  {
+    "image": "bangkok_rush_04.jpg",
+    "grid_id": "G019_030",
+    "description": "Ratchadaphisek Road rush hour"
+  }
+]

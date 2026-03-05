@@ -1,0 +1,223 @@
+{% extends "base.html" %}
+
+{% block title %}NLP Analysis - RoadRisk Bangkok{% endblock %}
+
+{% block extra_head %}
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0"></script>
+{% endblock %}
+
+{% block content %}
+<div class="container">
+    <h1 class="mb-2">Accident Cause Analysis (NLP)</h1>
+    <p class="lead mb-4">Thai text analysis of 2,669 Bangkok accident reports &mdash; extracting causes, types, and actionable recommendations.</p>
+
+    <!-- Section 1: NLP → XGBoost Pipeline -->
+    <div class="stats-card mb-4">
+        <h3 class="mb-3">How Thai Text Becomes ML Features</h3>
+        <p class="text-muted mb-3">Each accident report contains Thai text describing the cause. Our pipeline tokenizes, categorizes, and feeds it into XGBoost as features.</p>
+        <div class="table-responsive">
+            <table class="table table-sm table-bordered" id="pipeline-table">
+                <thead class="table-dark">
+                    <tr>
+                        <th>Raw Thai Text</th>
+                        <th>Tokens</th>
+                        <th>English Category</th>
+                        <th>XGBoost Feature</th>
+                        <th>Importance</th>
+                    </tr>
+                </thead>
+                <tbody id="pipeline-body">
+                    <tr><td colspan="5" class="text-center text-muted">Loading...</td></tr>
+                </tbody>
+            </table>
+        </div>
+    </div>
+
+    <div class="row g-4 mb-4">
+        <!-- Section 2: Cause Breakdown -->
+        <div class="col-md-6">
+            <div class="stats-card h-100">
+                <h3>Accident Cause Breakdown</h3>
+                <canvas id="causeChart" height="280"></canvas>
+            </div>
+        </div>
+
+        <!-- Section 3: Feature Importance by Category -->
+        <div class="col-md-6">
+            <div class="stats-card h-100">
+                <h3>Feature Importance by Category</h3>
+                <canvas id="importanceChart" height="280"></canvas>
+                <p class="text-muted mt-2 small">NLP-derived features (cause + type + weather) account for ~3.8% of model importance. Severity dominates at ~54%.</p>
+            </div>
+        </div>
+    </div>
+
+    <div class="row g-4 mb-4">
+        <!-- Section 4: Accident Types -->
+        <div class="col-md-6">
+            <div class="stats-card h-100">
+                <h3>Accident Type Distribution</h3>
+                <canvas id="typeChart" height="280"></canvas>
+            </div>
+        </div>
+
+        <!-- Section 5: Word Cloud / Top Keywords -->
+        <div class="col-md-6">
+            <div class="stats-card h-100">
+                <h3>Top Thai Keywords</h3>
+                <canvas id="wordChart" height="280"></canvas>
+            </div>
+        </div>
+    </div>
+
+    <!-- Section 6: Zone Recommendations -->
+    <div class="stats-card mb-4">
+        <h3 class="mb-3">Actionable Zone Recommendations</h3>
+        <p class="text-muted mb-3">NLP-derived cause + location context → specific policy interventions for the most dangerous zones.</p>
+        <div class="table-responsive">
+            <table class="table table-sm table-hover" id="rec-table">
+                <thead class="table-dark">
+                    <tr>
+                        <th>Zone</th>
+                        <th>Accidents</th>
+                        <th>Dominant Cause</th>
+                        <th>Dominant Type</th>
+                        <th>Motorcycle %</th>
+                        <th>Recommendation</th>
+                    </tr>
+                </thead>
+                <tbody id="rec-body">
+                    <tr><td colspan="6" class="text-center text-muted">Loading...</td></tr>
+                </tbody>
+            </table>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+const NLP_CACHE = {{ nlp_data | tojson }};
+
+// --- Pipeline Demo ---
+(function() {
+    const tbody = document.getElementById('pipeline-body');
+    const examples = (NLP_CACHE.pipeline_demo || {}).pipeline_examples || [];
+    if (!examples.length) { tbody.innerHTML = '<tr><td colspan="5">No data</td></tr>'; return; }
+    tbody.innerHTML = examples.map(ex => `<tr>
+        <td><code>${ex.raw_thai}</code></td>
+        <td>${(ex.tokens || []).join(' | ')}</td>
+        <td>${ex.category_english}</td>
+        <td><code>${ex.xgboost_feature}</code></td>
+        <td>${ex.feature_importance}%</td>
+    </tr>`).join('');
+})();
+
+// --- Cause Chart ---
+(function() {
+    const cats = (NLP_CACHE.cause_analysis || {}).categories || [];
+    if (!cats.length) return;
+    new Chart(document.getElementById('causeChart'), {
+        type: 'bar',
+        data: {
+            labels: cats.map(c => c.english_name),
+            datasets: [{
+                label: 'Count',
+                data: cats.map(c => c.count),
+                backgroundColor: ['#dc3545','#fd7e14','#ffc107','#20c997','#0d6efd','#6c757d']
+            }]
+        },
+        options: {
+            indexAxis: 'y',
+            responsive: true,
+            plugins: { legend: { display: false } }
+        }
+    });
+})();
+
+// --- Feature Importance Donut ---
+(function() {
+    const fi = NLP_CACHE.feature_importance || {};
+    const labels = [], values = [], colors = ['#dc3545','#0d6efd','#ffc107','#20c997','#6610f2'];
+    let i = 0;
+    for (const [group, data] of Object.entries(fi)) {
+        labels.push(group.charAt(0).toUpperCase() + group.slice(1));
+        values.push(data.importance_pct || 0);
+        i++;
+    }
+    if (!values.length) return;
+    new Chart(document.getElementById('importanceChart'), {
+        type: 'doughnut',
+        data: {
+            labels: labels,
+            datasets: [{ data: values, backgroundColor: colors.slice(0, labels.length) }]
+        },
+        options: {
+            responsive: true,
+            plugins: {
+                legend: { position: 'bottom' },
+                tooltip: { callbacks: { label: ctx => `${ctx.label}: ${ctx.parsed}%` } }
+            }
+        }
+    });
+})();
+
+// --- Accident Type Chart ---
+(function() {
+    const types = (NLP_CACHE.type_analysis || {}).types || [];
+    if (!types.length) return;
+    new Chart(document.getElementById('typeChart'), {
+        type: 'doughnut',
+        data: {
+            labels: types.map(t => t.english_name),
+            datasets: [{
+                data: types.map(t => t.count),
+                backgroundColor: ['#dc3545','#fd7e14','#ffc107','#20c997','#0d6efd','#6c757d']
+            }]
+        },
+        options: {
+            responsive: true,
+            plugins: { legend: { position: 'bottom' } }
+        }
+    });
+})();
+
+// --- Word Cloud Bar Chart ---
+(function() {
+    const words = (NLP_CACHE.word_cloud || {}).words || [];
+    const top20 = words.slice(0, 20);
+    if (!top20.length) return;
+    new Chart(document.getElementById('wordChart'), {
+        type: 'bar',
+        data: {
+            labels: top20.map(w => w.text),
+            datasets: [{
+                label: 'Frequency',
+                data: top20.map(w => w.frequency),
+                backgroundColor: '#0d6efd'
+            }]
+        },
+        options: {
+            indexAxis: 'y',
+            responsive: true,
+            plugins: { legend: { display: false } }
+        }
+    });
+})();
+
+// --- Zone Recommendations ---
+(function() {
+    const recs = NLP_CACHE.recommendations || [];
+    const tbody = document.getElementById('rec-body');
+    if (!recs.length) { tbody.innerHTML = '<tr><td colspan="6">No data</td></tr>'; return; }
+    tbody.innerHTML = recs.map(r => `<tr>
+        <td><strong>${r.grid_id}</strong></td>
+        <td>${r.total_accidents}</td>
+        <td>${r.dominant_cause_english} (${r.dominant_cause_pct}%)</td>
+        <td>${r.dominant_type_english} (${r.dominant_type_pct}%)</td>
+        <td>${r.motorcycle_pct}%</td>
+        <td>${r.recommendation}</td>
+    </tr>`).join('');
+})();
+</script>
+{% endblock %}
