@@ -412,7 +412,7 @@ function updateRouteComparisonUI(data) {
 
     drawRouteMap(fast.waypoints, safe.waypoints);
     if (data.debug) {
-        console.log("Route compare debug:", data.debug);
+        // console.log("Route compare debug:", data.debug);
     }
 }
 

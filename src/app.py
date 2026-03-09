@@ -890,10 +890,17 @@ def analyze_route():
     """Analyze route risk and generate real-time alerts."""
     try:
         data = request.json or {}
-        start_lat = float(data["start_lat"])
-        start_lon = float(data["start_lon"])
-        end_lat = float(data["end_lat"])
-        end_lon = float(data["end_lon"])
+        required = ["start_lat", "start_lon", "end_lat", "end_lon"]
+        missing = [f for f in required if f not in data]
+        if missing:
+            return jsonify({"error": f"Missing fields: {missing}"}), 400
+        try:
+            start_lat = float(data["start_lat"])
+            start_lon = float(data["start_lon"])
+            end_lat = float(data["end_lat"])
+            end_lon = float(data["end_lon"])
+        except (TypeError, ValueError):
+            return jsonify({"error": "All coordinates must be valid numbers"}), 400
 
         waypoints_input = data.get("waypoints")
         parsed_waypoints = []
@@ -1290,9 +1297,12 @@ NLP_CACHE_PATH = BASE_DIR / "static" / "nlp_cache.json"
 
 
 def _load_nlp_cache():
-    if NLP_CACHE_PATH.exists():
-        with open(NLP_CACHE_PATH, encoding="utf-8") as f:
-            return json.load(f)
+    try:
+        if NLP_CACHE_PATH.exists():
+            with open(NLP_CACHE_PATH, encoding="utf-8") as f:
+                return json.load(f)
+    except (json.JSONDecodeError, OSError):
+        pass
     return {}
 
 
@@ -1306,29 +1316,41 @@ def nlp():
 @app.route("/api/nlp/pipeline-demo")
 def nlp_pipeline_demo():
     """Pipeline examples: Thai text → tokenization → XGBoost feature."""
-    cache = _load_nlp_cache()
-    return jsonify(cache.get("pipeline_demo", {}))
+    try:
+        cache = _load_nlp_cache()
+        return jsonify(cache.get("pipeline_demo", {}))
+    except Exception as exc:
+        return jsonify({"error": str(exc)}), 500
 
 
 @app.route("/api/nlp/cause-analysis")
 def nlp_cause_analysis():
     """Accident cause frequency breakdown."""
-    cache = _load_nlp_cache()
-    return jsonify(cache.get("cause_analysis", {}))
+    try:
+        cache = _load_nlp_cache()
+        return jsonify(cache.get("cause_analysis", {}))
+    except Exception as exc:
+        return jsonify({"error": str(exc)}), 500
 
 
 @app.route("/api/nlp/recommendations")
 def nlp_recommendations():
     """Per-zone policy recommendations based on NLP-derived causes."""
-    cache = _load_nlp_cache()
-    return jsonify(cache.get("recommendations", []))
+    try:
+        cache = _load_nlp_cache()
+        return jsonify(cache.get("recommendations", []))
+    except Exception as exc:
+        return jsonify({"error": str(exc)}), 500
 
 
 @app.route("/api/nlp/wordcloud")
 def nlp_wordcloud():
     """Thai keyword frequencies for word cloud visualization."""
-    cache = _load_nlp_cache()
-    return jsonify(cache.get("word_cloud", {}))
+    try:
+        cache = _load_nlp_cache()
+        return jsonify(cache.get("word_cloud", {}))
+    except Exception as exc:
+        return jsonify({"error": str(exc)}), 500
 
 
 # ---------------------------------------------------------------------------
@@ -1338,9 +1360,12 @@ DETECTION_CACHE_PATH = BASE_DIR / "static" / "detection_cache.json"
 
 
 def _load_detection_cache():
-    if DETECTION_CACHE_PATH.exists():
-        with open(DETECTION_CACHE_PATH, encoding="utf-8") as f:
-            return json.load(f)
+    try:
+        if DETECTION_CACHE_PATH.exists():
+            with open(DETECTION_CACHE_PATH, encoding="utf-8") as f:
+                return json.load(f)
+    except (json.JSONDecodeError, OSError):
+        pass
     # Return skeleton with pipeline data even without images
     return {
         "image_results": [],
@@ -1411,28 +1436,37 @@ def detection():
 @app.route("/api/detection/results")
 def detection_results():
     """All detection results from cache."""
-    cache = _load_detection_cache()
-    return jsonify({
-        "image_results": cache.get("image_results", []),
-        "total_images": cache.get("total_images", 0),
-    })
+    try:
+        cache = _load_detection_cache()
+        return jsonify({
+            "image_results": cache.get("image_results", []),
+            "total_images": cache.get("total_images", 0),
+        })
+    except Exception as exc:
+        return jsonify({"error": str(exc)}), 500
 
 
 @app.route("/api/detection/compare/<grid_id>")
 def detection_compare(grid_id):
     """YOLO vs model comparison for a specific grid zone."""
-    cache = _load_detection_cache()
-    for comp in cache.get("comparisons", []):
-        if comp.get("grid_id") == grid_id:
-            return jsonify(comp)
-    return jsonify({"error": f"No comparison data for grid {grid_id}"}), 404
+    try:
+        cache = _load_detection_cache()
+        for comp in cache.get("comparisons", []):
+            if comp.get("grid_id") == grid_id:
+                return jsonify(comp)
+        return jsonify({"error": f"No comparison data for grid {grid_id}"}), 404
+    except Exception as exc:
+        return jsonify({"error": str(exc)}), 500
 
 
 @app.route("/api/detection/pipeline")
 def detection_pipeline():
     """Future vision pipeline diagram data."""
-    cache = _load_detection_cache()
-    return jsonify(cache.get("pipeline", {}))
+    try:
+        cache = _load_detection_cache()
+        return jsonify(cache.get("pipeline", {}))
+    except Exception as exc:
+        return jsonify({"error": str(exc)}), 500
 
 
 if __name__ == "__main__":

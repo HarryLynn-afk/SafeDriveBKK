@@ -71,7 +71,7 @@ async function searchLocations(query, dropdownId, onSelect) {
                     throw new Error("API failed");
                 }
             } catch (error) {
-                console.log("API failed, using backup destinations");
+                // console.log("API failed, using backup destinations");
                 const filtered = BACKUP_DESTINATIONS.filter((destination) =>
                     destination.name.toLowerCase().includes(query.toLowerCase())
                 );
@@ -142,7 +142,7 @@ async function searchStartLocations(query) {
 }
 
 function selectStartLocation(name, lat, lon) {
-    console.log("Selected start:", name, lat, lon);
+    // console.log("Selected start:", name, lat, lon);
     document.getElementById("start-location").value = name;
     hideElement("start-suggestions-dropdown");
     window.startLat = lat;
@@ -169,7 +169,7 @@ async function searchDestinations(query) {
 }
 
 function selectDestination(name, lat, lon) {
-    console.log("Selected destination:", name, lat, lon);
+    // console.log("Selected destination:", name, lat, lon);
 
     document.getElementById("destination").value = name;
     hideElement("suggestions-dropdown");
@@ -248,7 +248,7 @@ function detectMyLocation() {
 
 // ===== ROUTE CALCULATION =====
 async function calculateRoute(startLat, startLon, endLat, endLon, destName) {
-    console.log("Comparing routes...", { startLat, startLon, endLat, endLon });
+    // console.log("Comparing routes...", { startLat, startLon, endLat, endLon });
 
     // Hide any stale results and show the AI overlay
     hideElement("route-preview");
@@ -828,7 +828,7 @@ async function loadDemoRoute(routeName) {
         ) {
             throw new Error("Demo route not found or invalid");
         }
-        console.log("Loading pre-saved demo route:", routeName);
+        // console.log("Loading pre-saved demo route:", routeName);
         return route;
     } catch (error) {
         console.error("Failed to load demo route:", error);
@@ -848,7 +848,7 @@ async function useDemoRoute(demoRoute, destName, startLat, startLon) {
 
     // 1) Try OSRM (live routing with perfect road geometry)
     try {
-        console.log("[Hybrid] Trying OSRM live routing first...");
+        // console.log("[Hybrid] Trying OSRM live routing first...");
         document.getElementById("risk-details").textContent = "Fetching live OSRM route...";
 
         const osrmPayload = {
@@ -868,7 +868,7 @@ async function useDemoRoute(demoRoute, destName, startLat, startLon) {
         if (osrmResponse.ok) {
             const osrmData = await osrmResponse.json();
             if (osrmData.success) {
-                console.log(
+                // console.log(
                     `[Hybrid] OSRM success: ${osrmData.route.waypoints.length} waypoints, `
                     + `${osrmData.route.distance_km} km`
                 );
@@ -885,7 +885,7 @@ async function useDemoRoute(demoRoute, destName, startLat, startLon) {
 
     // 2) Fallback: Use embedded dense waypoints from demo_routes.json
     try {
-        console.log("[Hybrid] Using embedded dense waypoints as fallback...");
+        // console.log("[Hybrid] Using embedded dense waypoints as fallback...");
         document.getElementById("risk-details").textContent = "Using pre-computed route...";
 
         const fallbackPayload = {
@@ -920,7 +920,7 @@ async function useDemoRoute(demoRoute, destName, startLat, startLon) {
             throw new Error(fallbackData.error || "Unknown fallback error");
         }
 
-        console.log(
+        // console.log(
             `[Hybrid] Fallback success: ${fallbackData.route.waypoints.length} waypoints `
             + `(embedded dense)`
         );
@@ -1040,7 +1040,7 @@ function findSegmentIndexForDistance(distanceKm) {
 }
 
 function startNavigation() {
-    console.log("Starting navigation...");
+    // console.log("Starting navigation...");
 
     if (!tripPlannerRouteData) {
         alert("Please calculate a route first");
@@ -1115,7 +1115,7 @@ function initializeNavigationMap() {
         );
 
         if (gapDistance > 0.001) {
-            console.log("Drawing connector segment - gap detected:", gapDistance);
+            // console.log("Drawing connector segment - gap detected:", gapDistance);
             L.polyline([lastSegmentEnd, routeEnd], {
                 color: connectorColor,
                 weight: 8,
@@ -1175,7 +1175,7 @@ function startNavigationSimulation() {
 
     // Show initial safe alert
     showNavigationAlert("safe", "✓", "Ready to Navigate", "Drive safely");
-    console.log(
+    // console.log(
         `[TripPlanner ${TRIP_PLANNER_JS_VERSION}] simulation active: `
         + `${SIMULATION_STEP_KM.toFixed(2)} km per ${SIMULATION_TICK_MS}ms`
     );
@@ -1305,9 +1305,9 @@ function speakAlert(message) {
             utterance.volume = 0.8;
             utterance.lang = "en-US";
             speechSynthesis.speak(utterance);
-            console.log("Voice alert:", message);
+            // console.log("Voice alert:", message);
         } catch (error) {
-            console.log("Voice synthesis failed:", error);
+            // console.log("Voice synthesis failed:", error);
         }
     }
 }
@@ -1339,7 +1339,7 @@ function showNavigationAlert(severity, icon, title, subtitle) {
 }
 
 function exitNavigation() {
-    console.log("Exiting navigation");
+    // console.log("Exiting navigation");
 
     // Stop any ongoing speech
     if ("speechSynthesis" in window) {
@@ -1375,7 +1375,7 @@ function exitNavigation() {
 // ===== DEMO MODE TOGGLE =====
 function toggleDemoMode() {
     document.body.classList.toggle("demo-mode");
-    console.log("Demo mode:", document.body.classList.contains("demo-mode") ? "ON" : "OFF");
+    // console.log("Demo mode:", document.body.classList.contains("demo-mode") ? "ON" : "OFF");
 }
 
 // Enable demo mode by pressing 'D' key
@@ -1409,11 +1409,11 @@ function setNetworkStatusVisibility(showOfflineMessage) {
 
 // Initialize on page load
 document.addEventListener("DOMContentLoaded", () => {
-    console.log(`Trip Planner loaded (version ${TRIP_PLANNER_JS_VERSION})`);
-    console.log(
+    // console.log(`Trip Planner loaded (version ${TRIP_PLANNER_JS_VERSION})`);
+    // console.log(
         `Simulation config: ${SIMULATION_STEP_KM.toFixed(2)} km per ${SIMULATION_TICK_MS}ms`
     );
-    console.log("Ready for destination input");
+    // console.log("Ready for destination input");
 });
 
 // === AUTO-REFRESH DEMO ROUTES ON STARTUP ===
@@ -1428,13 +1428,13 @@ async function tryRefreshDemoRoutes() {
         if (response.ok) {
             const data = await response.json();
             if (data.success) {
-                console.log("[DemoRoutes] Refreshed with OSRM data:", data.updated);
+                // console.log("[DemoRoutes] Refreshed with OSRM data:", data.updated);
                 // Invalidate cache so next loadDemoRoute picks up fresh data
                 demoRoutesCache = null;
             }
         }
     } catch (err) {
-        console.log("[DemoRoutes] Auto-refresh skipped (OSRM unavailable)");
+        // console.log("[DemoRoutes] Auto-refresh skipped (OSRM unavailable)");
     }
 }
 
