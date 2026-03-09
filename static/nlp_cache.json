@@ -1,0 +1,642 @@
+{
+  "pipeline_demo": {
+    "pipeline_examples": [
+      {
+        "raw_thai": "ขับรถเร็วเกินอัตรากำหนด",
+        "tokens": [
+          "ขับรถ",
+          "เร็ว",
+          "เกิน",
+          "อัตรา",
+          "กำหนด"
+        ],
+        "category_english": "Speeding",
+        "xgboost_feature": "cause_ขับรถเร็วเกินอัตรากำหนด",
+        "feature_importance": 0.071
+      },
+      {
+        "raw_thai": "คน/รถ/สัตว์ตัดหน้ากระชั้นชิด",
+        "tokens": [
+          "คน",
+          "/",
+          "รถ",
+          "/",
+          "สัตว์",
+          "ตัดหน้า",
+          "กระชั้นชิด"
+        ],
+        "category_english": "Cutting in front",
+        "xgboost_feature": "cause_คน/รถ/สัตว์ตัดหน้ากระชั้นชิด",
+        "feature_importance": 0.174
+      },
+      {
+        "raw_thai": "หลับใน",
+        "tokens": [
+          "หลับใน"
+        ],
+        "category_english": "Drowsy driving",
+        "xgboost_feature": "cause_หลับใน",
+        "feature_importance": 0.0
+      },
+      {
+        "raw_thai": "ยางเสื่อมสภาพ/ยางแตก",
+        "tokens": [
+          "ยาง",
+          "เสื่อมสภาพ",
+          "/",
+          "ยางแตก"
+        ],
+        "category_english": "Tire blowout / worn tires",
+        "xgboost_feature": "cause_ยางเสื่อมสภาพ/ยางแตก",
+        "feature_importance": 0.0
+      },
+      {
+        "raw_thai": "ฝ่าฝืนสัญญาณไฟ/เครื่องหมายจราจร",
+        "tokens": [
+          "ฝ่าฝืน",
+          "สัญญาณไฟ",
+          "/",
+          "เครื่องหมายจราจร"
+        ],
+        "category_english": "Running red light / traffic sign violation",
+        "xgboost_feature": "cause_ฝ่าฝืนสัญญาณไฟ/เครื่องหมายจราจร",
+        "feature_importance": 0.0
+      }
+    ],
+    "total_features_in_model": 44
+  },
+  "cause_analysis": {
+    "categories": [
+      {
+        "thai_name": "ขับรถเร็วเกินอัตรากำหนด",
+        "english_name": "Speeding",
+        "count": 2104,
+        "percentage": 78.8,
+        "xgboost_feature": "cause_ขับรถเร็วเกินอัตรากำหนด",
+        "feature_importance": 0.071
+      },
+      {
+        "thai_name": "คน/รถ/สัตว์ตัดหน้ากระชั้นชิด",
+        "english_name": "Cutting in front",
+        "count": 126,
+        "percentage": 4.7,
+        "xgboost_feature": "cause_คน/รถ/สัตว์ตัดหน้ากระชั้นชิด",
+        "feature_importance": 0.174
+      },
+      {
+        "thai_name": "ยางเสื่อมสภาพ/ยางแตก",
+        "english_name": "Tire blowout / worn tires",
+        "count": 51,
+        "percentage": 1.9,
+        "xgboost_feature": "cause_ยางเสื่อมสภาพ/ยางแตก",
+        "feature_importance": 0.0
+      },
+      {
+        "thai_name": "หลับใน",
+        "english_name": "Drowsy driving",
+        "count": 43,
+        "percentage": 1.6,
+        "xgboost_feature": "cause_หลับใน",
+        "feature_importance": 0.0
+      },
+      {
+        "thai_name": "ฝ่าฝืนสัญญาณไฟ/เครื่องหมายจราจร",
+        "english_name": "Running red light / traffic sign violation",
+        "count": 22,
+        "percentage": 0.8,
+        "xgboost_feature": "cause_ฝ่าฝืนสัญญาณไฟ/เครื่องหมายจราจร",
+        "feature_importance": 0.0
+      },
+      {
+        "thai_name": "อื่นๆ",
+        "english_name": "Other causes",
+        "count": 120,
+        "percentage": 4.5,
+        "xgboost_feature": "cause_other",
+        "feature_importance": 0.0
+      }
+    ],
+    "total_records": 2669
+  },
+  "type_analysis": {
+    "types": [
+      {
+        "thai_name": "ชนท้าย",
+        "english_name": "Rear-end collision",
+        "count": 1908,
+        "percentage": 71.5,
+        "xgboost_feature": "type_ชนท้าย",
+        "feature_importance": 1.757
+      },
+      {
+        "thai_name": "พลิกคว่ำ/ตกถนนในทางตรง",
+        "english_name": "Rollover / road departure",
+        "count": 453,
+        "percentage": 17.0,
+        "xgboost_feature": "type_พลิกคว่ำ/ตกถนนในทางตรง",
+        "feature_importance": 0.0
+      },
+      {
+        "thai_name": "ชนสิ่งกีดขวาง (บนผิวจราจร)",
+        "english_name": "Hitting obstacle on road",
+        "count": 123,
+        "percentage": 4.6,
+        "xgboost_feature": "type_ชนสิ่งกีดขวาง (บนผิวจราจร)",
+        "feature_importance": 0.0
+      },
+      {
+        "thai_name": "อื่นๆ",
+        "english_name": "Other type",
+        "count": 88,
+        "percentage": 3.3,
+        "xgboost_feature": "type_อื่นๆ",
+        "feature_importance": 0.0
+      },
+      {
+        "thai_name": "ชนด้านข้าง",
+        "english_name": "Side collision",
+        "count": 26,
+        "percentage": 1.0,
+        "xgboost_feature": "type_ชนด้านข้าง",
+        "feature_importance": 1.817
+      },
+      {
+        "thai_name": "ชนคนเดินเท้า",
+        "english_name": "ชนคนเดินเท้า",
+        "count": 16,
+        "percentage": 0.6,
+        "xgboost_feature": "type_ชนคนเดินเท้า",
+        "feature_importance": 0
+      }
+    ],
+    "total_records": 2669
+  },
+  "feature_importance": {
+    "severity": {
+      "importance_pct": 53.7,
+      "feature_count": 3,
+      "features": [
+        {
+          "name": "severity_mean",
+          "importance": 53.624
+        },
+        {
+          "name": "severity_total",
+          "importance": 0.073
+        }
+      ]
+    },
+    "spatial": {
+      "importance_pct": 20.66,
+      "feature_count": 13,
+      "features": [
+        {
+          "name": "grid_density",
+          "importance": 19.613
+        },
+        {
+          "name": "accidents_n",
+          "importance": 0.027
+        },
+        {
+          "name": "accidents_s",
+          "importance": 0.018
+        },
+        {
+          "name": "accidents_e",
+          "importance": 0.021
+        },
+        {
+          "name": "accidents_sw",
+          "importance": 0.143
+        },
+        {
+          "name": "accidents_neighbors_max",
+          "importance": 0.834
+        }
+      ]
+    },
+    "temporal": {
+      "importance_pct": 11.83,
+      "feature_count": 5,
+      "features": [
+        {
+          "name": "rush_hour_pct",
+          "importance": 2.079
+        },
+        {
+          "name": "month_spread",
+          "importance": 9.755
+        }
+      ]
+    },
+    "vehicle": {
+      "importance_pct": 9.99,
+      "feature_count": 9,
+      "features": [
+        {
+          "name": "motorcycle_count",
+          "importance": 0.335
+        },
+        {
+          "name": "car_count",
+          "importance": 0.327
+        },
+        {
+          "name": "pickup_count",
+          "importance": 7.39
+        },
+        {
+          "name": "heavy_truck_count",
+          "importance": 0.048
+        },
+        {
+          "name": "motorcycle_pct",
+          "importance": 0.161
+        },
+        {
+          "name": "pickup_pct",
+          "importance": 1.732
+        }
+      ]
+    },
+    "nlp_text": {
+      "importance_pct": 3.82,
+      "feature_count": 14,
+      "features": [
+        {
+          "name": "type_ชนด้านข้าง",
+          "importance": 1.817
+        },
+        {
+          "name": "type_ชนท้าย",
+          "importance": 1.757
+        },
+        {
+          "name": "cause_คน/รถ/สัตว์ตัดหน้ากระชั้นชิด",
+          "importance": 0.174
+        },
+        {
+          "name": "cause_ขับรถเร็วเกินอัตรากำหนด",
+          "importance": 0.071
+        }
+      ]
+    }
+  },
+  "recommendations": [
+    {
+      "grid_id": "G020_002",
+      "total_accidents": 85,
+      "center_lat": 13.784500000000008,
+      "center_lon": 100.3725,
+      "dominant_cause_thai": "ขับรถเร็วเกินอัตรากำหนด",
+      "dominant_cause_english": "Speeding",
+      "dominant_cause_pct": 82.3,
+      "dominant_type_thai": "ชนท้าย",
+      "dominant_type_english": "Rear-end collision",
+      "dominant_type_pct": 88.2,
+      "motorcycle_pct": 13.4,
+      "location_context": "ทางตรง+ไม่มีความลาดชัน",
+      "recommendation": "Deploy automated speed enforcement cameras and install rumble strips"
+    },
+    {
+      "grid_id": "G014_041",
+      "total_accidents": 69,
+      "center_lat": 13.730500000000005,
+      "center_lon": 100.7235,
+      "dominant_cause_thai": "ขับรถเร็วเกินอัตรากำหนด",
+      "dominant_cause_english": "Speeding",
+      "dominant_cause_pct": 95.7,
+      "dominant_type_thai": "ชนท้าย",
+      "dominant_type_english": "Rear-end collision",
+      "dominant_type_pct": 91.3,
+      "motorcycle_pct": 0.0,
+      "location_context": "ทางตรง+ไม่มีความลาดชัน",
+      "recommendation": "Deploy automated speed enforcement cameras and install rumble strips"
+    },
+    {
+      "grid_id": "G014_043",
+      "total_accidents": 66,
+      "center_lat": 13.730500000000005,
+      "center_lon": 100.7415,
+      "dominant_cause_thai": "ขับรถเร็วเกินอัตรากำหนด",
+      "dominant_cause_english": "Speeding",
+      "dominant_cause_pct": 98.5,
+      "dominant_type_thai": "ชนท้าย",
+      "dominant_type_english": "Rear-end collision",
+      "dominant_type_pct": 87.9,
+      "motorcycle_pct": 0.0,
+      "location_context": "ทางตรง+ไม่มีความลาดชัน",
+      "recommendation": "Deploy automated speed enforcement cameras and install rumble strips"
+    },
+    {
+      "grid_id": "G014_039",
+      "total_accidents": 65,
+      "center_lat": 13.730500000000005,
+      "center_lon": 100.7055,
+      "dominant_cause_thai": "ขับรถเร็วเกินอัตรากำหนด",
+      "dominant_cause_english": "Speeding",
+      "dominant_cause_pct": 89.2,
+      "dominant_type_thai": "ชนท้าย",
+      "dominant_type_english": "Rear-end collision",
+      "dominant_type_pct": 69.2,
+      "motorcycle_pct": 0.0,
+      "location_context": "ทางตรง+ไม่มีความลาดชัน",
+      "recommendation": "Deploy automated speed enforcement cameras and install rumble strips"
+    },
+    {
+      "grid_id": "G014_040",
+      "total_accidents": 58,
+      "center_lat": 13.730500000000005,
+      "center_lon": 100.71450000000002,
+      "dominant_cause_thai": "ขับรถเร็วเกินอัตรากำหนด",
+      "dominant_cause_english": "Speeding",
+      "dominant_cause_pct": 98.3,
+      "dominant_type_thai": "ชนท้าย",
+      "dominant_type_english": "Rear-end collision",
+      "dominant_type_pct": 89.7,
+      "motorcycle_pct": 0.0,
+      "location_context": "ทางตรง+ไม่มีความลาดชัน",
+      "recommendation": "Deploy automated speed enforcement cameras and install rumble strips"
+    },
+    {
+      "grid_id": "G014_042",
+      "total_accidents": 54,
+      "center_lat": 13.730500000000005,
+      "center_lon": 100.73250000000002,
+      "dominant_cause_thai": "ขับรถเร็วเกินอัตรากำหนด",
+      "dominant_cause_english": "Speeding",
+      "dominant_cause_pct": 98.2,
+      "dominant_type_thai": "ชนท้าย",
+      "dominant_type_english": "Rear-end collision",
+      "dominant_type_pct": 92.6,
+      "motorcycle_pct": 0.0,
+      "location_context": "ทางตรง+ไม่มีความลาดชัน",
+      "recommendation": "Deploy automated speed enforcement cameras and install rumble strips"
+    },
+    {
+      "grid_id": "G020_005",
+      "total_accidents": 51,
+      "center_lat": 13.784500000000008,
+      "center_lon": 100.3995,
+      "dominant_cause_thai": "ขับรถเร็วเกินอัตรากำหนด",
+      "dominant_cause_english": "Speeding",
+      "dominant_cause_pct": 62.8,
+      "dominant_type_thai": "ชนท้าย",
+      "dominant_type_english": "Rear-end collision",
+      "dominant_type_pct": 92.2,
+      "motorcycle_pct": 16.2,
+      "location_context": "ทางตรง+ไม่มีความลาดชัน",
+      "recommendation": "Deploy automated speed enforcement cameras and install rumble strips"
+    },
+    {
+      "grid_id": "G020_001",
+      "total_accidents": 47,
+      "center_lat": 13.784500000000008,
+      "center_lon": 100.3635,
+      "dominant_cause_thai": "ขับรถเร็วเกินอัตรากำหนด",
+      "dominant_cause_english": "Speeding",
+      "dominant_cause_pct": 78.7,
+      "dominant_type_thai": "ชนท้าย",
+      "dominant_type_english": "Rear-end collision",
+      "dominant_type_pct": 91.5,
+      "motorcycle_pct": 19.1,
+      "location_context": "ทางตรง+ไม่มีความลาดชัน",
+      "recommendation": "Deploy automated speed enforcement cameras and install rumble strips"
+    },
+    {
+      "grid_id": "G020_003",
+      "total_accidents": 44,
+      "center_lat": 13.784500000000008,
+      "center_lon": 100.3815,
+      "dominant_cause_thai": "ขับรถเร็วเกินอัตรากำหนด",
+      "dominant_cause_english": "Speeding",
+      "dominant_cause_pct": 81.8,
+      "dominant_type_thai": "ชนท้าย",
+      "dominant_type_english": "Rear-end collision",
+      "dominant_type_pct": 84.1,
+      "motorcycle_pct": 15.4,
+      "location_context": "ทางตรง+ไม่มีความลาดชัน",
+      "recommendation": "Deploy automated speed enforcement cameras and install rumble strips"
+    },
+    {
+      "grid_id": "G020_006",
+      "total_accidents": 39,
+      "center_lat": 13.784500000000008,
+      "center_lon": 100.4085,
+      "dominant_cause_thai": "ขับรถเร็วเกินอัตรากำหนด",
+      "dominant_cause_english": "Speeding",
+      "dominant_cause_pct": 82.0,
+      "dominant_type_thai": "ชนท้าย",
+      "dominant_type_english": "Rear-end collision",
+      "dominant_type_pct": 74.4,
+      "motorcycle_pct": 19.0,
+      "location_context": "ทางตรง+ไม่มีความลาดชัน",
+      "recommendation": "Deploy automated speed enforcement cameras and install rumble strips"
+    }
+  ],
+  "word_cloud": {
+    "words": [
+      {
+        "text": "ชน",
+        "frequency": 7
+      },
+      {
+        "text": "ขับรถ",
+        "frequency": 5
+      },
+      {
+        "text": "ถนน",
+        "frequency": 5
+      },
+      {
+        "text": "ลาดชัน",
+        "frequency": 5
+      },
+      {
+        "text": "ทางโค้ง",
+        "frequency": 5
+      },
+      {
+        "text": "ทางตรง",
+        "frequency": 4
+      },
+      {
+        "text": "รถ",
+        "frequency": 3
+      },
+      {
+        "text": "อัตรา",
+        "frequency": 2
+      },
+      {
+        "text": "ตัดหน้า",
+        "frequency": 2
+      },
+      {
+        "text": "กระชั้นชิด",
+        "frequency": 2
+      },
+      {
+        "text": "สิ่งกีดขวาง",
+        "frequency": 2
+      },
+      {
+        "text": "ระบบ",
+        "frequency": 2
+      },
+      {
+        "text": "ชำรุด",
+        "frequency": 2
+      },
+      {
+        "text": "ให้สัญญาณ",
+        "frequency": 2
+      },
+      {
+        "text": "เลี้ยว",
+        "frequency": 2
+      },
+      {
+        "text": "จอด",
+        "frequency": 2
+      },
+      {
+        "text": "แซง",
+        "frequency": 2
+      },
+      {
+        "text": "สามแยก",
+        "frequency": 2
+      },
+      {
+        "text": "ทางแยก",
+        "frequency": 2
+      },
+      {
+        "text": "พลิกคว่ำ",
+        "frequency": 2
+      },
+      {
+        "text": "ตก",
+        "frequency": 2
+      },
+      {
+        "text": "ความประมาท",
+        "frequency": 1
+      },
+      {
+        "text": "เร่งรีบ",
+        "frequency": 1
+      },
+      {
+        "text": "วิ่ง",
+        "frequency": 1
+      },
+      {
+        "text": "คน",
+        "frequency": 1
+      },
+      {
+        "text": "สัตว์",
+        "frequency": 1
+      },
+      {
+        "text": "บรรทุก",
+        "frequency": 1
+      },
+      {
+        "text": "หลับใน",
+        "frequency": 1
+      },
+      {
+        "text": "กอง",
+        "frequency": 1
+      },
+      {
+        "text": "วัสดุ",
+        "frequency": 1
+      },
+      {
+        "text": "ยาง",
+        "frequency": 1
+      },
+      {
+        "text": "เสื่อมสภาพ",
+        "frequency": 1
+      },
+      {
+        "text": "ยางแตก",
+        "frequency": 1
+      },
+      {
+        "text": "คุ้นเคย",
+        "frequency": 1
+      },
+      {
+        "text": "เส้นทาง",
+        "frequency": 1
+      },
+      {
+        "text": "ชำนาญ",
+        "frequency": 1
+      },
+      {
+        "text": "ช่องทาง",
+        "frequency": 1
+      },
+      {
+        "text": "กะทันหัน",
+        "frequency": 1
+      },
+      {
+        "text": "ย้อนศร",
+        "frequency": 1
+      },
+      {
+        "text": "ฝ่าฝืน",
+        "frequency": 1
+      },
+      {
+        "text": "สัญญาณไฟ",
+        "frequency": 1
+      },
+      {
+        "text": "เครื่องหมายจราจร",
+        "frequency": 1
+      },
+      {
+        "text": "แสงสว่าง",
+        "frequency": 1
+      },
+      {
+        "text": "ทำงาน",
+        "frequency": 1
+      },
+      {
+        "text": "อุปกรณ์",
+        "frequency": 1
+      },
+      {
+        "text": "ยานพาหนะ",
+        "frequency": 1
+      },
+      {
+        "text": "บกพร่อง",
+        "frequency": 1
+      },
+      {
+        "text": "ห้ามล้อ",
+        "frequency": 1
+      },
+      {
+        "text": "ขัดข้อง",
+        "frequency": 1
+      },
+      {
+        "text": "เบรก",
+        "frequency": 1
+      }
+    ]
+  }
+}
