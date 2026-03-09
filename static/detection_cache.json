@@ -1,0 +1,102 @@
+{
+  "image_results": [],
+  "comparisons": [],
+  "vehicle_importance": {
+    "vehicle_features": [
+      {
+        "feature": "pickup_count",
+        "importance_pct": 7.39,
+        "yolo_detectable": false
+      },
+      {
+        "feature": "pickup_pct",
+        "importance_pct": 1.732,
+        "yolo_detectable": false
+      },
+      {
+        "feature": "motorcycle_count",
+        "importance_pct": 0.335,
+        "yolo_detectable": true
+      },
+      {
+        "feature": "car_count",
+        "importance_pct": 0.327,
+        "yolo_detectable": true
+      },
+      {
+        "feature": "motorcycle_pct",
+        "importance_pct": 0.161,
+        "yolo_detectable": true
+      },
+      {
+        "feature": "heavy_truck_count",
+        "importance_pct": 0.048,
+        "yolo_detectable": true
+      },
+      {
+        "feature": "car_pct",
+        "importance_pct": 0.0,
+        "yolo_detectable": true
+      },
+      {
+        "feature": "heavy_truck_pct",
+        "importance_pct": 0.0,
+        "yolo_detectable": true
+      },
+      {
+        "feature": "max_vehicles",
+        "importance_pct": 0.0,
+        "yolo_detectable": false
+      }
+    ],
+    "total_vehicle_importance_pct": 9.99,
+    "highlight": "pickup_count is #4 most important feature overall at 7.39%",
+    "limitation": "COCO has no pickup class; pickups classified as car/truck by YOLO"
+  },
+  "pipeline": {
+    "stages": [
+      {
+        "stage": 1,
+        "title": "Camera Feed",
+        "description": "CCTV camera at Bangkok intersection",
+        "icon": "camera"
+      },
+      {
+        "stage": 2,
+        "title": "YOLOv8 Detection",
+        "description": "Process frame, detect vehicles by type",
+        "icon": "eye",
+        "features_produced": [
+          "car_count",
+          "motorcycle_count",
+          "heavy_truck_count"
+        ]
+      },
+      {
+        "stage": 3,
+        "title": "Feature Aggregation",
+        "description": "Aggregate counts per grid cell per time window",
+        "icon": "grid",
+        "features_produced": [
+          "motorcycle_pct",
+          "car_pct",
+          "heavy_truck_pct"
+        ]
+      },
+      {
+        "stage": 4,
+        "title": "XGBoost Prediction",
+        "description": "Feed vehicle features into trained model",
+        "icon": "brain"
+      },
+      {
+        "stage": 5,
+        "title": "Dynamic Risk Map",
+        "description": "Real-time risk score updates per zone",
+        "icon": "map"
+      }
+    ],
+    "key_message": "No model retraining needed. YOLO provides fresher values for features the model already understands."
+  },
+  "total_images": 0
+}
