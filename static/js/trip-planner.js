@@ -868,10 +868,7 @@ async function useDemoRoute(demoRoute, destName, startLat, startLon) {
         if (osrmResponse.ok) {
             const osrmData = await osrmResponse.json();
             if (osrmData.success) {
-                // console.log(
-                    `[Hybrid] OSRM success: ${osrmData.route.waypoints.length} waypoints, `
-                    + `${osrmData.route.distance_km} km`
-                );
+                // console.log(`[Hybrid] OSRM success: ${osrmData.route.waypoints.length} waypoints, ${osrmData.route.distance_km} km`);
                 setTripPlannerRouteData(osrmData);
                 displayRoutePreview(osrmData, destName);
                 hideElement("loading-route");
@@ -920,10 +917,7 @@ async function useDemoRoute(demoRoute, destName, startLat, startLon) {
             throw new Error(fallbackData.error || "Unknown fallback error");
         }
 
-        // console.log(
-            `[Hybrid] Fallback success: ${fallbackData.route.waypoints.length} waypoints `
-            + `(embedded dense)`
-        );
+        // console.log(`[Hybrid] Fallback success: ${fallbackData.route.waypoints.length} waypoints (embedded dense)`);
         setTripPlannerRouteData(fallbackData);
         displayRoutePreview(fallbackData, destName);
         hideElement("loading-route");
@@ -1175,10 +1169,7 @@ function startNavigationSimulation() {
 
     // Show initial safe alert
     showNavigationAlert("safe", "✓", "Ready to Navigate", "Drive safely");
-    // console.log(
-        `[TripPlanner ${TRIP_PLANNER_JS_VERSION}] simulation active: `
-        + `${SIMULATION_STEP_KM.toFixed(2)} km per ${SIMULATION_TICK_MS}ms`
-    );
+    // console.log(`[TripPlanner ${TRIP_PLANNER_JS_VERSION}] simulation active: ${SIMULATION_STEP_KM.toFixed(2)} km per ${SIMULATION_TICK_MS}ms`);
 
     // Start simulation interval
     if (tripNavigationInterval) {
@@ -1410,9 +1401,7 @@ function setNetworkStatusVisibility(showOfflineMessage) {
 // Initialize on page load
 document.addEventListener("DOMContentLoaded", () => {
     // console.log(`Trip Planner loaded (version ${TRIP_PLANNER_JS_VERSION})`);
-    // console.log(
-        `Simulation config: ${SIMULATION_STEP_KM.toFixed(2)} km per ${SIMULATION_TICK_MS}ms`
-    );
+    // console.log(`Simulation config: ${SIMULATION_STEP_KM.toFixed(2)} km per ${SIMULATION_TICK_MS}ms`);
     // console.log("Ready for destination input");
 });
 
