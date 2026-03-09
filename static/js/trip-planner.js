@@ -210,7 +210,10 @@ function detectMyLocation() {
     const startInput = document.getElementById("start-location");
 
     if (!navigator.geolocation) {
-        alert("Geolocation is not supported by your browser");
+        // Geolocation not available — use default start
+        startInput.value = DEFAULT_START.name;
+        window.startLat = DEFAULT_START.lat;
+        window.startLon = DEFAULT_START.lon;
         return;
     }
 
@@ -239,9 +242,10 @@ function detectMyLocation() {
                 });
         },
         (error) => {
-            alert("Unable to detect location: " + error.message);
-            startInput.value = "";
-            startInput.placeholder = "Search start location...";
+            // GPS failed (common on HTTP) — use default start
+            startInput.value = DEFAULT_START.name;
+            window.startLat = DEFAULT_START.lat;
+            window.startLon = DEFAULT_START.lon;
         }
     );
 }
@@ -1400,9 +1404,15 @@ function setNetworkStatusVisibility(showOfflineMessage) {
 
 // Initialize on page load
 document.addEventListener("DOMContentLoaded", () => {
-    // console.log(`Trip Planner loaded (version ${TRIP_PLANNER_JS_VERSION})`);
-    // console.log(`Simulation config: ${SIMULATION_STEP_KM.toFixed(2)} km per ${SIMULATION_TICK_MS}ms`);
-    // console.log("Ready for destination input");
+    // Pre-set start location so demo chips work immediately
+    if (!window.startLat || !window.startLon) {
+        window.startLat = DEFAULT_START.lat;
+        window.startLon = DEFAULT_START.lon;
+        const startInput = document.getElementById("start-location");
+        if (startInput) {
+            startInput.value = DEFAULT_START.name;
+        }
+    }
 });
 
 // === AUTO-REFRESH DEMO ROUTES ON STARTUP ===
