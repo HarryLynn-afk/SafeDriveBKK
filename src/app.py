@@ -415,18 +415,47 @@ def calculate_segment_risk(lat, lon, hour=None, day_of_week=None):
 
 
 def calculate_route_risk_ml(waypoints):
-    """Calculate overall route risk using ML batch prediction."""
+    """Calculate overall route risk using ML batch prediction.
+
+    Uses distance-weighted risk so that longer segments through danger
+    zones contribute proportionally more than short ones.  Two routes
+    crossing the same danger zones will score the shorter route as safer
+    because it spends less absolute distance in the zone.
+    """
     if not (USE_ML and ml_predictor):
         return None
 
     results = ml_predictor.predict_batch(waypoints)
-    scores = [r["risk_score"] for r in results]
     high_risk_zones = sum(1 for r in results if r["risk_level"] == "high")
     medium_risk_zones = sum(1 for r in results if r["risk_level"] == "medium")
 
-    avg_score = float(np.mean(scores)) if scores else 0.0
-    max_score = max(scores) if scores else 0
-    blended = (avg_score * 0.4) + (max_score * 0.6)
+    # Distance-weighted risk: each segment's risk is weighted by its length.
+    total_risk_exposure = 0.0
+    total_distance = 0.0
+    max_score = 0
+
+    for i in range(len(waypoints)):
+        score = results[i]["risk_score"]
+        if score > max_score:
+            max_score = score
+
+        if i > 0:
+            seg_dist = _haversine_km(
+                waypoints[i - 1][0], waypoints[i - 1][1],
+                waypoints[i][0], waypoints[i][1],
+            )
+            # Use the average risk of the two endpoints for this segment.
+            seg_risk = (results[i - 1]["risk_score"] + score) / 2.0
+            total_risk_exposure += seg_risk * seg_dist
+            total_distance += seg_dist
+
+    if total_distance > 0:
+        weighted_avg = total_risk_exposure / total_distance
+    else:
+        weighted_avg = float(np.mean([r["risk_score"] for r in results])) if results else 0.0
+
+    # Blend: 60% distance-weighted average, 40% max (keep worst-zone emphasis).
+    blended = (weighted_avg * 0.6) + (max_score * 0.4)
     risk_score = min(100, int(blended))
 
     if risk_score >= 55:
@@ -448,19 +477,26 @@ def calculate_route_risk_ml(waypoints):
 
 
 def calculate_route_risk_density_aware(waypoints, grid_df):
-    """Calculate risk using actual accident counts."""
-    accident_counts = []
+    """Calculate risk using actual accident counts, weighted by distance.
+
+    Uses distance-weighted aggregation so that the risk score reflects
+    how much distance is spent in each danger zone.  Two routes crossing
+    the same danger zones will score the shorter route as safer because
+    it has less total exposure (risk x distance).
+    """
     high_risk_zones = 0
     medium_risk_zones = 0
     max_accidents_in_grid = 0
     matched_grid_count = 0
 
+    # Collect per-waypoint accident counts and grid risk scores.
+    point_accidents = []
     for lat, lon in waypoints:
         grid = _find_grid_for_point(lat, lon, grid_df)
         if grid is not None:
             matched_grid_count += 1
             accidents = int(grid["total_accidents"])
-            accident_counts.append(accidents)
+            point_accidents.append(accidents)
             if accidents > max_accidents_in_grid:
                 max_accidents_in_grid = accidents
 
@@ -470,18 +506,39 @@ def calculate_route_risk_density_aware(waypoints, grid_df):
             elif risk_level == "medium":
                 medium_risk_zones += 1
         else:
-            accident_counts.append(0)
+            point_accidents.append(0)
 
-    avg_accidents = float(np.mean(accident_counts)) if accident_counts else 0.0
-    if max_accidents_in_grid > 0:
-        blended = (avg_accidents * 0.4) + (max_accidents_in_grid * 0.6)
+    # Distance-weighted accident density: each segment's accident count
+    # is the average of its two endpoints, weighted by segment length.
+    total_weighted_accidents = 0.0
+    total_distance = 0.0
+
+    for i in range(1, len(waypoints)):
+        seg_dist = _haversine_km(
+            waypoints[i - 1][0], waypoints[i - 1][1],
+            waypoints[i][0], waypoints[i][1],
+        )
+        seg_accidents = (point_accidents[i - 1] + point_accidents[i]) / 2.0
+        total_weighted_accidents += seg_accidents * seg_dist
+        total_distance += seg_dist
+
+    if total_distance > 0:
+        weighted_avg_accidents = total_weighted_accidents / total_distance
     else:
-        blended = avg_accidents
+        weighted_avg_accidents = float(np.mean(point_accidents)) if point_accidents else 0.0
 
-    # Convert to 0-100 scale (15+ accidents ~= 100 risk)
-    risk_score = min(100, int(blended * 6.67))
+    # Blend: 60% distance-weighted average, 40% max (preserve worst-zone signal).
+    if max_accidents_in_grid > 0:
+        blended = (weighted_avg_accidents * 0.6) + (max_accidents_in_grid * 0.4)
+    else:
+        blended = weighted_avg_accidents
+
+    # Convert to 0-100 scale using log curve so high-accident zones still
+    # differentiate (85 vs 69 accidents should produce different scores).
+    # Formula: 100 * (1 - e^(-blended/20))  → 20 accidents ≈ 63, 50 ≈ 92, 85 ≈ 99
+    risk_score = min(100, int(100 * (1 - math.exp(-blended / 20.0))))
     if high_risk_zones > 0:
-        risk_score = min(100, risk_score + (high_risk_zones * 12))
+        risk_score = min(100, risk_score + (high_risk_zones * 3))
 
     if risk_score >= 55:
         risk_level = "high"
