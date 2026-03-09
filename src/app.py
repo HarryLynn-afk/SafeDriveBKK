@@ -767,12 +767,36 @@ def analytics_data():
             .to_dict(orient="records")
         )
 
-        # Accident causes (Thai column: มูลเหตุสันนิษฐาน)
-        cause_col = "มูลเหตุสันนิษฐาน"
-        by_cause = {}
-        if cause_col in df.columns:
-            cause_counts = df[cause_col].dropna().value_counts().head(8)
-            by_cause = {str(k): int(v) for k, v in cause_counts.items()}
+        # Accidents by Bangkok area (derived from lat/lon)
+        by_area = {}
+        if "LATITUDE" in df.columns and "LONGITUDE" in df.columns:
+            def _assign_bangkok_area(lat, lon):
+                if pd.isna(lat) or pd.isna(lon):
+                    return None
+                if lat >= 13.85:
+                    return "Don Mueang / Lak Si" if lon < 100.55 else "Ram Intra / Minburi"
+                elif lat >= 13.78:
+                    if lon < 100.5:
+                        return "Bang Sue / Chatuchak"
+                    return "Lat Phrao / Wang Thonglang" if lon < 100.6 else "Khan Na Yao / Nong Chok"
+                elif lat >= 13.72:
+                    if lon < 100.48:
+                        return "Dusit / Phaya Thai"
+                    elif lon < 100.56:
+                        return "Din Daeng / Huai Khwang"
+                    return "Bang Kapi / Suan Luang" if lon < 100.65 else "Lat Krabang"
+                elif lat >= 13.66:
+                    if lon < 100.48:
+                        return "Thon Buri / Bangkok Noi"
+                    elif lon < 100.55:
+                        return "Sathon / Bang Rak"
+                    return "Phra Khanong / Bang Na" if lon < 100.65 else "Prawet / On Nut"
+                else:
+                    return "Bang Khun Thian / Chom Thong" if lon < 100.55 else "Samut Prakan Border"
+
+            areas = df.apply(lambda r: _assign_bangkok_area(r["LATITUDE"], r["LONGITUDE"]), axis=1)
+            area_counts = areas.dropna().value_counts()
+            by_area = {str(k): int(v) for k, v in area_counts.items()}
 
         # Vehicle types
         vehicle_cols = {
@@ -821,7 +845,7 @@ def analytics_data():
             "by_day": by_day,
             "by_month": by_month,
             "top_zones": top_zones,
-            "by_cause": by_cause,
+            "by_area": by_area,
             "by_vehicle": by_vehicle,
             "severity": severity,
             "risk_distribution": risk_distribution,

@@ -172,9 +172,9 @@
             </div>
         </div>
         <div class="chart-card">
-            <h3>Top Accident Causes</h3>
+            <h3>Accidents by Bangkok Area</h3>
             <div class="chart-wrapper">
-                <canvas id="chart-causes" aria-label="Horizontal bar chart showing accident causes" role="img"></canvas>
+                <canvas id="chart-areas" aria-label="Horizontal bar chart showing accidents by Bangkok area" role="img"></canvas>
             </div>
         </div>
     </div>
@@ -356,17 +356,17 @@ async function loadAnalytics() {
             }
         });
 
-        // Accident causes (horizontal bar)
-        const causeLabels = Object.keys(data.by_cause).map(c => c.length > 30 ? c.slice(0, 30) + '...' : c);
-        const causeData = Object.values(data.by_cause);
-        new Chart(document.getElementById('chart-causes'), {
+        // Accidents by Bangkok area (horizontal bar)
+        const areaLabels = Object.keys(data.by_area);
+        const areaData = Object.values(data.by_area);
+        new Chart(document.getElementById('chart-areas'), {
             type: 'bar',
             data: {
-                labels: causeLabels,
+                labels: areaLabels,
                 datasets: [{
                     label: 'Accidents',
-                    data: causeData,
-                    backgroundColor: PALETTE.slice(0, causeLabels.length).map(c => c + 'cc'),
+                    data: areaData,
+                    backgroundColor: PALETTE.slice(0, areaLabels.length).map(c => c + 'cc'),
                     borderRadius: 4,
                 }]
             },
