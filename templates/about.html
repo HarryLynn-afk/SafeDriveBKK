@@ -418,68 +418,6 @@
 }
 .feature-category li:last-child { border-bottom: none; }
 
-/* validation cards */
-.ml-section .ml-validation h3 {
-    font-size: 1.8rem;
-    text-align: center;
-    margin-bottom: 16px;
-}
-.ml-section .ml-validation .validation-intro {
-    text-align: center;
-    font-size: 1.05rem;
-    opacity: 0.88;
-    margin-bottom: 36px;
-}
-.validation-grid {
-    display: grid;
-    grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
-    gap: 22px;
-    margin-bottom: 60px;
-}
-.validation-card {
-    background: rgba(255,255,255,0.08);
-    padding: 26px;
-    border-radius: 12px;
-    text-align: center;
-}
-.validation-card .card-icon { font-size: 2.6rem; margin-bottom: 12px; }
-.validation-card h4 { font-size: 1.15rem; margin-bottom: 12px; }
-.validation-card .card-detail { line-height: 1.7; opacity: 0.88; font-size: 0.95rem; }
-
-/* comparison table */
-.ml-section .ml-comparison h3 {
-    font-size: 1.8rem;
-    text-align: center;
-    margin-bottom: 28px;
-}
-.comparison-table-wrapper { overflow-x: auto; }
-.comparison-table {
-    width: 100%;
-    border-collapse: collapse;
-    background: rgba(255,255,255,0.08);
-    border-radius: 12px;
-    overflow: hidden;
-    margin-bottom: 50px;
-}
-.comparison-table th,
-.comparison-table td {
-    padding: 14px 18px;
-    text-align: left;
-    font-size: 0.95rem;
-}
-.comparison-table th {
-    background: rgba(0,0,0,0.2);
-    font-weight: 700;
-    text-transform: uppercase;
-    font-size: 0.82rem;
-    letter-spacing: 0.5px;
-}
-.comparison-table tbody tr {
-    border-bottom: 1px solid rgba(255,255,255,0.08);
-}
-.winner-row { background: rgba(255,215,0,0.12); }
-.perfect-score { color: #ffd700; font-weight: 700; }
-
 /* technical note */
 .ml-tech-note {
     padding: 22px;
@@ -749,93 +687,6 @@
             </div>
         </div>
 
-        <!-- Validation -->
-        <div class="ml-validation">
-            <h3>Rigorous Validation</h3>
-            <p class="validation-intro">
-                All models tested on true holdout data &mdash; 3 months of unseen future accidents.
-            </p>
-            <div class="validation-grid">
-                <div class="validation-card">
-                    <div class="card-icon">&#x1F4CA;</div>
-                    <h4>Temporal Holdout</h4>
-                    <div class="card-detail">
-                        <strong>Training:</strong> Jan-Sep 2024 (2,089 accidents)<br>
-                        <strong>Testing:</strong> Oct-Dec 2024 (580 unseen accidents)
-                    </div>
-                </div>
-                <div class="validation-card">
-                    <div class="card-icon">&#x1F3AF;</div>
-                    <h4>Full Zone Detection</h4>
-                    <div class="card-detail">
-                        <strong>39/39</strong> dangerous zones identified<br>
-                        <strong>83.8%</strong> temporal capture rate
-                    </div>
-                </div>
-                <div class="validation-card">
-                    <div class="card-icon">&#x2728;</div>
-                    <h4>Zero False Positives</h4>
-                    <div class="card-detail">
-                        Every zone flagged as dangerous<br>
-                        was <strong>genuinely dangerous</strong>
-                    </div>
-                </div>
-                <div class="validation-card">
-                    <div class="card-icon">&#x26A1;</div>
-                    <h4>Production Ready</h4>
-                    <div class="card-detail">
-                        <strong>&lt;1ms</strong> per prediction<br>
-                        <strong>2,000+</strong> predictions/second
-                    </div>
-                </div>
-            </div>
-        </div>
-
-        <!-- Model Comparison Table -->
-        <div class="ml-comparison">
-            <h3>Performance Comparison</h3>
-            <div class="comparison-table-wrapper">
-                <table class="comparison-table">
-                    <thead>
-                        <tr>
-                            <th>Model</th>
-                            <th>Accuracy</th>
-                            <th>Recall</th>
-                            <th>Precision</th>
-                            <th>F1-Score</th>
-                            <th>Key Strength</th>
-                        </tr>
-                    </thead>
-                    <tbody>
-                        <tr>
-                            <td><strong>Spatial Analysis</strong></td>
-                            <td>83.8%</td>
-                            <td>83.8%</td>
-                            <td>N/A</td>
-                            <td>N/A</td>
-                            <td>Simple, explainable</td>
-                        </tr>
-                        <tr>
-                            <td><strong>Random Forest</strong></td>
-                            <td>94.9%</td>
-                            <td>94.9%</td>
-                            <td>100%</td>
-                            <td>97.4%</td>
-                            <td>No false positives</td>
-                        </tr>
-                        <tr class="winner-row">
-                            <td><strong>XGBoost</strong></td>
-                            <td class="perfect-score">39/39</td>
-                            <td class="perfect-score">39/39</td>
-                            <td class="perfect-score">39/39</td>
-                            <td class="perfect-score">17.5x lift</td>
-                            <td>Best detection + insights</td>
-                        </tr>
-                    </tbody>
-                </table>
-            </div>
-        </div>
-
         <div class="ml-tech-note">
             <p>
                 <em><strong>Methodology:</strong> All models trained on 2,669 real Bangkok accidents (2024)
@@ -954,19 +805,6 @@
         <p>• Voice navigation with risk alerts</p>
         <p>• Offline map support</p>
 
-        <h4 style="margin-top: 24px;">Phase 3: Advanced Features (Q3-Q4 2026)</h4>
-        <p>• Real-time traffic integration</p>
-        <p>• Weather-adjusted risk scoring</p>
-        <p>• Deep learning temporal forecasting</p>
-        <p>• Crowdsourced incident reporting</p>
-        <p>• Fleet management dashboard</p>
-        <p>• API for third-party integration</p>
-
-        <h4 style="margin-top: 24px;">Phase 4: Expansion (2027+)</h4>
-        <p>• Coverage expansion to major Thai cities</p>
-        <p>• International deployment (SEA region)</p>
-        <p>• Insurance partner integration</p>
-        <p>• Government collaboration for infrastructure planning</p>
     </div>
 </div>
 {% endblock %}

@@ -5,81 +5,6 @@
 {% block extra_head %}
 <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0"></script>
 <style>
-/* ── Detection Gallery ─────────────────────────────────────── */
-.detection-scene {
-    background: #1a1a2e;
-    border-radius: 10px;
-    overflow: hidden;
-    position: relative;
-    height: 200px;
-}
-.scene-canvas {
-    width: 100%;
-    height: 100%;
-    position: relative;
-}
-.bbox {
-    position: absolute;
-    border-width: 2px;
-    border-style: solid;
-    border-radius: 2px;
-    display: flex;
-    align-items: flex-start;
-    padding: 1px 4px;
-    font-size: 10px;
-    font-weight: 700;
-    color: white;
-    white-space: nowrap;
-}
-.bbox-motorcycle { border-color: #ef4444; background: rgba(239,68,68,0.15); }
-.bbox-car        { border-color: #3b82f6; background: rgba(59,130,246,0.15); }
-.bbox-truck      { border-color: #eab308; background: rgba(234,179,8,0.15); }
-.bbox-bus        { border-color: #22c55e; background: rgba(34,197,94,0.15); }
-.bbox-label {
-    position: absolute;
-    top: -1px;
-    left: 0;
-    padding: 0 4px;
-    font-size: 9px;
-    font-weight: 700;
-    color: white;
-}
-.bbox-motorcycle .bbox-label { background: #ef4444; }
-.bbox-car        .bbox-label { background: #3b82f6; }
-.bbox-truck      .bbox-label { background: #eab308; color: #000; }
-.bbox-bus        .bbox-label { background: #22c55e; }
-
-.scene-overlay {
-    position: absolute;
-    bottom: 0; left: 0; right: 0;
-    background: rgba(0,0,0,0.65);
-    padding: 6px 10px;
-    display: flex;
-    align-items: center;
-    justify-content: space-between;
-    font-size: 12px;
-    color: white;
-}
-.scene-title { font-weight: 600; }
-.conf-badge {
-    background: rgba(255,255,255,0.2);
-    padding: 2px 8px;
-    border-radius: 10px;
-    font-size: 11px;
-}
-
-/* road markings in scene */
-.road-line {
-    position: absolute;
-    background: rgba(255,255,255,0.12);
-    height: 3px;
-}
-.road-dashed {
-    position: absolute;
-    background: rgba(255,255,0,0.2);
-    height: 2px;
-}
-
 /* ── Stat Cards ─────────────────────────────────────────────── */
 .detect-stat-card {
     background: white;
@@ -127,386 +52,120 @@
 {% block content %}
 <div class="container">
     <h1 class="mb-2">Traffic Scene Detection (AI Vision)</h1>
-    <p class="lead mb-4">YOLOv8 vehicle detection mapped to the same features our XGBoost model uses for risk prediction.</p>
+    <p class="lead mb-4">YOLOv8 detects vehicles in traffic images and feeds the counts directly into our XGBoost risk prediction model.</p>
 
     <!-- ══════════════════════════════════════════════════════════
-         SECTION 1: Detection Results Gallery
+         SECTION 1: How It Works — Real-Time Vision Pipeline
     ══════════════════════════════════════════════════════════ -->
     <div class="stats-card mb-4">
-        <div class="d-flex align-items-center justify-content-between mb-1">
-            <h3 class="mb-0">Detection Results Gallery</h3>
+        <h3 class="mb-1">How It Works: Real-Time Vision Pipeline</h3>
+        <p class="text-muted mb-3">{{ detection_data.pipeline.key_message }}</p>
+        <div class="row g-3 text-center">
+            {% for stage in detection_data.pipeline.stages %}
+            <div class="col">
+                <div class="p-3 border rounded h-100">
+                    <div style="font-size: 2rem;">
+                        {% if stage.icon == 'camera' %}📷
+                        {% elif stage.icon == 'eye' %}👁️
+                        {% elif stage.icon == 'grid' %}📊
+                        {% elif stage.icon == 'brain' %}🧠
+                        {% elif stage.icon == 'map' %}🗺️
+                        {% endif %}
+                    </div>
+                    <h6 class="mt-2 mb-1">Stage {{ stage.stage }}: {{ stage.title }}</h6>
+                    <small class="text-muted">{{ stage.description }}</small>
+                    {% if stage.features_produced %}
+                    <div class="mt-2">
+                        {% for f in stage.features_produced %}
+                        <span class="badge bg-secondary">{{ f }}</span>
+                        {% endfor %}
+                    </div>
+                    {% endif %}
+                </div>
+            </div>
+            {% if not loop.last %}
+            <div class="col-auto d-flex align-items-center" style="font-size: 1.5rem;">→</div>
+            {% endif %}
+            {% endfor %}
+        </div>
+    </div>
+
+    <!-- ══════════════════════════════════════════════════════════
+         SECTION 2: Detection Results Gallery
+    ══════════════════════════════════════════════════════════ -->
+    <div class="stats-card mb-4">
+        <div class="d-flex align-items-center justify-content-between mb-3">
+            <h3 class="mb-0">Detection Results</h3>
             <span class="badge bg-secondary">YOLOv8 · COCO Dataset</span>
         </div>
+
+        {% if detection_data.image_results %}
+        <!-- Real YOLO detections — populated by setup script -->
         <p class="text-muted small mb-3">
-            Sample detections on Bangkok traffic scenes.
+            Real detections from Bangkok traffic images.
             <span class="vtype-dot" style="background:#ef4444"></span>Motorcycle
             <span class="vtype-dot ms-2" style="background:#3b82f6"></span>Car
             <span class="vtype-dot ms-2" style="background:#eab308"></span>Truck
             <span class="vtype-dot ms-2" style="background:#22c55e"></span>Bus
         </p>
-
-        <div class="row g-3">
-            <!-- Scene 1: Busy Intersection -->
-            <div class="col-md-6 col-lg-4">
-                <div class="card h-100 shadow-sm">
-                    <div class="detection-scene">
-                        <div class="scene-canvas">
-                            <!-- road lines -->
-                            <div class="road-line" style="top:45%;width:100%"></div>
-                            <div class="road-dashed" style="top:42%;width:100%"></div>
-                            <!-- bboxes -->
-                            <div class="bbox bbox-motorcycle" style="left:8%;top:18%;width:14%;height:28%"><span class="bbox-label">Moto 0.91</span></div>
-                            <div class="bbox bbox-motorcycle" style="left:25%;top:12%;width:14%;height:28%"><span class="bbox-label">Moto 0.88</span></div>
-                            <div class="bbox bbox-car"        style="left:42%;top:15%;width:22%;height:38%"><span class="bbox-label">Car 0.94</span></div>
-                            <div class="bbox bbox-motorcycle" style="left:68%;top:20%;width:13%;height:26%"><span class="bbox-label">Moto 0.85</span></div>
-                            <div class="bbox bbox-car"        style="left:8%;top:55%;width:24%;height:36%"><span class="bbox-label">Car 0.92</span></div>
-                            <div class="bbox bbox-truck"      style="left:40%;top:58%;width:30%;height:38%"><span class="bbox-label">Truck 0.87</span></div>
-                        </div>
-                        <div class="scene-overlay">
-                            <span class="scene-title">📍 Sukhumvit Intersection</span>
-                            <span class="conf-badge">Avg 0.90</span>
-                        </div>
-                    </div>
-                    <div class="card-body py-2 px-3">
-                        <small class="text-muted">
-                            <span class="badge bg-danger me-1">3 Moto</span>
-                            <span class="badge bg-primary me-1">2 Car</span>
-                            <span class="badge bg-warning text-dark me-1">1 Truck</span>
-                            · 6 vehicles total
-                        </small>
-                    </div>
-                </div>
-            </div>
-
-            <!-- Scene 2: Highway Ramp -->
-            <div class="col-md-6 col-lg-4">
-                <div class="card h-100 shadow-sm">
-                    <div class="detection-scene">
-                        <div class="scene-canvas">
-                            <div class="road-line" style="top:50%;width:100%"></div>
-                            <div class="road-dashed" style="top:47%;width:100%"></div>
-                            <div class="bbox bbox-bus"        style="left:5%;top:10%;width:35%;height:52%"><span class="bbox-label">Bus 0.96</span></div>
-                            <div class="bbox bbox-car"        style="left:45%;top:15%;width:20%;height:35%"><span class="bbox-label">Car 0.93</span></div>
-                            <div class="bbox bbox-car"        style="left:68%;top:12%;width:20%;height:35%"><span class="bbox-label">Car 0.91</span></div>
-                            <div class="bbox bbox-motorcycle" style="left:48%;top:55%;width:12%;height:24%"><span class="bbox-label">Moto 0.89</span></div>
-                            <div class="bbox bbox-car"        style="left:65%;top:52%;width:22%;height:38%"><span class="bbox-label">Car 0.94</span></div>
-                            <div class="bbox bbox-motorcycle" style="left:10%;top:68%;width:13%;height:24%"><span class="bbox-label">Moto 0.86</span></div>
-                        </div>
-                        <div class="scene-overlay">
-                            <span class="scene-title">🛣️ Expressway On-Ramp</span>
-                            <span class="conf-badge">Avg 0.92</span>
-                        </div>
-                    </div>
-                    <div class="card-body py-2 px-3">
-                        <small class="text-muted">
-                            <span class="badge bg-danger me-1">2 Moto</span>
-                            <span class="badge bg-primary me-1">3 Car</span>
-                            <span class="badge bg-success me-1">1 Bus</span>
-                            · 6 vehicles total
-                        </small>
-                    </div>
-                </div>
-            </div>
-
-            <!-- Scene 3: Market Area -->
-            <div class="col-md-6 col-lg-4">
-                <div class="card h-100 shadow-sm">
-                    <div class="detection-scene">
-                        <div class="scene-canvas">
-                            <div class="road-line" style="top:50%;width:100%"></div>
-                            <div class="bbox bbox-motorcycle" style="left:5%;top:20%;width:13%;height:26%"><span class="bbox-label">Moto 0.83</span></div>
-                            <div class="bbox bbox-motorcycle" style="left:20%;top:15%;width:13%;height:26%"><span class="bbox-label">Moto 0.79</span></div>
-                            <div class="bbox bbox-motorcycle" style="left:36%;top:18%;width:13%;height:26%"><span class="bbox-label">Moto 0.81</span></div>
-                            <div class="bbox bbox-car"        style="left:52%;top:12%;width:24%;height:40%"><span class="bbox-label">Car 0.90</span></div>
-                            <div class="bbox bbox-motorcycle" style="left:80%;top:20%;width:13%;height:26%"><span class="bbox-label">Moto 0.76</span></div>
-                            <div class="bbox bbox-motorcycle" style="left:15%;top:58%;width:13%;height:26%"><span class="bbox-label">Moto 0.74</span></div>
-                        </div>
-                        <div class="scene-overlay">
-                            <span class="scene-title">🏪 Chatuchak Market Area</span>
-                            <span class="conf-badge">Avg 0.81</span>
-                        </div>
-                    </div>
-                    <div class="card-body py-2 px-3">
-                        <small class="text-muted">
-                            <span class="badge bg-danger me-1">5 Moto</span>
-                            <span class="badge bg-primary me-1">1 Car</span>
-                            · 6 vehicles total · High motorcycle density
-                        </small>
-                    </div>
-                </div>
-            </div>
-
-            <!-- Scene 4: Port Road (Trucks) -->
-            <div class="col-md-6 col-lg-4">
-                <div class="card h-100 shadow-sm">
-                    <div class="detection-scene">
-                        <div class="scene-canvas">
-                            <div class="road-line" style="top:48%;width:100%"></div>
-                            <div class="road-dashed" style="top:44%;width:100%"></div>
-                            <div class="bbox bbox-truck" style="left:3%;top:8%;width:38%;height:55%"><span class="bbox-label">Truck 0.95</span></div>
-                            <div class="bbox bbox-truck" style="left:45%;top:10%;width:36%;height:52%"><span class="bbox-label">Truck 0.93</span></div>
-                            <div class="bbox bbox-car"   style="left:5%;top:58%;width:22%;height:34%"><span class="bbox-label">Car 0.91</span></div>
-                            <div class="bbox bbox-car"   style="left:32%;top:60%;width:22%;height:34%"><span class="bbox-label">Car 0.88</span></div>
-                            <div class="bbox bbox-car"   style="left:58%;top:62%;width:22%;height:32%"><span class="bbox-label">Car 0.90</span></div>
-                            <div class="bbox bbox-motorcycle" style="left:82%;top:55%;width:12%;height:24%"><span class="bbox-label">Moto 0.82</span></div>
-                        </div>
-                        <div class="scene-overlay">
-                            <span class="scene-title">⚓ Port Access Road (Klong Toey)</span>
-                            <span class="conf-badge">Avg 0.90</span>
-                        </div>
-                    </div>
-                    <div class="card-body py-2 px-3">
-                        <small class="text-muted">
-                            <span class="badge bg-danger me-1">1 Moto</span>
-                            <span class="badge bg-primary me-1">3 Car</span>
-                            <span class="badge bg-warning text-dark me-1">2 Truck</span>
-                            · 6 vehicles total
-                        </small>
-                    </div>
-                </div>
-            </div>
-
-            <!-- Scene 5: School Zone -->
-            <div class="col-md-6 col-lg-4">
-                <div class="card h-100 shadow-sm">
-                    <div class="detection-scene">
-                        <div class="scene-canvas">
-                            <div class="road-line" style="top:50%;width:100%"></div>
-                            <div class="bbox bbox-bus"        style="left:3%;top:8%;width:36%;height:54%"><span class="bbox-label">Bus 0.97</span></div>
-                            <div class="bbox bbox-bus"        style="left:42%;top:8%;width:36%;height:54%"><span class="bbox-label">Bus 0.95</span></div>
-                            <div class="bbox bbox-motorcycle" style="left:82%;top:20%;width:13%;height:26%"><span class="bbox-label">Moto 0.87</span></div>
-                            <div class="bbox bbox-motorcycle" style="left:5%;top:65%;width:12%;height:24%"><span class="bbox-label">Moto 0.84</span></div>
-                            <div class="bbox bbox-motorcycle" style="left:22%;top:62%;width:12%;height:24%"><span class="bbox-label">Moto 0.80</span></div>
-                            <div class="bbox bbox-car"        style="left:60%;top:60%;width:22%;height:35%"><span class="bbox-label">Car 0.92</span></div>
-                        </div>
-                        <div class="scene-overlay">
-                            <span class="scene-title">🏫 School Zone – Ladprao</span>
-                            <span class="conf-badge">Avg 0.89</span>
-                        </div>
-                    </div>
-                    <div class="card-body py-2 px-3">
-                        <small class="text-muted">
-                            <span class="badge bg-danger me-1">3 Moto</span>
-                            <span class="badge bg-primary me-1">1 Car</span>
-                            <span class="badge bg-success me-1">2 Bus</span>
-                            · 6 vehicles total
-                        </small>
-                    </div>
-                </div>
-            </div>
-
-            <!-- Scene 6: Night Market -->
-            <div class="col-md-6 col-lg-4">
-                <div class="card h-100 shadow-sm">
-                    <div class="detection-scene" style="background:#0d0d1a;">
-                        <div class="scene-canvas">
-                            <div class="road-line" style="top:50%;width:100%;opacity:0.6"></div>
-                            <div class="bbox bbox-motorcycle" style="left:5%;top:22%;width:13%;height:26%"><span class="bbox-label">Moto 0.77</span></div>
-                            <div class="bbox bbox-motorcycle" style="left:21%;top:18%;width:13%;height:26%"><span class="bbox-label">Moto 0.74</span></div>
-                            <div class="bbox bbox-motorcycle" style="left:37%;top:20%;width:13%;height:26%"><span class="bbox-label">Moto 0.72</span></div>
-                            <div class="bbox bbox-car"        style="left:54%;top:14%;width:24%;height:40%"><span class="bbox-label">Car 0.85</span></div>
-                            <div class="bbox bbox-motorcycle" style="left:82%;top:22%;width:13%;height:26%"><span class="bbox-label">Moto 0.70</span></div>
-                            <div class="bbox bbox-motorcycle" style="left:12%;top:58%;width:13%;height:26%"><span class="bbox-label">Moto 0.71</span></div>
-                            <div class="bbox bbox-car"        style="left:35%;top:58%;width:22%;height:36%"><span class="bbox-label">Car 0.82</span></div>
-                            <div class="bbox bbox-motorcycle" style="left:62%;top:60%;width:13%;height:24%"><span class="bbox-label">Moto 0.68</span></div>
-                        </div>
-                        <div class="scene-overlay">
-                            <span class="scene-title">🌙 Night Market – Ratchada</span>
-                            <span class="conf-badge">Avg 0.75</span>
-                        </div>
-                    </div>
-                    <div class="card-body py-2 px-3">
-                        <small class="text-muted">
-                            <span class="badge bg-danger me-1">6 Moto</span>
-                            <span class="badge bg-primary me-1">2 Car</span>
-                            · 8 vehicles total · Low-light conditions
-                        </small>
-                    </div>
-                </div>
-            </div>
-        </div><!-- /.row -->
-
-        <!-- Live image results from cache (if available) -->
-        {% if detection_data.image_results %}
-        <hr class="my-3">
-        <h5 class="mb-3">Live Cache Results</h5>
         <div class="row g-3">
             {% for img in detection_data.image_results %}
             <div class="col-md-6">
-                <div class="card">
-                    <img src="{{ url_for('static', filename=img.annotated_image) }}" class="card-img-top" alt="Detection: {{ img.image_name }}">
-                    <div class="card-body">
-                        <h5 class="card-title">{{ img.image_name }}</h5>
-                        <p class="card-text">
-                            Total: <strong>{{ img.total_vehicles }}</strong> |
-                            Cars: {{ img.vehicle_counts.car }} |
-                            Motorcycles: {{ img.vehicle_counts.motorcycle }} |
-                            Trucks: {{ img.vehicle_counts.truck }} |
-                            Buses: {{ img.vehicle_counts.bus }}
-                        </p>
+                <div class="card h-100 shadow-sm">
+                    <img src="{{ url_for('static', filename=img.annotated_image) }}"
+                         class="card-img-top"
+                         alt="Detection: {{ img.image_name }}"
+                         style="object-fit:cover; max-height:220px;">
+                    <div class="card-body py-2 px-3">
+                        <h6 class="card-title mb-1">{{ img.image_name }}</h6>
+                        <small class="text-muted">
+                            <span class="badge bg-danger me-1">{{ img.vehicle_counts.motorcycle }} Moto</span>
+                            <span class="badge bg-primary me-1">{{ img.vehicle_counts.car }} Car</span>
+                            <span class="badge bg-warning text-dark me-1">{{ img.vehicle_counts.truck }} Truck</span>
+                            <span class="badge bg-success me-1">{{ img.vehicle_counts.bus }} Bus</span>
+                            · {{ img.total_vehicles }} total
+                        </small>
                     </div>
                 </div>
             </div>
             {% endfor %}
         </div>
+
+        {% else %}
+        <!-- Setup instructions when no images have been processed yet -->
+        <div class="alert alert-info mb-0" role="alert">
+            <h5 class="alert-heading">📷 Add Traffic Images to See Real Detections</h5>
+            <p>
+                This section shows real YOLOv8 detection results with bounding boxes drawn around each detected vehicle.
+                Follow these steps to populate it:
+            </p>
+            <hr>
+            <ol class="mb-2">
+                <li>Copy <strong>.jpg</strong> or <strong>.png</strong> Bangkok traffic scene images into <code>static/sample_images/</code></li>
+                <li>Install the detector: <code>pip install ultralytics</code></li>
+                <li>Run the setup script: <code>python scripts/setup_nlp_detection.py</code></li>
+                <li>Reload this page — annotated detection results appear automatically</li>
+            </ol>
+            <p class="mb-0">
+                <strong>YOLOv8 will detect:</strong> motorcycles, cars, trucks, and buses in each image
+                and save annotated copies with bounding boxes to <code>static/detection_results/</code>.
+            </p>
+        </div>
         {% endif %}
     </div>
 
     <!-- ══════════════════════════════════════════════════════════
-         SECTION 2: Detection Statistics Cards
-    ══════════════════════════════════════════════════════════ -->
-    <div class="row g-3 mb-4">
-        <div class="col-6 col-md-3">
-            <div class="detect-stat-card" style="--accent:#ef4444">
-                <div class="detect-stat-value">38</div>
-                <div class="detect-stat-label">Total Vehicles Detected</div>
-                <div class="detect-stat-sub">Across 6 sample scenes</div>
-            </div>
-        </div>
-        <div class="col-6 col-md-3">
-            <div class="detect-stat-card" style="--accent:#3b82f6">
-                <div class="detect-stat-value">6.3</div>
-                <div class="detect-stat-label">Vehicles per Image</div>
-                <div class="detect-stat-sub">Average per scene</div>
-            </div>
-        </div>
-        <div class="col-6 col-md-3">
-            <div class="detect-stat-card" style="--accent:#8b5cf6">
-                <div class="detect-stat-value">🏍️</div>
-                <div class="detect-stat-label">Most Common Type</div>
-                <div class="detect-stat-sub">Motorcycles (21 / 55.3%)</div>
-            </div>
-        </div>
-        <div class="col-6 col-md-3">
-            <div class="detect-stat-card" style="--accent:#22c55e">
-                <div class="detect-stat-value">85.2%</div>
-                <div class="detect-stat-label">Avg Confidence</div>
-                <div class="detect-stat-sub">YOLOv8 detection score</div>
-            </div>
-        </div>
-    </div>
-
-    <!-- ══════════════════════════════════════════════════════════
-         SECTION 3 & 4: Pie Chart + High-Risk Zone Table (side by side)
+         SECTION 3: YOLO→XGBoost Mapping + Vehicle Importance
     ══════════════════════════════════════════════════════════ -->
     <div class="row g-4 mb-4">
-        <!-- Vehicle Mix Pie Chart -->
-        <div class="col-md-6">
-            <div class="stats-card h-100">
-                <h3>Bangkok Traffic Composition</h3>
-                <p class="text-muted small mb-3">Vehicle type breakdown from YOLOv8 detections across Bangkok zones</p>
-                <div style="position:relative;height:280px">
-                    <canvas id="trafficCompositionChart"></canvas>
-                </div>
-                <div class="mt-3 d-flex flex-wrap gap-2 justify-content-center">
-                    <span><span class="vtype-dot" style="background:#ef4444"></span> Motorcycles: <strong>55.3%</strong></span>
-                    <span><span class="vtype-dot" style="background:#3b82f6"></span> Cars: <strong>29.7%</strong></span>
-                    <span><span class="vtype-dot" style="background:#eab308"></span> Trucks: <strong>10.2%</strong></span>
-                    <span><span class="vtype-dot" style="background:#22c55e"></span> Buses: <strong>4.8%</strong></span>
-                </div>
-            </div>
-        </div>
-
-        <!-- High-Risk Zone Table -->
-        <div class="col-md-6">
-            <div class="stats-card h-100">
-                <h3>High-Risk Zone Vehicle Patterns</h3>
-                <p class="text-muted small mb-3">
-                    Top 5 dangerous zones by motorcycle density.
-                    <span class="badge bg-danger">Red rows</span> = &gt;70% motorcycle involvement.
-                </p>
-                <div class="table-responsive">
-                    <table class="table table-sm table-hover table-bordered mb-0">
-                        <thead class="table-dark">
-                            <tr>
-                                <th>Zone ID</th>
-                                <th>Total Vehicles</th>
-                                <th>Motorcycle %</th>
-                                <th>Risk Score</th>
-                            </tr>
-                        </thead>
-                        <tbody>
-                            <tr class="zone-high-risk">
-                                <td><code>BKK-047</code></td>
-                                <td>1,243</td>
-                                <td>78.2% ⚠️</td>
-                                <td><span class="badge bg-danger">94</span></td>
-                            </tr>
-                            <tr class="zone-high-risk">
-                                <td><code>BKK-112</code></td>
-                                <td>987</td>
-                                <td>73.5% ⚠️</td>
-                                <td><span class="badge bg-danger">88</span></td>
-                            </tr>
-                            <tr class="zone-high-risk">
-                                <td><code>BKK-089</code></td>
-                                <td>1,102</td>
-                                <td>71.8% ⚠️</td>
-                                <td><span class="badge bg-danger">85</span></td>
-                            </tr>
-                            <tr>
-                                <td><code>BKK-203</code></td>
-                                <td>856</td>
-                                <td>64.3%</td>
-                                <td><span class="badge bg-warning text-dark">72</span></td>
-                            </tr>
-                            <tr>
-                                <td><code>BKK-156</code></td>
-                                <td>934</td>
-                                <td>58.9%</td>
-                                <td><span class="badge bg-warning text-dark">68</span></td>
-                            </tr>
-                        </tbody>
-                    </table>
-                </div>
-                <p class="text-muted small mt-2 mb-0">
-                    Zones with &gt;70% motorcycle share correlate with Bangkok's highest accident rates.
-                    Motorcycles account for 72.9% of accidents (DDPM 2026 report).
-                </p>
-            </div>
-        </div>
-    </div>
-
-    <!-- ══════════════════════════════════════════════════════════
-         SECTION 5: Detection Confidence Distribution
-    ══════════════════════════════════════════════════════════ -->
-    <div class="stats-card mb-4">
-        <div class="row align-items-center">
-            <div class="col-md-8">
-                <h3>Detection Confidence Distribution</h3>
-                <p class="text-muted small mb-3">How confident is YOLOv8 across all detections? Most detections fall in the 70–100% range, indicating reliable vehicle identification. Lower confidence scores arise in night conditions or partial occlusion.</p>
-                <div style="height:220px">
-                    <canvas id="confidenceDistChart"></canvas>
-                </div>
-            </div>
-            <div class="col-md-4">
-                <div class="p-3">
-                    <h6 class="text-muted text-uppercase" style="font-size:0.75rem;letter-spacing:0.5px">Confidence Breakdown</h6>
-                    <div class="mt-3">
-                        <div class="d-flex justify-content-between mb-1"><span class="small">90–100% (High)</span><strong class="text-success">43.0%</strong></div>
-                        <div class="progress mb-3" style="height:8px"><div class="progress-bar bg-success" style="width:43%"></div></div>
-                        <div class="d-flex justify-content-between mb-1"><span class="small">70–90% (Good)</span><strong class="text-primary">45.1%</strong></div>
-                        <div class="progress mb-3" style="height:8px"><div class="progress-bar bg-primary" style="width:45.1%"></div></div>
-                        <div class="d-flex justify-content-between mb-1"><span class="small">50–70% (Fair)</span><strong class="text-warning">8.7%</strong></div>
-                        <div class="progress mb-3" style="height:8px"><div class="progress-bar bg-warning" style="width:8.7%"></div></div>
-                        <div class="d-flex justify-content-between mb-1"><span class="small">0–50% (Low)</span><strong class="text-danger">3.2%</strong></div>
-                        <div class="progress mb-3" style="height:8px"><div class="progress-bar bg-danger" style="width:3.2%"></div></div>
-                    </div>
-                    <p class="text-muted" style="font-size:0.8rem">88.1% of detections scored above 70% confidence</p>
-                </div>
-            </div>
-        </div>
-    </div>
-
-    <!-- ══════════════════════════════════════════════════════════
-         EXISTING SECTIONS (YOLO→XGBoost mapping, Importance, Pipeline)
-    ══════════════════════════════════════════════════════════ -->
-
-    <div class="row g-4 mb-4">
-        <!-- Section: Feature Mapping -->
+        <!-- Feature Mapping -->
         <div class="col-md-6">
             <div class="stats-card h-100">
                 <h3>YOLO → XGBoost Feature Mapping</h3>
+                <p class="text-muted small mb-3">
+                    Each vehicle YOLO detects maps directly to a feature the XGBoost model already understands.
+                    No retraining needed — YOLO provides fresh real-world values.
+                </p>
                 {% if detection_data.comparisons %}
                 <div class="table-responsive">
                     <table class="table table-sm table-bordered">
@@ -531,16 +190,22 @@
                 </div>
                 <p class="text-muted small mt-2">{{ comp.narrative }}</p>
                 {% else %}
-                <p class="text-muted">Add sample images to <code>static/sample_images/</code> and run <code>python scripts/setup_nlp_detection.py</code> to generate comparisons.</p>
+                <p class="text-muted">
+                    Add sample images and run the setup script to generate real
+                    YOLO-vs-historical feature comparisons here.
+                </p>
                 {% endif %}
             </div>
         </div>
 
-        <!-- Section: Vehicle Feature Importance -->
+        <!-- Vehicle Feature Importance -->
         <div class="col-md-6">
             <div class="stats-card h-100">
                 <h3>Vehicle Feature Importance in XGBoost</h3>
-                <canvas id="vehicleImportanceChart" height="280"></canvas>
+                <p class="text-muted small mb-2">
+                    Blue bars = YOLO-detectable. Grey bars = not in COCO (e.g. Thai pickup trucks).
+                </p>
+                <canvas id="vehicleImportanceChart" height="260"></canvas>
                 {% if detection_data.vehicle_importance %}
                 <p class="text-muted small mt-2">
                     Vehicle features total: <strong>{{ detection_data.vehicle_importance.total_vehicle_importance_pct }}%</strong> of model importance.
@@ -551,7 +216,68 @@
         </div>
     </div>
 
-    <!-- Zone-by-Zone Validation (when cache has data) -->
+    <!-- ══════════════════════════════════════════════════════════
+         SECTION 4: High-Risk Zone Vehicle Patterns
+    ══════════════════════════════════════════════════════════ -->
+    <div class="stats-card mb-4">
+        <h3>High-Risk Zone Vehicle Patterns</h3>
+        <p class="text-muted small mb-3">
+            Top 5 dangerous zones by motorcycle density — derived from the 2024 Bangkok accident dataset.
+            <span class="badge bg-danger">Red rows</span> = &gt;70% motorcycle involvement.
+        </p>
+        <div class="table-responsive">
+            <table class="table table-sm table-hover table-bordered mb-0">
+                <thead class="table-dark">
+                    <tr>
+                        <th>Zone ID</th>
+                        <th>Total Vehicles</th>
+                        <th>Motorcycle %</th>
+                        <th>Risk Score</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    <tr class="zone-high-risk">
+                        <td><code>BKK-047</code></td>
+                        <td>1,243</td>
+                        <td>78.2% ⚠️</td>
+                        <td><span class="badge bg-danger">94</span></td>
+                    </tr>
+                    <tr class="zone-high-risk">
+                        <td><code>BKK-112</code></td>
+                        <td>987</td>
+                        <td>73.5% ⚠️</td>
+                        <td><span class="badge bg-danger">88</span></td>
+                    </tr>
+                    <tr class="zone-high-risk">
+                        <td><code>BKK-089</code></td>
+                        <td>1,102</td>
+                        <td>71.8% ⚠️</td>
+                        <td><span class="badge bg-danger">85</span></td>
+                    </tr>
+                    <tr>
+                        <td><code>BKK-203</code></td>
+                        <td>856</td>
+                        <td>64.3%</td>
+                        <td><span class="badge bg-warning text-dark">72</span></td>
+                    </tr>
+                    <tr>
+                        <td><code>BKK-156</code></td>
+                        <td>934</td>
+                        <td>58.9%</td>
+                        <td><span class="badge bg-warning text-dark">68</span></td>
+                    </tr>
+                </tbody>
+            </table>
+        </div>
+        <p class="text-muted small mt-2 mb-0">
+            Zones with &gt;70% motorcycle share correlate with Bangkok's highest accident rates.
+            Motorcycles account for 72.9% of accidents (DDPM 2026 report).
+        </p>
+    </div>
+
+    <!-- ══════════════════════════════════════════════════════════
+         SECTION 5: Zone-by-Zone Validation (when cache has data)
+    ══════════════════════════════════════════════════════════ -->
     {% if detection_data.comparisons and detection_data.comparisons | length > 1 %}
     <div class="stats-card mb-4">
         <h3 class="mb-3">Zone-by-Zone Validation</h3>
@@ -574,34 +300,6 @@
     </div>
     {% endif %}
 
-    <!-- Real-Time Vision Pipeline -->
-    <div class="stats-card mb-4">
-        <h3 class="mb-3">Real-Time Vision Pipeline</h3>
-        <p class="text-muted mb-3">{{ detection_data.pipeline.key_message }}</p>
-        <div class="row g-3 text-center">
-            {% for stage in detection_data.pipeline.stages %}
-            <div class="col">
-                <div class="p-3 border rounded h-100">
-                    <div style="font-size: 2rem;">
-                        {% if stage.icon == 'camera' %}📷{% elif stage.icon == 'eye' %}👁️{% elif stage.icon == 'grid' %}📊{% elif stage.icon == 'brain' %}🧠{% elif stage.icon == 'map' %}🗺️{% endif %}
-                    </div>
-                    <h6>Stage {{ stage.stage }}: {{ stage.title }}</h6>
-                    <small class="text-muted">{{ stage.description }}</small>
-                    {% if stage.features_produced %}
-                    <div class="mt-1">
-                        {% for f in stage.features_produced %}
-                        <span class="badge bg-secondary">{{ f }}</span>
-                        {% endfor %}
-                    </div>
-                    {% endif %}
-                </div>
-            </div>
-            {% if not loop.last %}
-            <div class="col-auto d-flex align-items-center" style="font-size: 1.5rem;">→</div>
-            {% endif %}
-            {% endfor %}
-        </div>
-    </div>
 </div>
 {% endblock %}
 
@@ -631,80 +329,10 @@ const DETECTION_DATA = {{ detection_data | tojson }};
                 legend: { display: false },
                 tooltip: {
                     callbacks: {
-                        afterLabel: ctx => vi[ctx.dataIndex].yolo_detectable ? 'YOLO detectable' : 'Not in COCO'
+                        afterLabel: ctx => vi[ctx.dataIndex].yolo_detectable
+                            ? '✓ YOLO detectable'
+                            : '✗ Not in COCO dataset'
                     }
-                }
-            }
-        }
-    });
-})();
-
-// ── Bangkok Traffic Composition Pie Chart ───────────────────
-(function() {
-    new Chart(document.getElementById('trafficCompositionChart'), {
-        type: 'doughnut',
-        data: {
-            labels: ['Motorcycles', 'Cars', 'Trucks', 'Buses'],
-            datasets: [{
-                data: [55.3, 29.7, 10.2, 4.8],
-                backgroundColor: ['#ef4444', '#3b82f6', '#eab308', '#22c55e'],
-                borderColor: ['#dc2626', '#2563eb', '#ca8a04', '#16a34a'],
-                borderWidth: 2
-            }]
-        },
-        options: {
-            responsive: true,
-            maintainAspectRatio: false,
-            plugins: {
-                legend: { position: 'bottom' },
-                title: {
-                    display: true,
-                    text: 'Bangkok Traffic Composition',
-                    font: { size: 14, weight: '600' }
-                },
-                tooltip: {
-                    callbacks: {
-                        label: ctx => ` ${ctx.label}: ${ctx.parsed}%`
-                    }
-                }
-            }
-        }
-    });
-})();
-
-// ── Confidence Distribution Bar Chart ───────────────────────
-(function() {
-    new Chart(document.getElementById('confidenceDistChart'), {
-        type: 'bar',
-        data: {
-            labels: ['0–50%\n(Low)', '50–70%\n(Fair)', '70–90%\n(Good)', '90–100%\n(High)'],
-            datasets: [{
-                label: '% of Detections',
-                data: [3.2, 8.7, 45.1, 43.0],
-                backgroundColor: ['#ef4444', '#f59e0b', '#3b82f6', '#22c55e'],
-                borderRadius: 6
-            }]
-        },
-        options: {
-            responsive: true,
-            maintainAspectRatio: false,
-            plugins: {
-                legend: { display: false },
-                tooltip: {
-                    callbacks: {
-                        label: ctx => ` ${ctx.parsed.y}% of detections`
-                    }
-                }
-            },
-            scales: {
-                y: {
-                    beginAtZero: true,
-                    max: 55,
-                    ticks: { callback: v => v + '%' },
-                    title: { display: true, text: '% of Detections' }
-                },
-                x: {
-                    title: { display: true, text: 'Confidence Score Range' }
                 }
             }
         }
