@@ -37,6 +37,18 @@ def setup_nlp():
 def setup_detection():
     """Generate Object Detection cache (requires sample images)."""
     LOGGER.info("=== Object Detection Cache ===")
+
+    # Check ultralytics is available before doing anything else
+    try:
+        import ultralytics  # noqa: F401
+    except ImportError:
+        LOGGER.error(
+            "ultralytics is not installed.\n"
+            "  Fix: pip install ultralytics\n"
+            "  Then re-run: python scripts/setup_nlp_detection.py"
+        )
+        return
+
     sample_dir = Path(__file__).resolve().parent.parent / "static" / "sample_images"
     images = list(sample_dir.glob("*.jpg")) + list(sample_dir.glob("*.png"))
 
