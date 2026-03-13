@@ -258,6 +258,69 @@ class VehicleDetector:
             "key_message": "No model retraining needed. YOLO provides fresher values for features the model already understands.",
         }
 
+    def get_vehicle_accident_analysis(self):
+        """Compute motorcycle % vs severity correlation from historical accident data."""
+        grid_stats_path = BASE_DIR / "data" / "processed" / "bangkok_grid_stats.csv"
+        try:
+            grid_stats = pd.read_csv(grid_stats_path, encoding="utf-8-sig")
+            stats_dict = dict(zip(grid_stats["grid_id"], grid_stats["risk_score"]))
+        except Exception:
+            stats_dict = {}
+
+        dangerous = self._ml_features[self._ml_features["dangerous"] == 1].copy()
+
+        # Bucket zones by motorcycle_pct
+        buckets = [
+            ("<30%", 0, 30),
+            ("30–50%", 30, 50),
+            ("50–70%", 50, 70),
+            (">70%", 70, 101),
+        ]
+        correlation = []
+        for label, low, high in buckets:
+            subset = dangerous[
+                (dangerous["motorcycle_pct"] >= low) & (dangerous["motorcycle_pct"] < high)
+            ]
+            correlation.append({
+                "bucket": label,
+                "zone_count": int(len(subset)),
+                "avg_accidents": round(float(subset["total_accidents"].mean()), 1) if len(subset) else 0,
+                "avg_severity": round(float(subset["severity_mean"].mean()), 2) if len(subset) else 0,
+            })
+
+        # Key finding: compare >70% vs <30%
+        top = next((c for c in correlation if c["bucket"] == ">70%"), None)
+        bot = next((c for c in correlation if c["bucket"] == "<30%"), None)
+        if top and bot and bot["avg_accidents"] > 0:
+            ratio = round(top["avg_accidents"] / bot["avg_accidents"], 1)
+            key_finding = (
+                f"Zones with >70% motorcycle share average {top['avg_accidents']} accidents "
+                f"vs {bot['avg_accidents']} for <30% — a {ratio}× difference."
+            )
+        else:
+            key_finding = "High motorcycle share correlates with increased accident counts."
+
+        # Top 8 dangerous zones by motorcycle_pct
+        top_zones = dangerous.nlargest(8, "motorcycle_pct")[
+            ["grid_id", "motorcycle_pct", "total_accidents"]
+        ].copy()
+        top_zones["risk_score"] = top_zones["grid_id"].map(stats_dict).fillna(0)
+        high_motorcycle_zones = [
+            {
+                "grid_id": row["grid_id"],
+                "motorcycle_pct": round(float(row["motorcycle_pct"]), 1),
+                "total_accidents": int(row["total_accidents"]),
+                "risk_score": round(float(row["risk_score"]), 1),
+            }
+            for _, row in top_zones.iterrows()
+        ]
+
+        return {
+            "correlation": correlation,
+            "key_finding": key_finding,
+            "high_motorcycle_zones": high_motorcycle_zones,
+        }
+
     def generate_cache(self, image_dir=None):
         """Process all sample images and save cache."""
         if image_dir is None:
@@ -303,6 +366,7 @@ class VehicleDetector:
             "image_results": image_results,
             "comparisons": comparisons,
             "vehicle_importance": self.get_vehicle_feature_importance(),
+            "vehicle_analysis": self.get_vehicle_accident_analysis(),
             "pipeline": self.build_realtime_pipeline_diagram(),
             "total_images": len(image_results),
         }

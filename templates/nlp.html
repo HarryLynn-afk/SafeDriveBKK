@@ -11,6 +11,59 @@
     <h1 class="mb-2">Accident Cause Analysis (NLP)</h1>
     <p class="lead mb-4">Thai text analysis of 2,669 Bangkok accident reports &mdash; extracting causes, types, and actionable recommendations.</p>
 
+    <!-- Section 0: Real Accident Analyzer -->
+    <div class="stats-card mb-4">
+        <h3 class="mb-1">Explore Real Bangkok Accident Records</h3>
+        <p class="text-muted mb-3">Each record below is a real entry from our 2,669-accident dataset. Click through to see how NLP tokenizes Thai text and maps it to XGBoost features.</p>
+        <div class="d-flex align-items-center gap-2 mb-3">
+            <button class="btn btn-outline-secondary btn-sm" id="acc-prev">&#8592; Prev</button>
+            <span class="text-muted small" id="acc-counter">1 / 30</span>
+            <button class="btn btn-outline-secondary btn-sm" id="acc-next">Next &#8594;</button>
+            <button class="btn btn-outline-primary btn-sm ms-2" id="acc-random">Random</button>
+        </div>
+        <div class="border rounded p-3 bg-light" id="acc-display">
+            <div class="row g-3">
+                <div class="col-md-6">
+                    <div class="mb-2">
+                        <span class="text-muted small text-uppercase fw-semibold">Accident ID</span>
+                        <div class="fw-bold" id="acc-id">&mdash;</div>
+                    </div>
+                    <div class="mb-2">
+                        <span class="text-muted small text-uppercase fw-semibold">Thai Text (Original)</span>
+                        <div class="font-monospace fs-5" id="acc-thai">&mdash;</div>
+                    </div>
+                    <div class="mb-2">
+                        <span class="text-muted small text-uppercase fw-semibold">Tokenized Words</span>
+                        <div id="acc-tokens">&mdash;</div>
+                    </div>
+                    <div>
+                        <span class="text-muted small text-uppercase fw-semibold">Location</span>
+                        <div class="small" id="acc-location">&mdash;</div>
+                    </div>
+                </div>
+                <div class="col-md-6 border-start ps-3">
+                    <div class="mb-2">
+                        <span class="text-muted small text-uppercase fw-semibold">Detected Cause</span>
+                        <div class="fw-bold fs-5" id="acc-cause">&mdash;</div>
+                    </div>
+                    <div class="mb-2">
+                        <span class="text-muted small text-uppercase fw-semibold">XGBoost Feature</span>
+                        <div><code id="acc-feature">&mdash;</code></div>
+                    </div>
+                    <div>
+                        <span class="text-muted small text-uppercase fw-semibold">Feature Importance</span>
+                        <div class="d-flex align-items-center gap-2">
+                            <span class="fw-bold" id="acc-importance">&mdash;</span>
+                            <div class="progress flex-grow-1" style="height:8px;">
+                                <div class="progress-bar bg-warning" id="acc-importance-bar" style="width:0%"></div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
     <!-- Section 1: NLP → XGBoost Pipeline -->
     <div class="stats-card mb-4">
         <h3 class="mb-3">How Thai Text Becomes ML Features</h3>
@@ -202,6 +255,44 @@ const NLP_CACHE = {{ nlp_data | tojson }};
             responsive: true,
             plugins: { legend: { display: false } }
         }
+    });
+})();
+
+// --- Real Accident Analyzer ---
+(function() {
+    const samples = NLP_CACHE.accident_samples || [];
+    if (!samples.length) return;
+
+    let current = 0;
+
+    function render(idx) {
+        const s = samples[idx];
+        document.getElementById('acc-counter').textContent = `${idx + 1} / ${samples.length}`;
+        document.getElementById('acc-id').textContent = `#${s.accident_id}`;
+        document.getElementById('acc-thai').textContent = s.raw_thai || '—';
+        document.getElementById('acc-tokens').innerHTML = (s.tokens || [])
+            .map(t => `<span class="badge bg-secondary me-1">${t}</span>`).join('') || '—';
+        document.getElementById('acc-location').textContent = s.location || 'Unknown';
+        document.getElementById('acc-cause').textContent = s.category_english || '—';
+        document.getElementById('acc-feature').textContent = s.xgboost_feature || '—';
+        const imp = s.feature_importance || 0;
+        document.getElementById('acc-importance').textContent = `${imp}%`;
+        document.getElementById('acc-importance-bar').style.width = `${Math.min(imp * 5, 100)}%`;
+    }
+
+    render(0);
+
+    document.getElementById('acc-prev').addEventListener('click', () => {
+        current = (current - 1 + samples.length) % samples.length;
+        render(current);
+    });
+    document.getElementById('acc-next').addEventListener('click', () => {
+        current = (current + 1) % samples.length;
+        render(current);
+    });
+    document.getElementById('acc-random').addEventListener('click', () => {
+        current = Math.floor(Math.random() * samples.length);
+        render(current);
     });
 })();
 

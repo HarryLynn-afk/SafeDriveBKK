@@ -393,6 +393,62 @@ class NLPAnalyzer:
 
         return {"types": types, "total_records": total}
 
+    def get_accident_samples(self, n=30):
+        """Return n real accident records with full NLP analysis for the interactive analyzer."""
+        try:
+            from pythainlp.tokenize import word_tokenize
+        except ImportError:
+            word_tokenize = lambda t, **kw: list(t)
+
+        # Collect samples with variety across cause categories
+        cause_buckets = {cause: [] for cause in CAUSE_TRANSLATIONS}
+        cause_buckets["other"] = []
+
+        for idx, row in self._accidents.iterrows():
+            cause = row.get(COL_CAUSE, "")
+            if pd.isna(cause) or not str(cause).strip():
+                continue
+            bucket = cause if cause in CAUSE_TRANSLATIONS else "other"
+            if len(cause_buckets[bucket]) < 6:
+                cause_buckets[bucket].append((idx, row))
+
+        # Flatten, ensuring variety first, then pad if needed
+        selected = []
+        for bucket_rows in cause_buckets.values():
+            selected.extend(bucket_rows)
+        selected = selected[:n]
+
+        # Pad with random records if we have fewer than n
+        if len(selected) < n:
+            remaining = self._accidents.dropna(subset=[COL_CAUSE])
+            used_ids = {idx for idx, _ in selected}
+            for idx, row in remaining.iterrows():
+                if idx not in used_ids:
+                    selected.append((idx, row))
+                if len(selected) >= n:
+                    break
+
+        samples = []
+        for idx, row in selected:
+            cause = str(row.get(COL_CAUSE, "")).strip()
+            tokens = word_tokenize(cause, engine="newmm") if cause else []
+            info = CAUSE_TRANSLATIONS.get(cause, {"english": "Other", "feature": "cause_other"})
+            location = row.get(COL_LOCATION, "")
+            location = str(location) if not pd.isna(location) else "Unknown"
+            samples.append({
+                "accident_id": int(idx),
+                "raw_thai": cause,
+                "tokens": tokens,
+                "category_english": info["english"],
+                "xgboost_feature": info["feature"],
+                "feature_importance": round(
+                    self._importance_dict.get(info["feature"], 0) * 100, 3
+                ),
+                "location": location,
+            })
+
+        return samples
+
     def generate_cache(self):
         """Generate and save all NLP analysis results to cache file."""
         LOGGER.info("Generating NLP cache...")
@@ -404,6 +460,7 @@ class NLPAnalyzer:
             "feature_importance": self.get_nlp_feature_importance_summary(),
             "recommendations": self.get_zone_recommendations(top_n=10),
             "word_cloud": self.get_word_cloud_data(),
+            "accident_samples": self.get_accident_samples(30),
         }
 
         STATIC_DIR.mkdir(parents=True, exist_ok=True)
