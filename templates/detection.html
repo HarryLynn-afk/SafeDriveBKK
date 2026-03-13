@@ -94,10 +94,11 @@
          SECTION 2: Detection Results Gallery
     ══════════════════════════════════════════════════════════ -->
     <div class="stats-card mb-4">
-        <div class="d-flex align-items-center justify-content-between mb-3">
-            <h3 class="mb-0">Detection Results</h3>
+        <div class="d-flex align-items-center justify-content-between mb-1">
+            <h3 class="mb-0">Concept Demo: Real-Time Traffic Monitoring</h3>
             <span class="badge bg-secondary">YOLOv8 · COCO Dataset</span>
         </div>
+        <p class="text-muted small mb-3">These sample images show how the system would work with live traffic camera feeds. In production, vehicle counts from each intersection would update risk scores dynamically.</p>
 
         {% if detection_data.image_results %}
         <!-- Real YOLO detections — populated by setup script -->
@@ -217,63 +218,74 @@
     </div>
 
     <!-- ══════════════════════════════════════════════════════════
-         SECTION 4: High-Risk Zone Vehicle Patterns
+         SECTION 4: Vehicle Patterns from Accident Data
     ══════════════════════════════════════════════════════════ -->
+    {% set va = detection_data.vehicle_analysis %}
+    {% if va %}
     <div class="stats-card mb-4">
-        <h3>High-Risk Zone Vehicle Patterns</h3>
-        <p class="text-muted small mb-3">
-            Top 5 dangerous zones by motorcycle density — derived from the 2024 Bangkok accident dataset.
-            <span class="badge bg-danger">Red rows</span> = &gt;70% motorcycle involvement.
-        </p>
-        <div class="table-responsive">
-            <table class="table table-sm table-hover table-bordered mb-0">
-                <thead class="table-dark">
-                    <tr>
-                        <th>Zone ID</th>
-                        <th>Total Vehicles</th>
-                        <th>Motorcycle %</th>
-                        <th>Risk Score</th>
-                    </tr>
-                </thead>
-                <tbody>
-                    <tr class="zone-high-risk">
-                        <td><code>BKK-047</code></td>
-                        <td>1,243</td>
-                        <td>78.2% ⚠️</td>
-                        <td><span class="badge bg-danger">94</span></td>
-                    </tr>
-                    <tr class="zone-high-risk">
-                        <td><code>BKK-112</code></td>
-                        <td>987</td>
-                        <td>73.5% ⚠️</td>
-                        <td><span class="badge bg-danger">88</span></td>
-                    </tr>
-                    <tr class="zone-high-risk">
-                        <td><code>BKK-089</code></td>
-                        <td>1,102</td>
-                        <td>71.8% ⚠️</td>
-                        <td><span class="badge bg-danger">85</span></td>
-                    </tr>
-                    <tr>
-                        <td><code>BKK-203</code></td>
-                        <td>856</td>
-                        <td>64.3%</td>
-                        <td><span class="badge bg-warning text-dark">72</span></td>
-                    </tr>
-                    <tr>
-                        <td><code>BKK-156</code></td>
-                        <td>934</td>
-                        <td>58.9%</td>
-                        <td><span class="badge bg-warning text-dark">68</span></td>
-                    </tr>
-                </tbody>
-            </table>
+        <h3>Vehicle Composition vs. Accident Severity</h3>
+        <p class="text-muted small mb-3">From 2,669 real Bangkok accident records — motorcycle share bucketed against average accident count and severity per dangerous zone.</p>
+
+        <div class="row g-4">
+            <div class="col-md-6">
+                <div class="table-responsive">
+                    <table class="table table-sm table-hover table-bordered mb-0">
+                        <thead class="table-dark">
+                            <tr>
+                                <th>Motorcycle Share</th>
+                                <th>Zones</th>
+                                <th>Avg Accidents</th>
+                                <th>Avg Severity</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% for row in va.correlation %}
+                            <tr {% if row.bucket == '>70%' %}class="zone-high-risk"{% endif %}>
+                                <td><strong>{{ row.bucket }}</strong>{% if row.bucket == '>70%' %} ⚠️{% endif %}</td>
+                                <td>{{ row.zone_count }}</td>
+                                <td>{{ row.avg_accidents }}</td>
+                                <td>{{ row.avg_severity }}</td>
+                            </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+                <p class="text-muted small mt-2 mb-0"><em>{{ va.key_finding }}</em></p>
+            </div>
+
+            <div class="col-md-6">
+                <h6 class="mb-2">Highest-Risk Zones by Motorcycle Density</h6>
+                <p class="text-muted small mb-2">Real grid IDs from Bangkok accident dataset, sorted by motorcycle % in accident records.</p>
+                <div class="table-responsive">
+                    <table class="table table-sm table-hover table-bordered mb-0">
+                        <thead class="table-dark">
+                            <tr>
+                                <th>Zone ID</th>
+                                <th>Moto %</th>
+                                <th>Accidents</th>
+                                <th>Risk Score</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% for z in va.high_motorcycle_zones %}
+                            <tr {% if z.motorcycle_pct >= 70 %}class="zone-high-risk"{% endif %}>
+                                <td><code>{{ z.grid_id }}</code></td>
+                                <td>{{ z.motorcycle_pct }}%{% if z.motorcycle_pct >= 70 %} ⚠️{% endif %}</td>
+                                <td>{{ z.total_accidents }}</td>
+                                <td>
+                                    {% if z.risk_score >= 80 %}<span class="badge bg-danger">{{ z.risk_score }}</span>
+                                    {% elif z.risk_score >= 50 %}<span class="badge bg-warning text-dark">{{ z.risk_score }}</span>
+                                    {% else %}<span class="badge bg-secondary">{{ z.risk_score }}</span>{% endif %}
+                                </td>
+                            </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+            </div>
         </div>
-        <p class="text-muted small mt-2 mb-0">
-            Zones with &gt;70% motorcycle share correlate with Bangkok's highest accident rates.
-            Motorcycles account for 72.9% of accidents (DDPM 2026 report).
-        </p>
     </div>
+    {% endif %}
 
     <!-- ══════════════════════════════════════════════════════════
          SECTION 5: Zone-by-Zone Validation (when cache has data)
