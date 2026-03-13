@@ -638,5 +638,433 @@
         "frequency": 1
       }
     ]
-  }
+  },
+  "accident_samples": [
+    {
+      "accident_id": 0,
+      "raw_thai": "ขับรถเร็วเกินอัตรากำหนด",
+      "tokens": [
+        "ขับรถ",
+        "เร็ว",
+        "เกิน",
+        "อัตรา",
+        "กำหนด"
+      ],
+      "category_english": "Speeding",
+      "xgboost_feature": "cause_ขับรถเร็วเกินอัตรากำหนด",
+      "feature_importance": 0.071,
+      "location": "ทางตรง+ไม่มีความลาดชัน"
+    },
+    {
+      "accident_id": 1,
+      "raw_thai": "ขับรถเร็วเกินอัตรากำหนด",
+      "tokens": [
+        "ขับรถ",
+        "เร็ว",
+        "เกิน",
+        "อัตรา",
+        "กำหนด"
+      ],
+      "category_english": "Speeding",
+      "xgboost_feature": "cause_ขับรถเร็วเกินอัตรากำหนด",
+      "feature_importance": 0.071,
+      "location": "ทางตรง+ไม่มีความลาดชัน"
+    },
+    {
+      "accident_id": 2,
+      "raw_thai": "ขับรถเร็วเกินอัตรากำหนด",
+      "tokens": [
+        "ขับรถ",
+        "เร็ว",
+        "เกิน",
+        "อัตรา",
+        "กำหนด"
+      ],
+      "category_english": "Speeding",
+      "xgboost_feature": "cause_ขับรถเร็วเกินอัตรากำหนด",
+      "feature_importance": 0.071,
+      "location": "ทางตรง+ไม่มีความลาดชัน"
+    },
+    {
+      "accident_id": 3,
+      "raw_thai": "ขับรถเร็วเกินอัตรากำหนด",
+      "tokens": [
+        "ขับรถ",
+        "เร็ว",
+        "เกิน",
+        "อัตรา",
+        "กำหนด"
+      ],
+      "category_english": "Speeding",
+      "xgboost_feature": "cause_ขับรถเร็วเกินอัตรากำหนด",
+      "feature_importance": 0.071,
+      "location": "ทางตรง+ไม่มีความลาดชัน"
+    },
+    {
+      "accident_id": 5,
+      "raw_thai": "ขับรถเร็วเกินอัตรากำหนด",
+      "tokens": [
+        "ขับรถ",
+        "เร็ว",
+        "เกิน",
+        "อัตรา",
+        "กำหนด"
+      ],
+      "category_english": "Speeding",
+      "xgboost_feature": "cause_ขับรถเร็วเกินอัตรากำหนด",
+      "feature_importance": 0.071,
+      "location": "ทางตรง+ไม่มีความลาดชัน"
+    },
+    {
+      "accident_id": 6,
+      "raw_thai": "ขับรถเร็วเกินอัตรากำหนด",
+      "tokens": [
+        "ขับรถ",
+        "เร็ว",
+        "เกิน",
+        "อัตรา",
+        "กำหนด"
+      ],
+      "category_english": "Speeding",
+      "xgboost_feature": "cause_ขับรถเร็วเกินอัตรากำหนด",
+      "feature_importance": 0.071,
+      "location": "Unknown"
+    },
+    {
+      "accident_id": 15,
+      "raw_thai": "คน/รถ/สัตว์ตัดหน้ากระชั้นชิด",
+      "tokens": [
+        "คน",
+        "/",
+        "รถ",
+        "/",
+        "สัตว์",
+        "ตัดหน้า",
+        "กระชั้นชิด"
+      ],
+      "category_english": "Cutting in front",
+      "xgboost_feature": "cause_คน/รถ/สัตว์ตัดหน้ากระชั้นชิด",
+      "feature_importance": 0.174,
+      "location": "ทางตรง+ไม่มีความลาดชัน"
+    },
+    {
+      "accident_id": 16,
+      "raw_thai": "คน/รถ/สัตว์ตัดหน้ากระชั้นชิด",
+      "tokens": [
+        "คน",
+        "/",
+        "รถ",
+        "/",
+        "สัตว์",
+        "ตัดหน้า",
+        "กระชั้นชิด"
+      ],
+      "category_english": "Cutting in front",
+      "xgboost_feature": "cause_คน/รถ/สัตว์ตัดหน้ากระชั้นชิด",
+      "feature_importance": 0.174,
+      "location": "Unknown"
+    },
+    {
+      "accident_id": 28,
+      "raw_thai": "คน/รถ/สัตว์ตัดหน้ากระชั้นชิด",
+      "tokens": [
+        "คน",
+        "/",
+        "รถ",
+        "/",
+        "สัตว์",
+        "ตัดหน้า",
+        "กระชั้นชิด"
+      ],
+      "category_english": "Cutting in front",
+      "xgboost_feature": "cause_คน/รถ/สัตว์ตัดหน้ากระชั้นชิด",
+      "feature_importance": 0.174,
+      "location": "ทางตรง+ไม่มีความลาดชัน"
+    },
+    {
+      "accident_id": 37,
+      "raw_thai": "คน/รถ/สัตว์ตัดหน้ากระชั้นชิด",
+      "tokens": [
+        "คน",
+        "/",
+        "รถ",
+        "/",
+        "สัตว์",
+        "ตัดหน้า",
+        "กระชั้นชิด"
+      ],
+      "category_english": "Cutting in front",
+      "xgboost_feature": "cause_คน/รถ/สัตว์ตัดหน้ากระชั้นชิด",
+      "feature_importance": 0.174,
+      "location": "ทางตรง+ไม่มีความลาดชัน"
+    },
+    {
+      "accident_id": 39,
+      "raw_thai": "คน/รถ/สัตว์ตัดหน้ากระชั้นชิด",
+      "tokens": [
+        "คน",
+        "/",
+        "รถ",
+        "/",
+        "สัตว์",
+        "ตัดหน้า",
+        "กระชั้นชิด"
+      ],
+      "category_english": "Cutting in front",
+      "xgboost_feature": "cause_คน/รถ/สัตว์ตัดหน้ากระชั้นชิด",
+      "feature_importance": 0.174,
+      "location": "ทางตรง+ไม่มีความลาดชัน"
+    },
+    {
+      "accident_id": 71,
+      "raw_thai": "คน/รถ/สัตว์ตัดหน้ากระชั้นชิด",
+      "tokens": [
+        "คน",
+        "/",
+        "รถ",
+        "/",
+        "สัตว์",
+        "ตัดหน้า",
+        "กระชั้นชิด"
+      ],
+      "category_english": "Cutting in front",
+      "xgboost_feature": "cause_คน/รถ/สัตว์ตัดหน้ากระชั้นชิด",
+      "feature_importance": 0.174,
+      "location": "Unknown"
+    },
+    {
+      "accident_id": 88,
+      "raw_thai": "ฝ่าฝืนสัญญาณไฟ/เครื่องหมายจราจร",
+      "tokens": [
+        "ฝ่าฝืน",
+        "สัญญาณไฟ",
+        "/",
+        "เครื่องหมายจราจร"
+      ],
+      "category_english": "Running red light / traffic sign violation",
+      "xgboost_feature": "cause_ฝ่าฝืนสัญญาณไฟ/เครื่องหมายจราจร",
+      "feature_importance": 0.0,
+      "location": "ทางตรง+ไม่มีความลาดชัน"
+    },
+    {
+      "accident_id": 449,
+      "raw_thai": "ฝ่าฝืนสัญญาณไฟ/เครื่องหมายจราจร",
+      "tokens": [
+        "ฝ่าฝืน",
+        "สัญญาณไฟ",
+        "/",
+        "เครื่องหมายจราจร"
+      ],
+      "category_english": "Running red light / traffic sign violation",
+      "xgboost_feature": "cause_ฝ่าฝืนสัญญาณไฟ/เครื่องหมายจราจร",
+      "feature_importance": 0.0,
+      "location": "Unknown"
+    },
+    {
+      "accident_id": 722,
+      "raw_thai": "ฝ่าฝืนสัญญาณไฟ/เครื่องหมายจราจร",
+      "tokens": [
+        "ฝ่าฝืน",
+        "สัญญาณไฟ",
+        "/",
+        "เครื่องหมายจราจร"
+      ],
+      "category_english": "Running red light / traffic sign violation",
+      "xgboost_feature": "cause_ฝ่าฝืนสัญญาณไฟ/เครื่องหมายจราจร",
+      "feature_importance": 0.0,
+      "location": "Unknown"
+    },
+    {
+      "accident_id": 761,
+      "raw_thai": "ฝ่าฝืนสัญญาณไฟ/เครื่องหมายจราจร",
+      "tokens": [
+        "ฝ่าฝืน",
+        "สัญญาณไฟ",
+        "/",
+        "เครื่องหมายจราจร"
+      ],
+      "category_english": "Running red light / traffic sign violation",
+      "xgboost_feature": "cause_ฝ่าฝืนสัญญาณไฟ/เครื่องหมายจราจร",
+      "feature_importance": 0.0,
+      "location": "ทางตรง+ไม่มีความลาดชัน"
+    },
+    {
+      "accident_id": 1027,
+      "raw_thai": "ฝ่าฝืนสัญญาณไฟ/เครื่องหมายจราจร",
+      "tokens": [
+        "ฝ่าฝืน",
+        "สัญญาณไฟ",
+        "/",
+        "เครื่องหมายจราจร"
+      ],
+      "category_english": "Running red light / traffic sign violation",
+      "xgboost_feature": "cause_ฝ่าฝืนสัญญาณไฟ/เครื่องหมายจราจร",
+      "feature_importance": 0.0,
+      "location": "Unknown"
+    },
+    {
+      "accident_id": 1058,
+      "raw_thai": "ฝ่าฝืนสัญญาณไฟ/เครื่องหมายจราจร",
+      "tokens": [
+        "ฝ่าฝืน",
+        "สัญญาณไฟ",
+        "/",
+        "เครื่องหมายจราจร"
+      ],
+      "category_english": "Running red light / traffic sign violation",
+      "xgboost_feature": "cause_ฝ่าฝืนสัญญาณไฟ/เครื่องหมายจราจร",
+      "feature_importance": 0.0,
+      "location": "ทางตรง+ไม่มีความลาดชัน"
+    },
+    {
+      "accident_id": 57,
+      "raw_thai": "ยางเสื่อมสภาพ/ยางแตก",
+      "tokens": [
+        "ยาง",
+        "เสื่อมสภาพ",
+        "/",
+        "ยางแตก"
+      ],
+      "category_english": "Tire blowout / worn tires",
+      "xgboost_feature": "cause_ยางเสื่อมสภาพ/ยางแตก",
+      "feature_importance": 0.0,
+      "location": "ทางตรง+ไม่มีความลาดชัน"
+    },
+    {
+      "accident_id": 65,
+      "raw_thai": "ยางเสื่อมสภาพ/ยางแตก",
+      "tokens": [
+        "ยาง",
+        "เสื่อมสภาพ",
+        "/",
+        "ยางแตก"
+      ],
+      "category_english": "Tire blowout / worn tires",
+      "xgboost_feature": "cause_ยางเสื่อมสภาพ/ยางแตก",
+      "feature_importance": 0.0,
+      "location": "ทางตรง+ไม่มีความลาดชัน"
+    },
+    {
+      "accident_id": 139,
+      "raw_thai": "ยางเสื่อมสภาพ/ยางแตก",
+      "tokens": [
+        "ยาง",
+        "เสื่อมสภาพ",
+        "/",
+        "ยางแตก"
+      ],
+      "category_english": "Tire blowout / worn tires",
+      "xgboost_feature": "cause_ยางเสื่อมสภาพ/ยางแตก",
+      "feature_importance": 0.0,
+      "location": "ทางตรง+ไม่มีความลาดชัน"
+    },
+    {
+      "accident_id": 198,
+      "raw_thai": "ยางเสื่อมสภาพ/ยางแตก",
+      "tokens": [
+        "ยาง",
+        "เสื่อมสภาพ",
+        "/",
+        "ยางแตก"
+      ],
+      "category_english": "Tire blowout / worn tires",
+      "xgboost_feature": "cause_ยางเสื่อมสภาพ/ยางแตก",
+      "feature_importance": 0.0,
+      "location": "ทางตรง+ไม่มีความลาดชัน"
+    },
+    {
+      "accident_id": 202,
+      "raw_thai": "ยางเสื่อมสภาพ/ยางแตก",
+      "tokens": [
+        "ยาง",
+        "เสื่อมสภาพ",
+        "/",
+        "ยางแตก"
+      ],
+      "category_english": "Tire blowout / worn tires",
+      "xgboost_feature": "cause_ยางเสื่อมสภาพ/ยางแตก",
+      "feature_importance": 0.0,
+      "location": "ทางตรง+ไม่มีความลาดชัน"
+    },
+    {
+      "accident_id": 205,
+      "raw_thai": "ยางเสื่อมสภาพ/ยางแตก",
+      "tokens": [
+        "ยาง",
+        "เสื่อมสภาพ",
+        "/",
+        "ยางแตก"
+      ],
+      "category_english": "Tire blowout / worn tires",
+      "xgboost_feature": "cause_ยางเสื่อมสภาพ/ยางแตก",
+      "feature_importance": 0.0,
+      "location": "ทางตรง+ไม่มีความลาดชัน"
+    },
+    {
+      "accident_id": 32,
+      "raw_thai": "หลับใน",
+      "tokens": [
+        "หลับใน"
+      ],
+      "category_english": "Drowsy driving",
+      "xgboost_feature": "cause_หลับใน",
+      "feature_importance": 0.0,
+      "location": "ทางตรง+ไม่มีความลาดชัน"
+    },
+    {
+      "accident_id": 43,
+      "raw_thai": "หลับใน",
+      "tokens": [
+        "หลับใน"
+      ],
+      "category_english": "Drowsy driving",
+      "xgboost_feature": "cause_หลับใน",
+      "feature_importance": 0.0,
+      "location": "ทางตรง+ไม่มีความลาดชัน"
+    },
+    {
+      "accident_id": 68,
+      "raw_thai": "หลับใน",
+      "tokens": [
+        "หลับใน"
+      ],
+      "category_english": "Drowsy driving",
+      "xgboost_feature": "cause_หลับใน",
+      "feature_importance": 0.0,
+      "location": "Unknown"
+    },
+    {
+      "accident_id": 124,
+      "raw_thai": "หลับใน",
+      "tokens": [
+        "หลับใน"
+      ],
+      "category_english": "Drowsy driving",
+      "xgboost_feature": "cause_หลับใน",
+      "feature_importance": 0.0,
+      "location": "Unknown"
+    },
+    {
+      "accident_id": 187,
+      "raw_thai": "หลับใน",
+      "tokens": [
+        "หลับใน"
+      ],
+      "category_english": "Drowsy driving",
+      "xgboost_feature": "cause_หลับใน",
+      "feature_importance": 0.0,
+      "location": "ทางตรง+ไม่มีความลาดชัน"
+    },
+    {
+      "accident_id": 291,
+      "raw_thai": "หลับใน",
+      "tokens": [
+        "หลับใน"
+      ],
+      "category_english": "Drowsy driving",
+      "xgboost_feature": "cause_หลับใน",
+      "feature_importance": 0.0,
+      "location": "Unknown"
+    }
+  ]
 }

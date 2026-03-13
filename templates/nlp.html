@@ -62,6 +62,11 @@
                 </div>
             </div>
         </div>
+        <p class="text-muted small mt-2 mb-0">
+            Bar shows relative importance among NLP-derived features.
+            All NLP text features combined contribute <strong>3.82%</strong> to the XGBoost model
+            (severity patterns and spatial features dominate at ~75%).
+        </p>
     </div>
 
     <!-- Section 1: NLP → XGBoost Pipeline -->
@@ -264,6 +269,8 @@ const NLP_CACHE = {{ nlp_data | tojson }};
     if (!samples.length) return;
 
     let current = 0;
+    // Scale bar relative to the highest importance in the sample set
+    const maxImp = Math.max(...samples.map(s => s.feature_importance || 0), 0.001);
 
     function render(idx) {
         const s = samples[idx];
@@ -276,8 +283,9 @@ const NLP_CACHE = {{ nlp_data | tojson }};
         document.getElementById('acc-cause').textContent = s.category_english || '—';
         document.getElementById('acc-feature').textContent = s.xgboost_feature || '—';
         const imp = s.feature_importance || 0;
-        document.getElementById('acc-importance').textContent = `${imp}%`;
-        document.getElementById('acc-importance-bar').style.width = `${Math.min(imp * 5, 100)}%`;
+        document.getElementById('acc-importance').textContent = `${imp}% of model`;
+        // Bar scaled relative to the strongest NLP feature (not the whole model)
+        document.getElementById('acc-importance-bar').style.width = `${Math.round((imp / maxImp) * 100)}%`;
     }
 
     render(0);
