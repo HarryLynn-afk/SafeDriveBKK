@@ -91,7 +91,7 @@
     </div>
 
     <!-- ══════════════════════════════════════════════════════════
-         SECTION 2: Detection Results Gallery
+         SECTION 2: Before/After Detection Gallery
     ══════════════════════════════════════════════════════════ -->
     <div class="stats-card mb-4">
         <div class="d-flex align-items-center justify-content-between mb-1">
@@ -101,45 +101,55 @@
         <p class="text-muted small mb-3">These sample images show how the system would work with live traffic camera feeds. In production, vehicle counts from each intersection would update risk scores dynamically.</p>
 
         {% if detection_data.image_results %}
-        <!-- Real YOLO detections — populated by setup script -->
-        <p class="text-muted small mb-3">
-            Real detections from Bangkok traffic images.
+        <p class="text-muted small mb-2">
+            Click any scene — compare original vs AI detection:
             <span class="vtype-dot" style="background:#ef4444"></span>Motorcycle
             <span class="vtype-dot ms-2" style="background:#3b82f6"></span>Car
             <span class="vtype-dot ms-2" style="background:#eab308"></span>Truck
             <span class="vtype-dot ms-2" style="background:#22c55e"></span>Bus
         </p>
-        <div class="row g-3">
+
+        <!-- Thumbnail strip -->
+        <div class="d-flex gap-2 flex-wrap mb-3" id="scene-thumbnails">
             {% for img in detection_data.image_results %}
-            <div class="col-md-6">
-                <div class="card h-100 shadow-sm">
-                    <img src="{{ url_for('static', filename=img.annotated_image) }}"
-                         class="card-img-top"
-                         alt="Detection: {{ img.image_name }}"
-                         style="object-fit:cover; max-height:220px;">
-                    <div class="card-body py-2 px-3">
-                        <h6 class="card-title mb-1">{{ img.image_name }}</h6>
-                        <small class="text-muted">
-                            <span class="badge bg-danger me-1">{{ img.vehicle_counts.motorcycle }} Moto</span>
-                            <span class="badge bg-primary me-1">{{ img.vehicle_counts.car }} Car</span>
-                            <span class="badge bg-warning text-dark me-1">{{ img.vehicle_counts.truck }} Truck</span>
-                            <span class="badge bg-success me-1">{{ img.vehicle_counts.bus }} Bus</span>
-                            · {{ img.total_vehicles }} total
-                        </small>
-                    </div>
-                </div>
+            <div class="scene-thumb border rounded overflow-hidden"
+                 style="width:100px; height:68px; cursor:pointer; flex-shrink:0; transition:all 0.2s;"
+                 onclick="selectScene({{ loop.index0 }})">
+                <img src="{{ url_for('static', filename='sample_images/' + img.image_name) }}"
+                     style="width:100%; height:100%; object-fit:cover;"
+                     alt="{{ img.image_name }}">
             </div>
             {% endfor %}
         </div>
 
+        <!-- Expanded before/after view -->
+        <div id="scene-detail" class="border rounded p-3" style="background:#f8f9fa; display:none;">
+            <div class="row g-3 align-items-start">
+                <div class="col-md-5">
+                    <p class="text-muted small fw-semibold mb-1 text-uppercase">Before — Original</p>
+                    <img id="scene-original" src="" class="img-fluid rounded w-100"
+                         style="object-fit:cover; max-height:260px;">
+                </div>
+                <div class="col-md-5">
+                    <p class="text-muted small fw-semibold mb-1 text-uppercase">After — YOLOv8 Detection</p>
+                    <img id="scene-annotated" src="" class="img-fluid rounded w-100"
+                         style="object-fit:cover; max-height:260px;">
+                </div>
+                <div class="col-md-2">
+                    <p class="text-muted small fw-semibold mb-1 text-uppercase">Vehicles</p>
+                    <div id="scene-counts"></div>
+                    <hr class="my-2">
+                    <p class="text-muted small fw-semibold mb-1 text-uppercase">Risk Impact</p>
+                    <div id="scene-risk"></div>
+                    <div class="text-muted mt-2" style="font-size:0.72rem;" id="scene-zone"></div>
+                </div>
+            </div>
+        </div>
+
         {% else %}
-        <!-- Setup instructions when no images have been processed yet -->
         <div class="alert alert-info mb-0" role="alert">
             <h5 class="alert-heading">📷 Add Traffic Images to See Real Detections</h5>
-            <p>
-                This section shows real YOLOv8 detection results with bounding boxes drawn around each detected vehicle.
-                Follow these steps to populate it:
-            </p>
+            <p>This section shows real YOLOv8 detection results with bounding boxes drawn around each detected vehicle. Follow these steps to populate it:</p>
             <hr>
             <ol class="mb-2">
                 <li>Copy <strong>.jpg</strong> or <strong>.png</strong> Bangkok traffic scene images into <code>static/sample_images/</code></li>
@@ -147,10 +157,7 @@
                 <li>Run the setup script: <code>python scripts/setup_nlp_detection.py</code></li>
                 <li>Reload this page — annotated detection results appear automatically</li>
             </ol>
-            <p class="mb-0">
-                <strong>YOLOv8 will detect:</strong> motorcycles, cars, trucks, and buses in each image
-                and save annotated copies with bounding boxes to <code>static/detection_results/</code>.
-            </p>
+            <p class="mb-0"><strong>YOLOv8 will detect:</strong> motorcycles, cars, trucks, and buses in each image and save annotated copies with bounding boxes to <code>static/detection_results/</code>.</p>
         </div>
         {% endif %}
     </div>
@@ -318,6 +325,78 @@
 {% block extra_js %}
 <script>
 const DETECTION_DATA = {{ detection_data | tojson }};
+
+// ── Before/After Scene Selector ──────────────────────────────
+(function() {
+    const imgs = DETECTION_DATA.image_results || [];
+    if (!imgs.length) return;
+
+    function selectScene(idx) {
+        const img = imgs[idx];
+        const vc = img.vehicle_counts || {};
+        const total = Math.max(img.total_vehicles || 1, 1);
+
+        // Highlight active thumbnail
+        document.querySelectorAll('.scene-thumb').forEach((el, i) => {
+            el.style.opacity = i === idx ? '1' : '0.5';
+            el.style.outline = i === idx ? '3px solid #0d6efd' : 'none';
+        });
+
+        // Show detail pane
+        document.getElementById('scene-detail').style.display = 'block';
+        document.getElementById('scene-original').src = `/static/sample_images/${img.image_name}`;
+        document.getElementById('scene-annotated').src = `/static/${img.annotated_image}`;
+
+        // Vehicle count bars
+        const vcItems = [
+            ['🏍️', 'Moto', vc.motorcycle || 0, '#ef4444'],
+            ['🚗', 'Car',  vc.car || 0,        '#3b82f6'],
+            ['🚛', 'Truck',vc.truck || 0,      '#eab308'],
+            ['🚌', 'Bus',  vc.bus || 0,        '#22c55e'],
+        ];
+        document.getElementById('scene-counts').innerHTML = vcItems.map(([icon, label, count, color]) => `
+            <div class="mb-1">
+                <div class="d-flex justify-content-between" style="font-size:0.76rem;">
+                    <span>${icon} ${label}</span><strong>${count}</strong>
+                </div>
+                <div class="progress" style="height:5px;">
+                    <div class="progress-bar" style="width:${Math.round(count / total * 100)}%; background:${color};"></div>
+                </div>
+            </div>
+        `).join('');
+
+        // Risk impact meter
+        const baseRisk = img.risk_score || 60;
+        const motoPct = (img.xgboost_features || {}).motorcycle_pct || 0;
+        const bump = motoPct > 50 ? 20 : motoPct > 30 ? 10 : 0;
+        const liveRisk = Math.min(100, Math.round(baseRisk + bump));
+        const elevated = bump > 0;
+        const riskColor = liveRisk >= 80 ? '#dc3545' : liveRisk >= 60 ? '#fd7e14' : '#198754';
+
+        document.getElementById('scene-risk').innerHTML = `
+            <div style="font-size:0.75rem;" class="mb-1">Historical <strong>${Math.round(baseRisk)}/100</strong></div>
+            <div class="progress mb-2" style="height:6px;">
+                <div class="progress-bar bg-secondary" style="width:${Math.round(baseRisk)}%;"></div>
+            </div>
+            <div style="font-size:0.75rem;" class="mb-1">
+                Snapshot <strong style="color:${riskColor}">${liveRisk}/100</strong>
+                ${elevated ? '<span class="badge bg-warning text-dark ms-1" style="font-size:0.6rem;">⚠️</span>' : ''}
+            </div>
+            <div class="progress" style="height:6px;">
+                <div class="progress-bar" style="width:${liveRisk}%; background:${riskColor};"></div>
+            </div>
+            ${elevated ? '<div class="text-warning" style="font-size:0.7rem; margin-top:3px;">Motorcycle % elevated</div>' : ''}
+        `;
+
+        // Zone label
+        document.getElementById('scene-zone').innerHTML = img.grid_id
+            ? `📍 ${img.grid_id}${img.description ? '<br>' + img.description : ''}`
+            : '';
+    }
+
+    window.selectScene = selectScene;
+    selectScene(0); // auto-select first scene
+})();
 
 // ── Vehicle Feature Importance Chart ────────────────────────
 (function() {
