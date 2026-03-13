@@ -2076,7 +2076,2202 @@
       }
     }
   ],
-  "comparisons": [],
+  "comparisons": [
+    {
+      "grid_id": "G020_002",
+      "detection": {
+        "image_name": "bangkok_traffic_01.jpg",
+        "detections": [
+          {
+            "class_name": "bus",
+            "confidence": 0.81,
+            "bbox": [
+              3005,
+              165,
+              3526,
+              806
+            ]
+          },
+          {
+            "class_name": "car",
+            "confidence": 0.772,
+            "bbox": [
+              2676,
+              2461,
+              3749,
+              3144
+            ]
+          },
+          {
+            "class_name": "car",
+            "confidence": 0.592,
+            "bbox": [
+              1263,
+              2373,
+              2216,
+              3144
+            ]
+          },
+          {
+            "class_name": "car",
+            "confidence": 0.524,
+            "bbox": [
+              262,
+              1295,
+              827,
+              1808
+            ]
+          },
+          {
+            "class_name": "car",
+            "confidence": 0.482,
+            "bbox": [
+              6,
+              1532,
+              776,
+              2269
+            ]
+          },
+          {
+            "class_name": "person",
+            "confidence": 0.466,
+            "bbox": [
+              3987,
+              2816,
+              4236,
+              3144
+            ]
+          },
+          {
+            "class_name": "truck",
+            "confidence": 0.438,
+            "bbox": [
+              3440,
+              1444,
+              4235,
+              2306
+            ]
+          },
+          {
+            "class_name": "car",
+            "confidence": 0.429,
+            "bbox": [
+              1112,
+              967,
+              1648,
+              1320
+            ]
+          },
+          {
+            "class_name": "person",
+            "confidence": 0.402,
+            "bbox": [
+              2084,
+              2256,
+              2380,
+              2716
+            ]
+          },
+          {
+            "class_name": "car",
+            "confidence": 0.394,
+            "bbox": [
+              2507,
+              2009,
+              3345,
+              2845
+            ]
+          },
+          {
+            "class_name": "car",
+            "confidence": 0.31,
+            "bbox": [
+              1289,
+              832,
+              1721,
+              1129
+            ]
+          },
+          {
+            "class_name": "car",
+            "confidence": 0.305,
+            "bbox": [
+              2435,
+              1776,
+              3102,
+              2368
+            ]
+          },
+          {
+            "class_name": "car",
+            "confidence": 0.296,
+            "bbox": [
+              2290,
+              1578,
+              2902,
+              2167
+            ]
+          },
+          {
+            "class_name": "truck",
+            "confidence": 0.295,
+            "bbox": [
+              2040,
+              948,
+              2693,
+              1601
+            ]
+          },
+          {
+            "class_name": "truck",
+            "confidence": 0.272,
+            "bbox": [
+              1705,
+              355,
+              2140,
+              718
+            ]
+          },
+          {
+            "class_name": "car",
+            "confidence": 0.271,
+            "bbox": [
+              198,
+              1091,
+              621,
+              1343
+            ]
+          },
+          {
+            "class_name": "car",
+            "confidence": 0.268,
+            "bbox": [
+              2466,
+              516,
+              2864,
+              863
+            ]
+          },
+          {
+            "class_name": "car",
+            "confidence": 0.261,
+            "bbox": [
+              0,
+              2020,
+              687,
+              2758
+            ]
+          },
+          {
+            "class_name": "car",
+            "confidence": 0.257,
+            "bbox": [
+              3094,
+              1204,
+              3689,
+              1616
+            ]
+          },
+          {
+            "class_name": "person",
+            "confidence": 0.257,
+            "bbox": [
+              2334,
+              2685,
+              2635,
+              3089
+            ]
+          },
+          {
+            "class_name": "person",
+            "confidence": 0.255,
+            "bbox": [
+              3322,
+              1931,
+              3570,
+              2215
+            ]
+          },
+          {
+            "class_name": "motorcycle",
+            "confidence": 0.255,
+            "bbox": [
+              3103,
+              1759,
+              3398,
+              2119
+            ]
+          }
+        ],
+        "vehicle_counts": {
+          "car": 13,
+          "motorcycle": 1,
+          "truck": 3,
+          "bus": 1,
+          "person": 4
+        },
+        "total_vehicles": 18,
+        "annotated_image": "detections/bangkok_traffic_01.jpg"
+      },
+      "yolo_features": {
+        "motorcycle_count": 1,
+        "car_count": 13,
+        "heavy_truck_count": 3,
+        "motorcycle_pct": 5.6,
+        "car_pct": 72.2,
+        "heavy_truck_pct": 16.7,
+        "pickup_count": 0,
+        "pickup_pct": 0,
+        "_note": "COCO dataset has no 'pickup' class. Pickups may appear as car or truck."
+      },
+      "model_features": {
+        "motorcycle_count": 28,
+        "car_count": 131,
+        "heavy_truck_count": 12,
+        "pickup_count": 35,
+        "motorcycle_pct": 13.4,
+        "car_pct": 62.7,
+        "heavy_truck_pct": 5.7,
+        "pickup_pct": 16.8
+      },
+      "total_accidents": 85,
+      "dangerous": true,
+      "narrative": "YOLO detected 5.6% motorcycles in this snapshot. Historical data shows 13.4% for zone G020_002. This zone has 85 recorded accidents.",
+      "description": "Highway near Bangna - 85 recorded accidents"
+    },
+    {
+      "grid_id": "G014_041",
+      "detection": {
+        "image_name": "bangkok_traffic_02.jpg",
+        "detections": [
+          {
+            "class_name": "car",
+            "confidence": 0.779,
+            "bbox": [
+              1703,
+              1880,
+              1859,
+              2047
+            ]
+          },
+          {
+            "class_name": "car",
+            "confidence": 0.764,
+            "bbox": [
+              1344,
+              2054,
+              1578,
+              2276
+            ]
+          },
+          {
+            "class_name": "car",
+            "confidence": 0.76,
+            "bbox": [
+              1211,
+              1810,
+              1354,
+              1945
+            ]
+          },
+          {
+            "class_name": "car",
+            "confidence": 0.628,
+            "bbox": [
+              1790,
+              1733,
+              1919,
+              1830
+            ]
+          },
+          {
+            "class_name": "truck",
+            "confidence": 0.536,
+            "bbox": [
+              2786,
+              1832,
+              2995,
+              2147
+            ]
+          },
+          {
+            "class_name": "car",
+            "confidence": 0.459,
+            "bbox": [
+              1478,
+              1812,
+              1607,
+              1944
+            ]
+          },
+          {
+            "class_name": "car",
+            "confidence": 0.456,
+            "bbox": [
+              1586,
+              1731,
+              1713,
+              1820
+            ]
+          },
+          {
+            "class_name": "car",
+            "confidence": 0.407,
+            "bbox": [
+              3388,
+              1635,
+              3508,
+              1712
+            ]
+          },
+          {
+            "class_name": "car",
+            "confidence": 0.392,
+            "bbox": [
+              1441,
+              1638,
+              1595,
+              1747
+            ]
+          },
+          {
+            "class_name": "person",
+            "confidence": 0.379,
+            "bbox": [
+              1392,
+              1877,
+              1448,
+              2009
+            ]
+          },
+          {
+            "class_name": "car",
+            "confidence": 0.369,
+            "bbox": [
+              1290,
+              1725,
+              1425,
+              1817
+            ]
+          },
+          {
+            "class_name": "person",
+            "confidence": 0.349,
+            "bbox": [
+              2002,
+              1853,
+              2052,
+              1973
+            ]
+          },
+          {
+            "class_name": "car",
+            "confidence": 0.335,
+            "bbox": [
+              3072,
+              1563,
+              3172,
+              1628
+            ]
+          },
+          {
+            "class_name": "bus",
+            "confidence": 0.312,
+            "bbox": [
+              3178,
+              1758,
+              3650,
+              2062
+            ]
+          },
+          {
+            "class_name": "car",
+            "confidence": 0.296,
+            "bbox": [
+              2789,
+              1837,
+              2992,
+              2150
+            ]
+          },
+          {
+            "class_name": "car",
+            "confidence": 0.288,
+            "bbox": [
+              989,
+              1597,
+              1110,
+              1686
+            ]
+          },
+          {
+            "class_name": "car",
+            "confidence": 0.279,
+            "bbox": [
+              2833,
+              1542,
+              3054,
+              1623
+            ]
+          },
+          {
+            "class_name": "car",
+            "confidence": 0.261,
+            "bbox": [
+              1647,
+              1648,
+              1751,
+              1723
+            ]
+          }
+        ],
+        "vehicle_counts": {
+          "car": 14,
+          "motorcycle": 0,
+          "truck": 1,
+          "bus": 1,
+          "person": 2
+        },
+        "total_vehicles": 16,
+        "annotated_image": "detections/bangkok_traffic_02.jpg"
+      },
+      "yolo_features": {
+        "motorcycle_count": 0,
+        "car_count": 14,
+        "heavy_truck_count": 1,
+        "motorcycle_pct": 0.0,
+        "car_pct": 87.5,
+        "heavy_truck_pct": 6.2,
+        "pickup_count": 0,
+        "pickup_pct": 0,
+        "_note": "COCO dataset has no 'pickup' class. Pickups may appear as car or truck."
+      },
+      "model_features": {
+        "motorcycle_count": 0,
+        "car_count": 106,
+        "heavy_truck_count": 17,
+        "pickup_count": 48,
+        "motorcycle_pct": 0.0,
+        "car_pct": 58.2,
+        "heavy_truck_pct": 9.3,
+        "pickup_pct": 26.4
+      },
+      "total_accidents": 69,
+      "dangerous": true,
+      "narrative": "YOLO detected 0.0% motorcycles in this snapshot. Historical data shows 0.0% for zone G014_041. This zone has 69 recorded accidents.",
+      "description": "Intersection at Lat Krabang - 69 recorded accidents"
+    },
+    {
+      "grid_id": "G014_043",
+      "detection": {
+        "image_name": "bangkok_traffic_03.jpg",
+        "detections": [
+          {
+            "class_name": "car",
+            "confidence": 0.798,
+            "bbox": [
+              1227,
+              2646,
+              1696,
+              3047
+            ]
+          },
+          {
+            "class_name": "car",
+            "confidence": 0.791,
+            "bbox": [
+              114,
+              2457,
+              645,
+              2754
+            ]
+          },
+          {
+            "class_name": "car",
+            "confidence": 0.757,
+            "bbox": [
+              2352,
+              3019,
+              3191,
+              3633
+            ]
+          },
+          {
+            "class_name": "car",
+            "confidence": 0.725,
+            "bbox": [
+              4366,
+              2895,
+              5244,
+              3470
+            ]
+          },
+          {
+            "class_name": "car",
+            "confidence": 0.715,
+            "bbox": [
+              2089,
+              3442,
+              3121,
+              4360
+            ]
+          },
+          {
+            "class_name": "car",
+            "confidence": 0.694,
+            "bbox": [
+              1765,
+              2542,
+              2372,
+              3020
+            ]
+          },
+          {
+            "class_name": "car",
+            "confidence": 0.693,
+            "bbox": [
+              3030,
+              4130,
+              4031,
+              4462
+            ]
+          },
+          {
+            "class_name": "car",
+            "confidence": 0.676,
+            "bbox": [
+              1547,
+              2995,
+              2307,
+              3614
+            ]
+          },
+          {
+            "class_name": "car",
+            "confidence": 0.655,
+            "bbox": [
+              3498,
+              2583,
+              4025,
+              2984
+            ]
+          },
+          {
+            "class_name": "car",
+            "confidence": 0.615,
+            "bbox": [
+              3474,
+              3576,
+              5003,
+              4457
+            ]
+          },
+          {
+            "class_name": "car",
+            "confidence": 0.567,
+            "bbox": [
+              1086,
+              2384,
+              1389,
+              2675
+            ]
+          },
+          {
+            "class_name": "car",
+            "confidence": 0.543,
+            "bbox": [
+              2071,
+              2074,
+              2296,
+              2257
+            ]
+          },
+          {
+            "class_name": "car",
+            "confidence": 0.464,
+            "bbox": [
+              2284,
+              2034,
+              2539,
+              2234
+            ]
+          },
+          {
+            "class_name": "car",
+            "confidence": 0.447,
+            "bbox": [
+              3486,
+              2203,
+              3909,
+              2455
+            ]
+          },
+          {
+            "class_name": "person",
+            "confidence": 0.439,
+            "bbox": [
+              1734,
+              3677,
+              2000,
+              4068
+            ]
+          },
+          {
+            "class_name": "car",
+            "confidence": 0.429,
+            "bbox": [
+              4556,
+              2740,
+              5481,
+              3228
+            ]
+          },
+          {
+            "class_name": "motorcycle",
+            "confidence": 0.403,
+            "bbox": [
+              1739,
+              3845,
+              2029,
+              4264
+            ]
+          },
+          {
+            "class_name": "person",
+            "confidence": 0.357,
+            "bbox": [
+              4384,
+              2357,
+              4537,
+              2577
+            ]
+          },
+          {
+            "class_name": "car",
+            "confidence": 0.336,
+            "bbox": [
+              912,
+              2261,
+              1188,
+              2473
+            ]
+          },
+          {
+            "class_name": "motorcycle",
+            "confidence": 0.323,
+            "bbox": [
+              1735,
+              3690,
+              2023,
+              4259
+            ]
+          },
+          {
+            "class_name": "person",
+            "confidence": 0.257,
+            "bbox": [
+              1424,
+              2278,
+              1513,
+              2451
+            ]
+          }
+        ],
+        "vehicle_counts": {
+          "car": 16,
+          "motorcycle": 2,
+          "truck": 0,
+          "bus": 0,
+          "person": 3
+        },
+        "total_vehicles": 18,
+        "annotated_image": "detections/bangkok_traffic_03.jpg"
+      },
+      "yolo_features": {
+        "motorcycle_count": 2,
+        "car_count": 16,
+        "heavy_truck_count": 0,
+        "motorcycle_pct": 11.1,
+        "car_pct": 88.9,
+        "heavy_truck_pct": 0.0,
+        "pickup_count": 0,
+        "pickup_pct": 0,
+        "_note": "COCO dataset has no 'pickup' class. Pickups may appear as car or truck."
+      },
+      "model_features": {
+        "motorcycle_count": 0,
+        "car_count": 98,
+        "heavy_truck_count": 13,
+        "pickup_count": 43,
+        "motorcycle_pct": 0.0,
+        "car_pct": 62.0,
+        "heavy_truck_pct": 8.2,
+        "pickup_pct": 27.2
+      },
+      "total_accidents": 66,
+      "dangerous": true,
+      "narrative": "YOLO detected 11.1% motorcycles in this snapshot. Historical data shows 0.0% for zone G014_043. This zone has 66 recorded accidents.",
+      "description": "Lat Krabang corridor zone - 66 recorded accidents"
+    },
+    {
+      "grid_id": "G014_039",
+      "detection": {
+        "image_name": "bangkok_traffic_04.jpg",
+        "detections": [
+          {
+            "class_name": "car",
+            "confidence": 0.801,
+            "bbox": [
+              621,
+              494,
+              737,
+              599
+            ]
+          },
+          {
+            "class_name": "car",
+            "confidence": 0.778,
+            "bbox": [
+              571,
+              431,
+              649,
+              513
+            ]
+          },
+          {
+            "class_name": "car",
+            "confidence": 0.77,
+            "bbox": [
+              550,
+              391,
+              606,
+              446
+            ]
+          },
+          {
+            "class_name": "car",
+            "confidence": 0.768,
+            "bbox": [
+              123,
+              384,
+              226,
+              430
+            ]
+          },
+          {
+            "class_name": "car",
+            "confidence": 0.708,
+            "bbox": [
+              286,
+              409,
+              359,
+              475
+            ]
+          },
+          {
+            "class_name": "bus",
+            "confidence": 0.682,
+            "bbox": [
+              727,
+              373,
+              899,
+              542
+            ]
+          },
+          {
+            "class_name": "car",
+            "confidence": 0.676,
+            "bbox": [
+              406,
+              332,
+              440,
+              364
+            ]
+          },
+          {
+            "class_name": "car",
+            "confidence": 0.659,
+            "bbox": [
+              310,
+              312,
+              343,
+              339
+            ]
+          },
+          {
+            "class_name": "bus",
+            "confidence": 0.591,
+            "bbox": [
+              0,
+              363,
+              47,
+              445
+            ]
+          },
+          {
+            "class_name": "car",
+            "confidence": 0.573,
+            "bbox": [
+              484,
+              441,
+              558,
+              543
+            ]
+          },
+          {
+            "class_name": "car",
+            "confidence": 0.556,
+            "bbox": [
+              690,
+              461,
+              787,
+              562
+            ]
+          },
+          {
+            "class_name": "car",
+            "confidence": 0.528,
+            "bbox": [
+              493,
+              394,
+              540,
+              446
+            ]
+          },
+          {
+            "class_name": "bus",
+            "confidence": 0.527,
+            "bbox": [
+              780,
+              520,
+              900,
+              597
+            ]
+          },
+          {
+            "class_name": "car",
+            "confidence": 0.501,
+            "bbox": [
+              425,
+              305,
+              449,
+              324
+            ]
+          },
+          {
+            "class_name": "bus",
+            "confidence": 0.495,
+            "bbox": [
+              723,
+              369,
+              855,
+              472
+            ]
+          },
+          {
+            "class_name": "car",
+            "confidence": 0.454,
+            "bbox": [
+              1,
+              563,
+              140,
+              595
+            ]
+          },
+          {
+            "class_name": "car",
+            "confidence": 0.446,
+            "bbox": [
+              164,
+              363,
+              248,
+              394
+            ]
+          },
+          {
+            "class_name": "car",
+            "confidence": 0.441,
+            "bbox": [
+              405,
+              291,
+              427,
+              310
+            ]
+          },
+          {
+            "class_name": "car",
+            "confidence": 0.44,
+            "bbox": [
+              663,
+              374,
+              720,
+              421
+            ]
+          },
+          {
+            "class_name": "person",
+            "confidence": 0.439,
+            "bbox": [
+              418,
+              408,
+              438,
+              456
+            ]
+          },
+          {
+            "class_name": "car",
+            "confidence": 0.419,
+            "bbox": [
+              587,
+              358,
+              636,
+              399
+            ]
+          },
+          {
+            "class_name": "car",
+            "confidence": 0.412,
+            "bbox": [
+              536,
+              361,
+              581,
+              404
+            ]
+          },
+          {
+            "class_name": "bus",
+            "confidence": 0.343,
+            "bbox": [
+              825,
+              340,
+              900,
+              419
+            ]
+          },
+          {
+            "class_name": "car",
+            "confidence": 0.336,
+            "bbox": [
+              339,
+              298,
+              368,
+              321
+            ]
+          },
+          {
+            "class_name": "motorcycle",
+            "confidence": 0.324,
+            "bbox": [
+              453,
+              527,
+              532,
+              597
+            ]
+          },
+          {
+            "class_name": "car",
+            "confidence": 0.309,
+            "bbox": [
+              492,
+              373,
+              540,
+              447
+            ]
+          },
+          {
+            "class_name": "car",
+            "confidence": 0.289,
+            "bbox": [
+              375,
+              292,
+              398,
+              313
+            ]
+          },
+          {
+            "class_name": "car",
+            "confidence": 0.288,
+            "bbox": [
+              480,
+              336,
+              519,
+              381
+            ]
+          },
+          {
+            "class_name": "bus",
+            "confidence": 0.288,
+            "bbox": [
+              620,
+              326,
+              673,
+              386
+            ]
+          },
+          {
+            "class_name": "motorcycle",
+            "confidence": 0.284,
+            "bbox": [
+              456,
+              522,
+              512,
+              586
+            ]
+          },
+          {
+            "class_name": "car",
+            "confidence": 0.252,
+            "bbox": [
+              561,
+              324,
+              595,
+              354
+            ]
+          }
+        ],
+        "vehicle_counts": {
+          "car": 22,
+          "motorcycle": 2,
+          "truck": 0,
+          "bus": 6,
+          "person": 1
+        },
+        "total_vehicles": 30,
+        "annotated_image": "detections/bangkok_traffic_04.jpg"
+      },
+      "yolo_features": {
+        "motorcycle_count": 2,
+        "car_count": 22,
+        "heavy_truck_count": 0,
+        "motorcycle_pct": 6.7,
+        "car_pct": 73.3,
+        "heavy_truck_pct": 0.0,
+        "pickup_count": 0,
+        "pickup_pct": 0,
+        "_note": "COCO dataset has no 'pickup' class. Pickups may appear as car or truck."
+      },
+      "model_features": {
+        "motorcycle_count": 0,
+        "car_count": 48,
+        "heavy_truck_count": 22,
+        "pickup_count": 36,
+        "motorcycle_pct": 0.0,
+        "car_pct": 40.7,
+        "heavy_truck_pct": 18.6,
+        "pickup_pct": 30.5
+      },
+      "total_accidents": 65,
+      "dangerous": true,
+      "narrative": "YOLO detected 6.7% motorcycles in this snapshot. Historical data shows 0.0% for zone G014_039. This zone has 65 recorded accidents.",
+      "description": "Lat Krabang approach zone - 65 recorded accidents"
+    },
+    {
+      "grid_id": "G014_040",
+      "detection": {
+        "image_name": "bangkok_traffic_05.jpg",
+        "detections": [
+          {
+            "class_name": "car",
+            "confidence": 0.809,
+            "bbox": [
+              303,
+              669,
+              409,
+              765
+            ]
+          },
+          {
+            "class_name": "car",
+            "confidence": 0.738,
+            "bbox": [
+              596,
+              610,
+              652,
+              671
+            ]
+          },
+          {
+            "class_name": "car",
+            "confidence": 0.715,
+            "bbox": [
+              389,
+              624,
+              471,
+              696
+            ]
+          },
+          {
+            "class_name": "bus",
+            "confidence": 0.708,
+            "bbox": [
+              746,
+              544,
+              883,
+              679
+            ]
+          },
+          {
+            "class_name": "car",
+            "confidence": 0.707,
+            "bbox": [
+              405,
+              754,
+              507,
+              800
+            ]
+          },
+          {
+            "class_name": "car",
+            "confidence": 0.659,
+            "bbox": [
+              247,
+              639,
+              350,
+              700
+            ]
+          },
+          {
+            "class_name": "car",
+            "confidence": 0.647,
+            "bbox": [
+              207,
+              730,
+              341,
+              800
+            ]
+          },
+          {
+            "class_name": "bus",
+            "confidence": 0.646,
+            "bbox": [
+              684,
+              527,
+              755,
+              638
+            ]
+          },
+          {
+            "class_name": "car",
+            "confidence": 0.629,
+            "bbox": [
+              724,
+              623,
+              785,
+              686
+            ]
+          },
+          {
+            "class_name": "bus",
+            "confidence": 0.574,
+            "bbox": [
+              1,
+              689,
+              230,
+              799
+            ]
+          },
+          {
+            "class_name": "car",
+            "confidence": 0.564,
+            "bbox": [
+              449,
+              664,
+              538,
+              761
+            ]
+          },
+          {
+            "class_name": "bus",
+            "confidence": 0.545,
+            "bbox": [
+              504,
+              530,
+              598,
+              643
+            ]
+          },
+          {
+            "class_name": "car",
+            "confidence": 0.524,
+            "bbox": [
+              605,
+              670,
+              681,
+              758
+            ]
+          },
+          {
+            "class_name": "car",
+            "confidence": 0.477,
+            "bbox": [
+              593,
+              742,
+              682,
+              799
+            ]
+          },
+          {
+            "class_name": "car",
+            "confidence": 0.462,
+            "bbox": [
+              799,
+              738,
+              906,
+              798
+            ]
+          },
+          {
+            "class_name": "car",
+            "confidence": 0.438,
+            "bbox": [
+              767,
+              663,
+              865,
+              757
+            ]
+          },
+          {
+            "class_name": "bus",
+            "confidence": 0.431,
+            "bbox": [
+              527,
+              482,
+              570,
+              537
+            ]
+          },
+          {
+            "class_name": "person",
+            "confidence": 0.38,
+            "bbox": [
+              545,
+              717,
+              575,
+              796
+            ]
+          },
+          {
+            "class_name": "car",
+            "confidence": 0.378,
+            "bbox": [
+              439,
+              593,
+              497,
+              644
+            ]
+          },
+          {
+            "class_name": "person",
+            "confidence": 0.377,
+            "bbox": [
+              1072,
+              667,
+              1096,
+              726
+            ]
+          },
+          {
+            "class_name": "car",
+            "confidence": 0.29,
+            "bbox": [
+              617,
+              579,
+              668,
+              629
+            ]
+          },
+          {
+            "class_name": "car",
+            "confidence": 0.289,
+            "bbox": [
+              45,
+              656,
+              182,
+              718
+            ]
+          },
+          {
+            "class_name": "car",
+            "confidence": 0.284,
+            "bbox": [
+              246,
+              638,
+              322,
+              701
+            ]
+          },
+          {
+            "class_name": "car",
+            "confidence": 0.274,
+            "bbox": [
+              346,
+              568,
+              431,
+              639
+            ]
+          },
+          {
+            "class_name": "bus",
+            "confidence": 0.272,
+            "bbox": [
+              980,
+              719,
+              1101,
+              800
+            ]
+          },
+          {
+            "class_name": "bus",
+            "confidence": 0.261,
+            "bbox": [
+              576,
+              504,
+              616,
+              566
+            ]
+          },
+          {
+            "class_name": "bus",
+            "confidence": 0.261,
+            "bbox": [
+              980,
+              716,
+              1199,
+              800
+            ]
+          }
+        ],
+        "vehicle_counts": {
+          "car": 17,
+          "motorcycle": 0,
+          "truck": 0,
+          "bus": 8,
+          "person": 2
+        },
+        "total_vehicles": 25,
+        "annotated_image": "detections/bangkok_traffic_05.jpg"
+      },
+      "yolo_features": {
+        "motorcycle_count": 0,
+        "car_count": 17,
+        "heavy_truck_count": 0,
+        "motorcycle_pct": 0.0,
+        "car_pct": 68.0,
+        "heavy_truck_pct": 0.0,
+        "pickup_count": 0,
+        "pickup_pct": 0,
+        "_note": "COCO dataset has no 'pickup' class. Pickups may appear as car or truck."
+      },
+      "model_features": {
+        "motorcycle_count": 0,
+        "car_count": 87,
+        "heavy_truck_count": 12,
+        "pickup_count": 31,
+        "motorcycle_pct": 0.0,
+        "car_pct": 61.7,
+        "heavy_truck_pct": 8.5,
+        "pickup_pct": 22.0
+      },
+      "total_accidents": 58,
+      "dangerous": true,
+      "narrative": "YOLO detected 0.0% motorcycles in this snapshot. Historical data shows 0.0% for zone G014_040. This zone has 58 recorded accidents.",
+      "description": "Lat Krabang central zone - 58 recorded accidents"
+    },
+    {
+      "grid_id": "G014_042",
+      "detection": {
+        "image_name": "bangkok_traffic_06.jpg",
+        "detections": [
+          {
+            "class_name": "bus",
+            "confidence": 0.828,
+            "bbox": [
+              127,
+              1,
+              216,
+              82
+            ]
+          },
+          {
+            "class_name": "person",
+            "confidence": 0.741,
+            "bbox": [
+              266,
+              264,
+              320,
+              367
+            ]
+          },
+          {
+            "class_name": "car",
+            "confidence": 0.731,
+            "bbox": [
+              15,
+              170,
+              120,
+              268
+            ]
+          },
+          {
+            "class_name": "car",
+            "confidence": 0.717,
+            "bbox": [
+              105,
+              72,
+              169,
+              132
+            ]
+          },
+          {
+            "class_name": "motorcycle",
+            "confidence": 0.701,
+            "bbox": [
+              169,
+              275,
+              231,
+              343
+            ]
+          },
+          {
+            "class_name": "car",
+            "confidence": 0.695,
+            "bbox": [
+              142,
+              183,
+              242,
+              284
+            ]
+          },
+          {
+            "class_name": "car",
+            "confidence": 0.693,
+            "bbox": [
+              71,
+              122,
+              149,
+              193
+            ]
+          },
+          {
+            "class_name": "car",
+            "confidence": 0.68,
+            "bbox": [
+              294,
+              137,
+              369,
+              214
+            ]
+          },
+          {
+            "class_name": "car",
+            "confidence": 0.654,
+            "bbox": [
+              174,
+              118,
+              248,
+              191
+            ]
+          },
+          {
+            "class_name": "car",
+            "confidence": 0.596,
+            "bbox": [
+              273,
+              90,
+              337,
+              146
+            ]
+          },
+          {
+            "class_name": "car",
+            "confidence": 0.535,
+            "bbox": [
+              193,
+              78,
+              254,
+              134
+            ]
+          },
+          {
+            "class_name": "person",
+            "confidence": 0.514,
+            "bbox": [
+              535,
+              270,
+              594,
+              348
+            ]
+          },
+          {
+            "class_name": "person",
+            "confidence": 0.471,
+            "bbox": [
+              256,
+              192,
+              294,
+              263
+            ]
+          },
+          {
+            "class_name": "motorcycle",
+            "confidence": 0.467,
+            "bbox": [
+              415,
+              256,
+              454,
+              318
+            ]
+          },
+          {
+            "class_name": "person",
+            "confidence": 0.456,
+            "bbox": [
+              259,
+              133,
+              289,
+              178
+            ]
+          },
+          {
+            "class_name": "car",
+            "confidence": 0.412,
+            "bbox": [
+              212,
+              46,
+              258,
+              85
+            ]
+          },
+          {
+            "class_name": "person",
+            "confidence": 0.398,
+            "bbox": [
+              367,
+              229,
+              410,
+              310
+            ]
+          },
+          {
+            "class_name": "person",
+            "confidence": 0.393,
+            "bbox": [
+              328,
+              220,
+              365,
+              299
+            ]
+          },
+          {
+            "class_name": "person",
+            "confidence": 0.386,
+            "bbox": [
+              293,
+              226,
+              328,
+              302
+            ]
+          },
+          {
+            "class_name": "person",
+            "confidence": 0.38,
+            "bbox": [
+              410,
+              236,
+              453,
+              302
+            ]
+          },
+          {
+            "class_name": "person",
+            "confidence": 0.35,
+            "bbox": [
+              108,
+              191,
+              138,
+              247
+            ]
+          },
+          {
+            "class_name": "motorcycle",
+            "confidence": 0.343,
+            "bbox": [
+              101,
+              258,
+              132,
+              318
+            ]
+          },
+          {
+            "class_name": "motorcycle",
+            "confidence": 0.343,
+            "bbox": [
+              372,
+              263,
+              411,
+              321
+            ]
+          },
+          {
+            "class_name": "car",
+            "confidence": 0.338,
+            "bbox": [
+              281,
+              55,
+              330,
+              103
+            ]
+          },
+          {
+            "class_name": "person",
+            "confidence": 0.337,
+            "bbox": [
+              316,
+              188,
+              354,
+              253
+            ]
+          },
+          {
+            "class_name": "person",
+            "confidence": 0.33,
+            "bbox": [
+              181,
+              249,
+              224,
+              318
+            ]
+          },
+          {
+            "class_name": "person",
+            "confidence": 0.324,
+            "bbox": [
+              103,
+              259,
+              131,
+              311
+            ]
+          },
+          {
+            "class_name": "motorcycle",
+            "confidence": 0.304,
+            "bbox": [
+              330,
+              256,
+              363,
+              316
+            ]
+          },
+          {
+            "class_name": "motorcycle",
+            "confidence": 0.293,
+            "bbox": [
+              255,
+              223,
+              295,
+              275
+            ]
+          },
+          {
+            "class_name": "motorcycle",
+            "confidence": 0.265,
+            "bbox": [
+              538,
+              311,
+              576,
+              379
+            ]
+          },
+          {
+            "class_name": "person",
+            "confidence": 0.265,
+            "bbox": [
+              476,
+              202,
+              516,
+              253
+            ]
+          },
+          {
+            "class_name": "person",
+            "confidence": 0.259,
+            "bbox": [
+              263,
+              165,
+              289,
+              199
+            ]
+          }
+        ],
+        "vehicle_counts": {
+          "car": 10,
+          "motorcycle": 7,
+          "truck": 0,
+          "bus": 1,
+          "person": 14
+        },
+        "total_vehicles": 18,
+        "annotated_image": "detections/bangkok_traffic_06.jpg"
+      },
+      "yolo_features": {
+        "motorcycle_count": 7,
+        "car_count": 10,
+        "heavy_truck_count": 0,
+        "motorcycle_pct": 38.9,
+        "car_pct": 55.6,
+        "heavy_truck_pct": 0.0,
+        "pickup_count": 0,
+        "pickup_pct": 0,
+        "_note": "COCO dataset has no 'pickup' class. Pickups may appear as car or truck."
+      },
+      "model_features": {
+        "motorcycle_count": 0,
+        "car_count": 90,
+        "heavy_truck_count": 11,
+        "pickup_count": 39,
+        "motorcycle_pct": 0.0,
+        "car_pct": 60.0,
+        "heavy_truck_pct": 7.3,
+        "pickup_pct": 26.0
+      },
+      "total_accidents": 54,
+      "dangerous": true,
+      "narrative": "YOLO detected 38.9% motorcycles in this snapshot. Historical data shows 0.0% for zone G014_042. This zone has 54 recorded accidents.",
+      "description": "Lat Krabang east zone - 54 recorded accidents"
+    },
+    {
+      "grid_id": "G020_005",
+      "detection": {
+        "image_name": "bangkok_traffic_07.jpg",
+        "detections": [
+          {
+            "class_name": "car",
+            "confidence": 0.757,
+            "bbox": [
+              23,
+              855,
+              256,
+              997
+            ]
+          },
+          {
+            "class_name": "car",
+            "confidence": 0.752,
+            "bbox": [
+              1149,
+              414,
+              1262,
+              511
+            ]
+          },
+          {
+            "class_name": "car",
+            "confidence": 0.743,
+            "bbox": [
+              1307,
+              676,
+              1499,
+              850
+            ]
+          },
+          {
+            "class_name": "bus",
+            "confidence": 0.705,
+            "bbox": [
+              246,
+              444,
+              479,
+              694
+            ]
+          },
+          {
+            "class_name": "car",
+            "confidence": 0.702,
+            "bbox": [
+              278,
+              844,
+              526,
+              996
+            ]
+          },
+          {
+            "class_name": "car",
+            "confidence": 0.679,
+            "bbox": [
+              811,
+              795,
+              1011,
+              959
+            ]
+          },
+          {
+            "class_name": "car",
+            "confidence": 0.672,
+            "bbox": [
+              1255,
+              915,
+              1500,
+              994
+            ]
+          },
+          {
+            "class_name": "bus",
+            "confidence": 0.629,
+            "bbox": [
+              1099,
+              284,
+              1234,
+              394
+            ]
+          },
+          {
+            "class_name": "car",
+            "confidence": 0.609,
+            "bbox": [
+              271,
+              631,
+              421,
+              786
+            ]
+          },
+          {
+            "class_name": "car",
+            "confidence": 0.609,
+            "bbox": [
+              1005,
+              598,
+              1194,
+              758
+            ]
+          },
+          {
+            "class_name": "car",
+            "confidence": 0.596,
+            "bbox": [
+              417,
+              926,
+              654,
+              994
+            ]
+          },
+          {
+            "class_name": "car",
+            "confidence": 0.594,
+            "bbox": [
+              1233,
+              618,
+              1393,
+              753
+            ]
+          },
+          {
+            "class_name": "bus",
+            "confidence": 0.571,
+            "bbox": [
+              1319,
+              364,
+              1499,
+              557
+            ]
+          },
+          {
+            "class_name": "car",
+            "confidence": 0.563,
+            "bbox": [
+              1403,
+              562,
+              1500,
+              678
+            ]
+          },
+          {
+            "class_name": "car",
+            "confidence": 0.555,
+            "bbox": [
+              1115,
+              507,
+              1242,
+              618
+            ]
+          },
+          {
+            "class_name": "car",
+            "confidence": 0.542,
+            "bbox": [
+              1073,
+              465,
+              1178,
+              558
+            ]
+          },
+          {
+            "class_name": "car",
+            "confidence": 0.532,
+            "bbox": [
+              961,
+              530,
+              1116,
+              688
+            ]
+          },
+          {
+            "class_name": "car",
+            "confidence": 0.502,
+            "bbox": [
+              1205,
+              574,
+              1334,
+              682
+            ]
+          },
+          {
+            "class_name": "car",
+            "confidence": 0.479,
+            "bbox": [
+              798,
+              725,
+              980,
+              869
+            ]
+          },
+          {
+            "class_name": "car",
+            "confidence": 0.462,
+            "bbox": [
+              1440,
+              765,
+              1500,
+              967
+            ]
+          },
+          {
+            "class_name": "car",
+            "confidence": 0.446,
+            "bbox": [
+              1070,
+              680,
+              1321,
+              917
+            ]
+          },
+          {
+            "class_name": "truck",
+            "confidence": 0.415,
+            "bbox": [
+              1268,
+              489,
+              1416,
+              613
+            ]
+          },
+          {
+            "class_name": "car",
+            "confidence": 0.371,
+            "bbox": [
+              1086,
+              822,
+              1283,
+              996
+            ]
+          },
+          {
+            "class_name": "person",
+            "confidence": 0.368,
+            "bbox": [
+              832,
+              881,
+              918,
+              996
+            ]
+          },
+          {
+            "class_name": "bus",
+            "confidence": 0.363,
+            "bbox": [
+              1279,
+              290,
+              1425,
+              418
+            ]
+          },
+          {
+            "class_name": "car",
+            "confidence": 0.342,
+            "bbox": [
+              1261,
+              405,
+              1322,
+              476
+            ]
+          },
+          {
+            "class_name": "car",
+            "confidence": 0.342,
+            "bbox": [
+              1024,
+              424,
+              1117,
+              516
+            ]
+          },
+          {
+            "class_name": "person",
+            "confidence": 0.322,
+            "bbox": [
+              1037,
+              814,
+              1108,
+              977
+            ]
+          },
+          {
+            "class_name": "bus",
+            "confidence": 0.316,
+            "bbox": [
+              247,
+              490,
+              446,
+              694
+            ]
+          },
+          {
+            "class_name": "car",
+            "confidence": 0.307,
+            "bbox": [
+              1443,
+              644,
+              1500,
+              983
+            ]
+          },
+          {
+            "class_name": "car",
+            "confidence": 0.306,
+            "bbox": [
+              111,
+              741,
+              256,
+              871
+            ]
+          },
+          {
+            "class_name": "bus",
+            "confidence": 0.297,
+            "bbox": [
+              1177,
+              271,
+              1276,
+              367
+            ]
+          },
+          {
+            "class_name": "car",
+            "confidence": 0.287,
+            "bbox": [
+              711,
+              409,
+              827,
+              497
+            ]
+          },
+          {
+            "class_name": "car",
+            "confidence": 0.287,
+            "bbox": [
+              443,
+              615,
+              627,
+              840
+            ]
+          },
+          {
+            "class_name": "motorcycle",
+            "confidence": 0.282,
+            "bbox": [
+              616,
+              770,
+              674,
+              884
+            ]
+          },
+          {
+            "class_name": "car",
+            "confidence": 0.281,
+            "bbox": [
+              1081,
+              767,
+              1321,
+              918
+            ]
+          },
+          {
+            "class_name": "car",
+            "confidence": 0.278,
+            "bbox": [
+              776,
+              570,
+              914,
+              671
+            ]
+          },
+          {
+            "class_name": "car",
+            "confidence": 0.267,
+            "bbox": [
+              473,
+              817,
+              601,
+              919
+            ]
+          },
+          {
+            "class_name": "person",
+            "confidence": 0.251,
+            "bbox": [
+              646,
+              685,
+              702,
+              783
+            ]
+          }
+        ],
+        "vehicle_counts": {
+          "car": 28,
+          "motorcycle": 1,
+          "truck": 1,
+          "bus": 6,
+          "person": 3
+        },
+        "total_vehicles": 36,
+        "annotated_image": "detections/bangkok_traffic_07.jpg"
+      },
+      "yolo_features": {
+        "motorcycle_count": 1,
+        "car_count": 28,
+        "heavy_truck_count": 1,
+        "motorcycle_pct": 2.8,
+        "car_pct": 77.8,
+        "heavy_truck_pct": 2.8,
+        "pickup_count": 0,
+        "pickup_pct": 0,
+        "_note": "COCO dataset has no 'pickup' class. Pickups may appear as car or truck."
+      },
+      "model_features": {
+        "motorcycle_count": 19,
+        "car_count": 60,
+        "heavy_truck_count": 15,
+        "pickup_count": 20,
+        "motorcycle_pct": 16.2,
+        "car_pct": 51.3,
+        "heavy_truck_pct": 12.8,
+        "pickup_pct": 17.1
+      },
+      "total_accidents": 51,
+      "dangerous": true,
+      "narrative": "YOLO detected 2.8% motorcycles in this snapshot. Historical data shows 16.2% for zone G020_005. This zone has 51 recorded accidents.",
+      "description": "Bangna expressway zone - 51 recorded accidents"
+    }
+  ],
   "vehicle_importance": {
     "vehicle_features": [
       {
