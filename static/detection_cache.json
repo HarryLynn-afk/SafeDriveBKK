@@ -243,7 +243,10 @@
         "pickup_count": 0,
         "pickup_pct": 0,
         "_note": "COCO dataset has no 'pickup' class. Pickups may appear as car or truck."
-      }
+      },
+      "grid_id": "G020_002",
+      "description": "Highway near Bangna - 85 recorded accidents",
+      "risk_score": 100.0
     },
     {
       "image_name": "bangkok_traffic_02.jpg",
@@ -448,7 +451,10 @@
         "pickup_count": 0,
         "pickup_pct": 0,
         "_note": "COCO dataset has no 'pickup' class. Pickups may appear as car or truck."
-      }
+      },
+      "grid_id": "G014_041",
+      "description": "Intersection at Lat Krabang - 69 recorded accidents",
+      "risk_score": 81.2
     },
     {
       "image_name": "bangkok_traffic_03.jpg",
@@ -683,7 +689,10 @@
         "pickup_count": 0,
         "pickup_pct": 0,
         "_note": "COCO dataset has no 'pickup' class. Pickups may appear as car or truck."
-      }
+      },
+      "grid_id": "G014_043",
+      "description": "Lat Krabang corridor zone - 66 recorded accidents",
+      "risk_score": 77.7
     },
     {
       "image_name": "bangkok_traffic_04.jpg",
@@ -1018,7 +1027,10 @@
         "pickup_count": 0,
         "pickup_pct": 0,
         "_note": "COCO dataset has no 'pickup' class. Pickups may appear as car or truck."
-      }
+      },
+      "grid_id": "G014_039",
+      "description": "Lat Krabang approach zone - 65 recorded accidents",
+      "risk_score": 76.5
     },
     {
       "image_name": "bangkok_traffic_05.jpg",
@@ -1313,7 +1325,10 @@
         "pickup_count": 0,
         "pickup_pct": 0,
         "_note": "COCO dataset has no 'pickup' class. Pickups may appear as car or truck."
-      }
+      },
+      "grid_id": "G014_040",
+      "description": "Lat Krabang central zone - 58 recorded accidents",
+      "risk_score": 68.2
     },
     {
       "image_name": "bangkok_traffic_06.jpg",
@@ -1658,7 +1673,10 @@
         "pickup_count": 0,
         "pickup_pct": 0,
         "_note": "COCO dataset has no 'pickup' class. Pickups may appear as car or truck."
-      }
+      },
+      "grid_id": "G014_042",
+      "description": "Lat Krabang east zone - 54 recorded accidents",
+      "risk_score": 63.5
     },
     {
       "image_name": "bangkok_traffic_07.jpg",
@@ -2073,7 +2091,10 @@
         "pickup_count": 0,
         "pickup_pct": 0,
         "_note": "COCO dataset has no 'pickup' class. Pickups may appear as car or truck."
-      }
+      },
+      "grid_id": "G020_005",
+      "description": "Bangna expressway zone - 51 recorded accidents",
+      "risk_score": 60.0
     }
   ],
   "comparisons": [

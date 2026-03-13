@@ -470,6 +470,41 @@ class NLPAnalyzer:
 
         return samples
 
+    def get_map_data(self, top_n=200):
+        """Return top N dangerous zones with cause data for the interactive Leaflet map."""
+        GRID_STATS_PATH = DATA_DIR / "bangkok_grid_stats.csv"
+
+        dangerous = self._ml_features[self._ml_features["dangerous"] == 1].copy()
+        dangerous = dangerous.nlargest(top_n, "total_accidents")
+
+        stats_dict = {}
+        if GRID_STATS_PATH.exists():
+            stats_df = pd.read_csv(GRID_STATS_PATH)
+            stats_dict = dict(zip(stats_df["grid_id"], stats_df["risk_score"]))
+
+        cause_cols = [c for c in dangerous.columns if c.startswith("cause_")]
+
+        zones = []
+        for _, row in dangerous.iterrows():
+            dominant_col = max(cause_cols, key=lambda c: float(row.get(c, 0))) if cause_cols else "cause_other"
+            dominant_thai = dominant_col.replace("cause_", "")
+            dominant_pct = round(float(row.get(dominant_col, 0)), 1)
+            dominant_english = CAUSE_TRANSLATIONS.get(dominant_thai, {}).get("english", "Other")
+
+            zones.append({
+                "grid_id": row["grid_id"],
+                "lat": float(row["center_lat"]),
+                "lon": float(row["center_lon"]),
+                "total_accidents": int(row["total_accidents"]),
+                "risk_score": round(float(stats_dict.get(row["grid_id"], 0)), 1),
+                "dominant_cause": dominant_thai,
+                "dominant_cause_english": dominant_english,
+                "dominant_cause_pct": dominant_pct,
+                "motorcycle_pct": round(float(row.get("motorcycle_pct", 0)), 1),
+            })
+
+        return zones
+
     def generate_cache(self):
         """Generate and save all NLP analysis results to cache file."""
         LOGGER.info("Generating NLP cache...")
@@ -482,6 +517,7 @@ class NLPAnalyzer:
             "recommendations": self.get_zone_recommendations(top_n=10),
             "word_cloud": self.get_word_cloud_data(),
             "accident_samples": self.get_accident_samples(30),
+            "map_data": self.get_map_data(200),
         }
 
         STATIC_DIR.mkdir(parents=True, exist_ok=True)

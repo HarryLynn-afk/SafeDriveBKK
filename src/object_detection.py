@@ -339,6 +339,13 @@ class VehicleDetector:
 
         metadata_map = {m["image"]: m for m in metadata}
 
+        # Load risk scores for grid_id enrichment
+        grid_stats_path = DATA_DIR / "bangkok_grid_stats.csv"
+        stats_dict = {}
+        if grid_stats_path.exists():
+            stats_df = pd.read_csv(grid_stats_path)
+            stats_dict = dict(zip(stats_df["grid_id"], stats_df["risk_score"]))
+
         # Process each image
         image_results = []
         comparisons = []
@@ -352,11 +359,16 @@ class VehicleDetector:
                 detection["vehicle_counts"]
             )
             detection["xgboost_features"] = yolo_features
+
+            # Enrich with metadata (grid_id, description, risk_score)
+            meta = metadata_map.get(img_path.name, {})
+            grid_id = meta.get("grid_id", "")
+            detection["grid_id"] = grid_id
+            detection["description"] = meta.get("description", "")
+            detection["risk_score"] = round(float(stats_dict.get(grid_id, 0)), 1) if grid_id else 0
             image_results.append(detection)
 
             # If we have a grid_id mapping, do comparison
-            meta = metadata_map.get(img_path.name, {})
-            grid_id = meta.get("grid_id")
             if grid_id:
                 comparison = self.compare_with_model(img_path, grid_id)
                 comparison["description"] = meta.get("description", "")

@@ -4,6 +4,13 @@
 
 {% block extra_head %}
 <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0"></script>
+<link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css"/>
+<script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+<style>
+.step-block { transition: opacity 0.5s ease, transform 0.5s ease; }
+.step-block.hidden { opacity: 0; transform: translateY(6px); pointer-events: none; }
+#cause-map { height: 420px; border-radius: 8px; }
+</style>
 {% endblock %}
 
 {% block content %}
@@ -11,54 +18,65 @@
     <h1 class="mb-2">Accident Cause Analysis (NLP)</h1>
     <p class="lead mb-4">Thai text analysis of 2,669 Bangkok accident reports &mdash; extracting causes, types, and actionable recommendations.</p>
 
-    <!-- Section 0: Real Accident Analyzer -->
+    <!-- Section 0: Animated Thai Text Decoder -->
     <div class="stats-card mb-4">
-        <h3 class="mb-1">Explore Real Bangkok Accident Records</h3>
-        <p class="text-muted mb-3">Each record below is a real entry from our 2,669-accident dataset. Click through to see how NLP tokenizes Thai text and maps it to XGBoost features.</p>
-        <div class="d-flex align-items-center gap-2 mb-3">
-            <button class="btn btn-outline-secondary btn-sm" id="acc-prev">&#8592; Prev</button>
-            <span class="text-muted small" id="acc-counter">1 / 30</span>
-            <button class="btn btn-outline-secondary btn-sm" id="acc-next">Next &#8594;</button>
-            <button class="btn btn-outline-primary btn-sm ms-2" id="acc-random">Random</button>
+        <h3 class="mb-1">Decode Real Bangkok Accident Reports</h3>
+        <p class="text-muted mb-3">Each example is a real entry from our 2,669-accident dataset. Watch how NLP transforms raw Thai text into XGBoost features — step by step.</p>
+
+        <div class="text-center mb-3">
+            <button class="btn btn-primary btn-lg px-5" id="acc-decode">🔍 Decode Random Accident</button>
+            <div class="d-flex justify-content-center align-items-center gap-3 mt-2">
+                <button class="btn btn-outline-secondary btn-sm" id="acc-prev">&#8592; Prev</button>
+                <span class="text-muted small" id="acc-counter">1 / 30</span>
+                <button class="btn btn-outline-secondary btn-sm" id="acc-next">Next &#8594;</button>
+            </div>
         </div>
+
         <div class="border rounded p-3 bg-light" id="acc-display">
-            <div class="row g-3">
-                <div class="col-md-6">
-                    <div class="mb-2">
-                        <span class="text-muted small text-uppercase fw-semibold">Accident ID</span>
-                        <div class="fw-bold" id="acc-id">&mdash;</div>
-                    </div>
-                    <div class="mb-2">
-                        <span class="text-muted small text-uppercase fw-semibold">Thai Text (Original)</span>
-                        <div class="font-monospace fs-5" id="acc-thai">&mdash;</div>
-                    </div>
-                    <div class="mb-2">
-                        <span class="text-muted small text-uppercase fw-semibold">Tokenized Words</span>
-                        <div id="acc-tokens">&mdash;</div>
-                    </div>
-                    <div>
-                        <span class="text-muted small text-uppercase fw-semibold">Location</span>
-                        <div class="small" id="acc-location">&mdash;</div>
-                    </div>
+            <!-- Step 1: Thai text — visible immediately -->
+            <div class="step-block" id="step-1">
+                <div class="d-flex align-items-center gap-2 mb-2">
+                    <span class="badge bg-primary">Step 1</span>
+                    <span class="text-muted small text-uppercase fw-semibold">Thai Text (Original)</span>
+                    <span class="text-muted small ms-auto" id="acc-id"></span>
                 </div>
-                <div class="col-md-6 border-start ps-3">
-                    <div class="mb-2">
-                        <span class="text-muted small text-uppercase fw-semibold">Detected Cause</span>
-                        <div class="fw-bold fs-5" id="acc-cause">&mdash;</div>
-                    </div>
-                    <div class="mb-2">
-                        <span class="text-muted small text-uppercase fw-semibold">XGBoost Feature</span>
-                        <div><code id="acc-feature">&mdash;</code></div>
-                    </div>
-                    <div>
-                        <span class="text-muted small text-uppercase fw-semibold">Feature Importance</span>
-                        <div class="d-flex align-items-center gap-2">
-                            <span class="fw-bold" id="acc-importance">&mdash;</span>
-                            <div class="progress flex-grow-1" style="height:8px;">
-                                <div class="progress-bar bg-warning" id="acc-importance-bar" style="width:0%"></div>
-                            </div>
+                <div class="font-monospace fs-4 ms-3 mb-1" id="acc-thai">&mdash;</div>
+                <div class="text-muted small ms-3" id="acc-location"></div>
+            </div>
+
+            <!-- Step 2: Tokenization -->
+            <div class="step-block hidden mt-3" id="step-2">
+                <div class="d-flex align-items-center gap-2 mb-2">
+                    <span class="badge bg-info text-dark">Step 2</span>
+                    <span class="text-muted small text-uppercase fw-semibold">pythainlp Tokenization</span>
+                </div>
+                <div class="ms-3" id="acc-tokens">&mdash;</div>
+            </div>
+
+            <!-- Step 3: English translation -->
+            <div class="step-block hidden mt-3" id="step-3">
+                <div class="d-flex align-items-center gap-2 mb-2">
+                    <span class="badge bg-success">Step 3</span>
+                    <span class="text-muted small text-uppercase fw-semibold">Category Classification</span>
+                </div>
+                <div class="fw-bold fs-5 ms-3" id="acc-cause">&mdash;</div>
+            </div>
+
+            <!-- Step 4: XGBoost feature -->
+            <div class="step-block hidden mt-3" id="step-4">
+                <div class="d-flex align-items-center gap-2 mb-2">
+                    <span class="badge bg-warning text-dark">Step 4</span>
+                    <span class="text-muted small text-uppercase fw-semibold">XGBoost Feature Injection</span>
+                </div>
+                <div class="ms-3">
+                    <code id="acc-feature" class="fs-6">&mdash;</code>
+                    <div class="d-flex align-items-center gap-2 mt-2">
+                        <span class="fw-bold" id="acc-importance">&mdash;</span>
+                        <div class="progress flex-grow-1" style="height:8px;">
+                            <div class="progress-bar bg-warning" id="acc-importance-bar" style="width:0%; transition:width 0.8s;"></div>
                         </div>
                     </div>
+                    <div class="text-success small mt-1" id="acc-id-badge"></div>
                 </div>
             </div>
         </div>
@@ -128,7 +146,23 @@
         </div>
     </div>
 
-    <!-- Section 6: Zone Recommendations -->
+    <!-- Section 6: Bangkok Accident Cause Map -->
+    <div class="stats-card mb-4">
+        <h3 class="mb-1">Bangkok Accident Causes — Geographic Distribution</h3>
+        <p class="text-muted small mb-2">Top 200 dangerous zones from the accident dataset, color-coded by dominant cause. Click any zone for details.</p>
+        <div class="d-flex gap-3 flex-wrap mb-3 small">
+            <span><span style="display:inline-block;width:12px;height:12px;border-radius:50%;background:#dc3545;margin-right:4px;"></span>Speeding</span>
+            <span><span style="display:inline-block;width:12px;height:12px;border-radius:50%;background:#fd7e14;margin-right:4px;"></span>Cutting in front</span>
+            <span><span style="display:inline-block;width:12px;height:12px;border-radius:50%;background:#ffc107;margin-right:4px;"></span>Red light violation</span>
+            <span><span style="display:inline-block;width:12px;height:12px;border-radius:50%;background:#0d6efd;margin-right:4px;"></span>Tire blowout</span>
+            <span><span style="display:inline-block;width:12px;height:12px;border-radius:50%;background:#6610f2;margin-right:4px;"></span>Drowsy driving</span>
+            <span><span style="display:inline-block;width:12px;height:12px;border-radius:50%;background:#6c757d;margin-right:4px;"></span>Other</span>
+            <span class="ms-2 text-muted">Circle size = accident count</span>
+        </div>
+        <div id="cause-map"></div>
+    </div>
+
+    <!-- Section 7: Zone Recommendations -->
     <div class="stats-card mb-4">
         <h3 class="mb-3">Actionable Zone Recommendations</h3>
         <p class="text-muted mb-3">NLP-derived cause + location context → specific policy interventions for the most dangerous zones.</p>
@@ -266,44 +300,119 @@ const NLP_CACHE = {{ nlp_data | tojson }};
     });
 })();
 
-// --- Real Accident Analyzer ---
+// --- Animated Thai Text Decoder ---
 (function() {
     const samples = NLP_CACHE.accident_samples || [];
     if (!samples.length) return;
 
     let current = 0;
-    // Scale bar relative to the highest importance in the sample set
     const maxImp = Math.max(...samples.map(s => s.feature_importance || 0), 0.001);
 
-    function render(idx) {
-        const s = samples[idx];
-        document.getElementById('acc-counter').textContent = `${idx + 1} / ${samples.length}`;
-        document.getElementById('acc-id').textContent = `#${s.accident_id}`;
-        document.getElementById('acc-thai').textContent = s.raw_thai || '—';
-        document.getElementById('acc-tokens').innerHTML = (s.tokens || [])
-            .map(t => `<span class="badge bg-secondary me-1">${t}</span>`).join('') || '—';
-        document.getElementById('acc-location').textContent = s.location || 'Unknown';
-        document.getElementById('acc-cause').textContent = s.category_english || '—';
-        document.getElementById('acc-feature').textContent = s.xgboost_feature || '—';
-        const imp = s.feature_importance || 0;
-        document.getElementById('acc-importance').textContent = `${imp}% of model`;
-        // Bar scaled relative to the strongest NLP feature (not the whole model)
-        document.getElementById('acc-importance-bar').style.width = `${Math.round((imp / maxImp) * 100)}%`;
+    function showStep(id, delay) {
+        setTimeout(() => {
+            const el = document.getElementById(id);
+            if (el) { el.classList.remove('hidden'); }
+        }, delay);
     }
 
-    render(0);
+    function animate(idx) {
+        const s = samples[idx];
+        document.getElementById('acc-counter').textContent = `${idx + 1} / ${samples.length}`;
+
+        // Reset steps 2-4 to hidden
+        ['step-2','step-3','step-4'].forEach(id => {
+            const el = document.getElementById(id);
+            if (el) el.classList.add('hidden');
+        });
+
+        // Step 1: immediate
+        document.getElementById('acc-thai').textContent = s.raw_thai || '—';
+        document.getElementById('acc-location').textContent = s.location ? '📍 ' + s.location : '';
+        document.getElementById('acc-id').textContent = `Accident #${s.accident_id}`;
+
+        // Step 2: 700ms
+        showStep('step-2', 700);
+        setTimeout(() => {
+            document.getElementById('acc-tokens').innerHTML =
+                (s.tokens || []).map(t => `<span class="badge bg-secondary me-1">${t}</span>`).join('') || '—';
+        }, 700);
+
+        // Step 3: 1400ms
+        showStep('step-3', 1400);
+        setTimeout(() => {
+            document.getElementById('acc-cause').textContent = s.category_english || '—';
+        }, 1400);
+
+        // Step 4: 2100ms
+        showStep('step-4', 2100);
+        setTimeout(() => {
+            document.getElementById('acc-feature').textContent = s.xgboost_feature || '—';
+            const imp = s.feature_importance || 0;
+            document.getElementById('acc-importance').textContent = `${imp}% of model`;
+            document.getElementById('acc-importance-bar').style.width = `${Math.round((imp / maxImp) * 100)}%`;
+            document.getElementById('acc-id-badge').textContent = `✓ Real record from 2,669-accident Bangkok dataset`;
+        }, 2100);
+    }
+
+    animate(0);
 
     document.getElementById('acc-prev').addEventListener('click', () => {
         current = (current - 1 + samples.length) % samples.length;
-        render(current);
+        animate(current);
     });
     document.getElementById('acc-next').addEventListener('click', () => {
         current = (current + 1) % samples.length;
-        render(current);
+        animate(current);
     });
-    document.getElementById('acc-random').addEventListener('click', () => {
+    document.getElementById('acc-decode').addEventListener('click', () => {
         current = Math.floor(Math.random() * samples.length);
-        render(current);
+        animate(current);
+    });
+})();
+
+// --- Bangkok Cause Map ---
+(function() {
+    const zones = NLP_CACHE.map_data || [];
+    if (!zones.length) return;
+
+    const causeColors = {
+        'ขับรถเร็วเกินอัตรากำหนด':             '#dc3545',
+        'คน/รถ/สัตว์ตัดหน้ากระชั้นชิด':        '#fd7e14',
+        'ฝ่าฝืนสัญญาณไฟ/เครื่องหมายจราจร':    '#ffc107',
+        'ยางเสื่อมสภาพ/ยางแตก':                '#0d6efd',
+        'หลับใน':                               '#6610f2',
+    };
+
+    const map = L.map('cause-map').setView([13.75, 100.55], 11);
+    L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+        maxZoom: 18,
+        attribution: '© OpenStreetMap contributors'
+    }).addTo(map);
+
+    const maxAcc = Math.max(...zones.map(z => z.total_accidents), 1);
+
+    zones.forEach(z => {
+        const color = causeColors[z.dominant_cause] || '#6c757d';
+        const radius = 4 + Math.round((z.total_accidents / maxAcc) * 10);
+
+        L.circleMarker([z.lat, z.lon], {
+            radius: radius,
+            fillColor: color,
+            color: '#fff',
+            weight: 1,
+            opacity: 0.9,
+            fillOpacity: 0.75,
+        })
+        .bindTooltip(`<strong>${z.grid_id}</strong><br>${z.dominant_cause_english} (${z.dominant_cause_pct}%)<br>${z.total_accidents} accidents`)
+        .bindPopup(`
+            <strong>Zone ${z.grid_id}</strong><br>
+            <b>Dominant cause:</b> ${z.dominant_cause_english} (${z.dominant_cause_pct}%)<br>
+            <b>Accidents:</b> ${z.total_accidents}<br>
+            <b>Risk score:</b> ${z.risk_score}/100<br>
+            <b>Motorcycle share:</b> ${z.motorcycle_pct}%<br>
+            <span style="font-size:0.75rem;color:#888;">Thai: ${z.dominant_cause}</span>
+        `)
+        .addTo(map);
     });
 })();
 
