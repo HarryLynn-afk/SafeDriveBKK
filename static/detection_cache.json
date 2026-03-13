@@ -2129,6 +2129,85 @@
     "highlight": "pickup_count is #4 most important feature overall at 7.39%",
     "limitation": "COCO has no pickup class; pickups classified as car/truck by YOLO"
   },
+  "vehicle_analysis": {
+    "correlation": [
+      {
+        "bucket": "<30%",
+        "zone_count": 105,
+        "avg_accidents": 19.0,
+        "avg_severity": 0.85
+      },
+      {
+        "bucket": "30–50%",
+        "zone_count": 16,
+        "avg_accidents": 16.4,
+        "avg_severity": 1.39
+      },
+      {
+        "bucket": "50–70%",
+        "zone_count": 5,
+        "avg_accidents": 8.0,
+        "avg_severity": 1.73
+      },
+      {
+        "bucket": ">70%",
+        "zone_count": 0,
+        "avg_accidents": 0,
+        "avg_severity": 0
+      }
+    ],
+    "key_finding": "Zones with >70% motorcycle share average 0 accidents vs 19.0 for <30% — a 0.0× difference.",
+    "high_motorcycle_zones": [
+      {
+        "grid_id": "G008_011",
+        "motorcycle_pct": 60.0,
+        "total_accidents": 8,
+        "risk_score": 9.4
+      },
+      {
+        "grid_id": "G009_015",
+        "motorcycle_pct": 60.0,
+        "total_accidents": 5,
+        "risk_score": 5.9
+      },
+      {
+        "grid_id": "G006_004",
+        "motorcycle_pct": 52.9,
+        "total_accidents": 10,
+        "risk_score": 11.8
+      },
+      {
+        "grid_id": "G008_013",
+        "motorcycle_pct": 50.0,
+        "total_accidents": 10,
+        "risk_score": 11.8
+      },
+      {
+        "grid_id": "G005_003",
+        "motorcycle_pct": 50.0,
+        "total_accidents": 7,
+        "risk_score": 8.2
+      },
+      {
+        "grid_id": "G006_005",
+        "motorcycle_pct": 46.3,
+        "total_accidents": 20,
+        "risk_score": 23.5
+      },
+      {
+        "grid_id": "G002_015",
+        "motorcycle_pct": 45.5,
+        "total_accidents": 16,
+        "risk_score": 18.8
+      },
+      {
+        "grid_id": "G002_016",
+        "motorcycle_pct": 45.5,
+        "total_accidents": 16,
+        "risk_score": 18.8
+      }
+    ]
+  },
   "pipeline": {
     "stages": [
       {
