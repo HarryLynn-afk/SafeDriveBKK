@@ -1,22 +1,37 @@
 [
   {
-    "image": "bangkok_highway_01.jpg",
+    "image": "bangkok_traffic_01.jpg",
     "grid_id": "G020_002",
     "description": "Highway near Bangna - 85 recorded accidents"
   },
   {
-    "image": "bangkok_intersection_02.jpg",
+    "image": "bangkok_traffic_02.jpg",
     "grid_id": "G014_041",
     "description": "Intersection at Lat Krabang - 69 recorded accidents"
   },
   {
-    "image": "bangkok_street_03.jpg",
-    "grid_id": "G017_020",
-    "description": "Sukhumvit Road area"
+    "image": "bangkok_traffic_03.jpg",
+    "grid_id": "G014_043",
+    "description": "Lat Krabang corridor zone - 66 recorded accidents"
   },
   {
-    "image": "bangkok_rush_04.jpg",
-    "grid_id": "G019_030",
-    "description": "Ratchadaphisek Road rush hour"
+    "image": "bangkok_traffic_04.jpg",
+    "grid_id": "G014_039",
+    "description": "Lat Krabang approach zone - 65 recorded accidents"
+  },
+  {
+    "image": "bangkok_traffic_05.jpg",
+    "grid_id": "G014_040",
+    "description": "Lat Krabang central zone - 58 recorded accidents"
+  },
+  {
+    "image": "bangkok_traffic_06.jpg",
+    "grid_id": "G014_042",
+    "description": "Lat Krabang east zone - 54 recorded accidents"
+  },
+  {
+    "image": "bangkok_traffic_07.jpg",
+    "grid_id": "G020_005",
+    "description": "Bangna expressway zone - 51 recorded accidents"
   }
 ]

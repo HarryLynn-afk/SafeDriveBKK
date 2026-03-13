@@ -342,25 +342,37 @@ class NLPAnalyzer:
 
     def get_word_cloud_data(self):
         """Tokenize Thai text and return word frequencies."""
+        word_freq = {}
         try:
             from pythainlp.tokenize import word_tokenize
             from pythainlp.corpus import thai_stopwords
-        except ImportError:
-            return {"words": []}
+            stopwords = thai_stopwords()
 
-        stopwords = thai_stopwords()
-        word_freq = {}
-
-        for col in [COL_CAUSE, COL_LOCATION, COL_TYPE]:
-            if col not in self._accidents.columns:
-                continue
-            for text in self._accidents[col].dropna().unique():
-                tokens = word_tokenize(str(text), engine="newmm")
-                for token in tokens:
-                    token = token.strip()
-                    if len(token) <= 1 or token in stopwords or token == " ":
+            for col in [COL_CAUSE, COL_LOCATION, COL_TYPE]:
+                if col not in self._accidents.columns:
+                    continue
+                for text in self._accidents[col].dropna().unique():
+                    tokens = word_tokenize(str(text), engine="newmm")
+                    # Skip if tokenizer returned character-level output
+                    if tokens and (sum(len(t) for t in tokens) / len(tokens)) < 2.5:
                         continue
-                    word_freq[token] = word_freq.get(token, 0) + 1
+                    for token in tokens:
+                        token = token.strip()
+                        if len(token) <= 1 or token in stopwords or token == " ":
+                            continue
+                        word_freq[token] = word_freq.get(token, 0) + 1
+        except ImportError:
+            pass
+
+        # If word-level tokenization produced nothing, fall back to raw cause/type values
+        if not word_freq:
+            for col in [COL_CAUSE, COL_TYPE]:
+                if col not in self._accidents.columns:
+                    continue
+                for val, count in self._accidents[col].dropna().value_counts().items():
+                    text = str(val).strip()
+                    if text:
+                        word_freq[text] = int(count)
 
         sorted_words = sorted(word_freq.items(), key=lambda x: x[1], reverse=True)[:50]
         return {"words": [{"text": w, "frequency": f} for w, f in sorted_words]}
@@ -397,8 +409,17 @@ class NLPAnalyzer:
         """Return n real accident records with full NLP analysis for the interactive analyzer."""
         try:
             from pythainlp.tokenize import word_tokenize
+
+            def _tokenize(text):
+                tokens = word_tokenize(text, engine="newmm")
+                # Guard against character-level fallback: if average token length < 2.5
+                # the engine returned individual characters — revert to whole-text
+                if tokens and (sum(len(t) for t in tokens) / len(tokens)) < 2.5:
+                    return [text]
+                return [t for t in tokens if t.strip()]
         except ImportError:
-            word_tokenize = lambda t, **kw: list(t)
+            def _tokenize(text):
+                return [text]
 
         # Collect samples with variety across cause categories
         cause_buckets = {cause: [] for cause in CAUSE_TRANSLATIONS}
@@ -431,7 +452,7 @@ class NLPAnalyzer:
         samples = []
         for idx, row in selected:
             cause = str(row.get(COL_CAUSE, "")).strip()
-            tokens = word_tokenize(cause, engine="newmm") if cause else []
+            tokens = _tokenize(cause) if cause else []
             info = CAUSE_TRANSLATIONS.get(cause, {"english": "Other", "feature": "cause_other"})
             location = row.get(COL_LOCATION, "")
             location = str(location) if not pd.isna(location) else "Unknown"
