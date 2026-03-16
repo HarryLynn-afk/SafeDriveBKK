@@ -5,34 +5,6 @@
 {% block extra_head %}
 <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0"></script>
 <style>
-/* ── Stat Cards ─────────────────────────────────────────────── */
-.detect-stat-card {
-    background: white;
-    border-radius: 12px;
-    padding: 20px 24px;
-    box-shadow: 0 2px 8px rgba(0,0,0,0.07);
-    border-top: 4px solid var(--accent, #0d6efd);
-    text-align: center;
-}
-.detect-stat-value {
-    font-size: 2.2rem;
-    font-weight: 700;
-    color: var(--accent, #0d6efd);
-    line-height: 1.1;
-}
-.detect-stat-label {
-    font-size: 0.75rem;
-    text-transform: uppercase;
-    letter-spacing: 0.6px;
-    color: #6c757d;
-    margin-top: 4px;
-}
-.detect-stat-sub {
-    font-size: 0.82rem;
-    color: #495057;
-    margin-top: 6px;
-}
-
 /* ── Zone Table ─────────────────────────────────────────────── */
 .zone-high-risk { background: rgba(220,53,69,0.08) !important; }
 .zone-high-risk td { color: #dc3545; font-weight: 600; }
@@ -163,65 +135,20 @@
     </div>
 
     <!-- ══════════════════════════════════════════════════════════
-         SECTION 3: YOLO→XGBoost Mapping + Vehicle Importance
+         SECTION 3: Vehicle Feature Importance
     ══════════════════════════════════════════════════════════ -->
-    <div class="row g-4 mb-4">
-        <!-- Feature Mapping -->
-        <div class="col-md-6">
-            <div class="stats-card h-100">
-                <h3>YOLO → XGBoost Feature Mapping</h3>
-                <p class="text-muted small mb-3">
-                    Each vehicle YOLO detects maps directly to a feature the XGBoost model already understands.
-                    No retraining needed — YOLO provides fresh real-world values.
-                </p>
-                {% if detection_data.comparisons %}
-                <div class="table-responsive">
-                    <table class="table table-sm table-bordered">
-                        <thead class="table-dark">
-                            <tr>
-                                <th>Feature</th>
-                                <th>YOLO (Snapshot)</th>
-                                <th>Historical (Model)</th>
-                            </tr>
-                        </thead>
-                        <tbody>
-                            {% set comp = detection_data.comparisons[0] %}
-                            {% for key in ['motorcycle_count', 'car_count', 'heavy_truck_count', 'motorcycle_pct', 'car_pct', 'heavy_truck_pct'] %}
-                            <tr>
-                                <td><code>{{ key }}</code></td>
-                                <td>{{ comp.yolo_features[key] }}</td>
-                                <td>{{ comp.model_features[key] }}</td>
-                            </tr>
-                            {% endfor %}
-                        </tbody>
-                    </table>
-                </div>
-                <p class="text-muted small mt-2">{{ comp.narrative }}</p>
-                {% else %}
-                <p class="text-muted">
-                    Add sample images and run the setup script to generate real
-                    YOLO-vs-historical feature comparisons here.
-                </p>
-                {% endif %}
-            </div>
-        </div>
-
-        <!-- Vehicle Feature Importance -->
-        <div class="col-md-6">
-            <div class="stats-card h-100">
-                <h3>Vehicle Feature Importance in XGBoost</h3>
-                <p class="text-muted small mb-2">
-                    Blue bars = YOLO-detectable. Grey bars = not in COCO (e.g. Thai pickup trucks).
-                </p>
-                <canvas id="vehicleImportanceChart" height="260"></canvas>
-                {% if detection_data.vehicle_importance %}
-                <p class="text-muted small mt-2">
-                    Vehicle features total: <strong>{{ detection_data.vehicle_importance.total_vehicle_importance_pct }}%</strong> of model importance.
-                    {{ detection_data.vehicle_importance.limitation }}
-                </p>
-                {% endif %}
-            </div>
-        </div>
+    <div class="stats-card mb-4">
+        <h3>Vehicle Feature Importance in XGBoost</h3>
+        <p class="text-muted small mb-2">
+            Blue bars = YOLO-detectable. Grey bars = not in COCO (e.g. Thai pickup trucks).
+        </p>
+        <canvas id="vehicleImportanceChart" height="160"></canvas>
+        {% if detection_data.vehicle_importance %}
+        <p class="text-muted small mt-2">
+            Vehicle features total: <strong>{{ detection_data.vehicle_importance.total_vehicle_importance_pct }}%</strong> of model importance.
+            {{ detection_data.vehicle_importance.limitation }}
+        </p>
+        {% endif %}
     </div>
 
     <!-- ══════════════════════════════════════════════════════════
@@ -294,30 +221,6 @@
     </div>
     {% endif %}
 
-    <!-- ══════════════════════════════════════════════════════════
-         SECTION 5: Zone-by-Zone Validation (when cache has data)
-    ══════════════════════════════════════════════════════════ -->
-    {% if detection_data.comparisons and detection_data.comparisons | length > 1 %}
-    <div class="stats-card mb-4">
-        <h3 class="mb-3">Zone-by-Zone Validation</h3>
-        <div class="row g-3">
-            {% for comp in detection_data.comparisons %}
-            <div class="col-md-6">
-                <div class="card">
-                    <div class="card-body">
-                        <h5>{{ comp.grid_id }} — {{ comp.description }}</h5>
-                        <span class="badge {% if comp.dangerous %}bg-danger{% else %}bg-success{% endif %} mb-2">
-                            {% if comp.dangerous %}DANGEROUS{% else %}SAFE{% endif %}
-                        </span>
-                        <p>{{ comp.narrative }}</p>
-                        <small class="text-muted">Total accidents: {{ comp.total_accidents }}</small>
-                    </div>
-                </div>
-            </div>
-            {% endfor %}
-        </div>
-    </div>
-    {% endif %}
 
 </div>
 {% endblock %}
