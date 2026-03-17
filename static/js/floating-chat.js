@@ -24,10 +24,55 @@ class FloatingChat {
             if (e.key === 'Enter') this.sendMessage();
         });
 
-        this.suggestions.querySelectorAll('.suggestion-chip').forEach(chip => {
-            chip.addEventListener('click', () => {
-                this.sendMessage(chip.dataset.question);
-            });
+        // Set context-aware suggestions based on current page
+        this.setContextualSuggestions();
+    }
+
+    setContextualSuggestions() {
+        const path = window.location.pathname;
+
+        let suggestions = [];
+
+        if (path.includes('trip-planner') || path.includes('trip_planner')) {
+            suggestions = [
+                { text: 'Best time to travel?', question: 'What is the best time to travel in Bangkok?' },
+                { text: 'Safer route alternatives?', question: 'Show me safer route alternatives' },
+                { text: 'Avoid dangerous zones?', question: 'Which zones should I avoid?' }
+            ];
+        } else if (path.includes('analytics')) {
+            suggestions = [
+                { text: 'Peak accident times?', question: 'When do most accidents happen?' },
+                { text: 'Main accident causes?', question: 'What are the main causes of accidents?' },
+                { text: 'Weekend vs weekday?', question: 'Are weekends more dangerous than weekdays?' }
+            ];
+        } else if (path.includes('detection')) {
+            suggestions = [
+                { text: 'Camera locations?', question: 'Where are the traffic cameras?' },
+                { text: 'How does detection work?', question: 'How does vehicle detection work?' },
+                { text: 'Real-time monitoring?', question: 'Is this real-time monitoring?' }
+            ];
+        } else if (path.includes('about')) {
+            suggestions = [
+                { text: 'How does it work?', question: 'How does this system work?' },
+                { text: 'What data is used?', question: 'What data do you use?' },
+                { text: 'Top recommendations?', question: 'What should Bangkok do to improve safety?' }
+            ];
+        } else {
+            suggestions = [
+                { text: 'Most dangerous areas?', question: 'Which areas are most dangerous?' },
+                { text: 'Best time to drive?', question: 'What is the best time to drive?' },
+                { text: 'Is Asok safe?', question: 'Is Asok Intersection safe?' }
+            ];
+        }
+
+        this.suggestions.innerHTML = '';
+        suggestions.forEach(sug => {
+            const chip = document.createElement('button');
+            chip.className = 'suggestion-chip';
+            chip.textContent = sug.text;
+            chip.dataset.question = sug.question;
+            chip.addEventListener('click', () => this.sendMessage(sug.question));
+            this.suggestions.appendChild(chip);
         });
     }
 
