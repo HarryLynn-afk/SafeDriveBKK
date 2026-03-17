@@ -478,6 +478,14 @@ function showRouteSelectionUI(data) {
     const safeMethod = safeRoute.prediction_method || "xgboost";
     const methodLabel = (m) => m === "xgboost" ? "XGBoost" : "Spatial ML";
     const altCount = data.alternatives_analyzed || 5;
+    const fastTrafficSrc = fastRoute.traffic_source || "estimated";
+    const safeTrafficSrc = safeRoute.traffic_source || "estimated";
+    const trafficBadge = (src) => {
+        if (src === "google_maps_traffic") return '<span class="traffic-badge live">Live Traffic</span>';
+        if (src === "google_maps") return '<span class="traffic-badge">Google Maps</span>';
+        if (src === "osrm") return '';
+        return '<small class="simulated-note">*estimated</small>';
+    };
 
     const routeSelectionHTML = `
         <div class="route-selection-container">
@@ -494,7 +502,7 @@ function showRouteSelectionUI(data) {
                 <!-- Fast Route Card -->
                 <div class="route-card" id="route-card-fast" onclick="selectRoute('fast')">
                     <div class="route-badge fastest">🚀 FASTEST</div>
-                    <div class="route-time">${fastTime} min</div>
+                    <div class="route-time">${fastTime} min ${trafficBadge(fastTrafficSrc)}</div>
                     <div class="route-distance">${(fastRoute.distance_km || 0).toFixed(1)} km</div>
                     <div class="route-card-risk ${fastRoute.risk_level}">
                         ${getRiskIcon(fastRoute.risk_level)} ${(fastRoute.risk_level || "unknown").toUpperCase()} RISK
@@ -521,7 +529,7 @@ function showRouteSelectionUI(data) {
                 <div class="route-card recommended" id="route-card-safe" onclick="selectRoute('safe')">
                     <div class="route-badge safest">🛡️ SAFEST</div>
                     ${safeRiskScore < fastRiskScore ? '<div class="recommended-badge">⭐ RECOMMENDED</div>' : ""}
-                    <div class="route-time">${safeTime} min</div>
+                    <div class="route-time">${safeTime} min ${trafficBadge(safeTrafficSrc)}</div>
                     <div class="route-distance">${(safeRoute.distance_km || 0).toFixed(1)} km</div>
                     <div class="route-card-risk ${safeRoute.risk_level}">
                         ${getRiskIcon(safeRoute.risk_level)} ${(safeRoute.risk_level || "unknown").toUpperCase()} RISK
@@ -738,6 +746,19 @@ function displayRoutePreview(data, destName) {
     // Update stats
     document.getElementById("preview-time").textContent = route.duration_min;
     document.getElementById("preview-distance").textContent = route.distance_km.toFixed(1);
+
+    // Show traffic source badge
+    const trafficSrc = route.traffic_source || summary.traffic_source || "estimated";
+    const previewTimeEl = document.getElementById("preview-time");
+    if (previewTimeEl) {
+        if (trafficSrc === "google_maps_traffic") {
+            previewTimeEl.insertAdjacentHTML("afterend", '<span class="traffic-badge live" style="font-size:11px;margin-left:6px;">Live Traffic</span>');
+        } else if (trafficSrc === "google_maps") {
+            previewTimeEl.insertAdjacentHTML("afterend", '<span class="traffic-badge" style="font-size:11px;margin-left:6px;">Google Maps</span>');
+        } else if (trafficSrc === "estimated") {
+            previewTimeEl.insertAdjacentHTML("afterend", '<small class="simulated-note" style="font-size:11px;margin-left:6px;color:#999;">*estimated</small>');
+        }
+    }
 
     // Update risk indicator
     const riskIndicator = document.getElementById("risk-indicator");
