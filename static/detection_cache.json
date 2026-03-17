@@ -244,9 +244,13 @@
         "pickup_pct": 0,
         "_note": "COCO dataset has no 'pickup' class. Pickups may appear as car or truck."
       },
-      "grid_id": "G020_002",
+      "grid_id": "G017_023",
       "description": "Highway near Bangna - 85 recorded accidents",
-      "risk_score": 100.0
+      "risk_score": 4.7,
+      "camera_id": "BKK_CAM_001",
+      "location_name": "Asok Intersection (Sukhumvit 21)",
+      "latitude": 13.7563,
+      "longitude": 100.561
     },
     {
       "image_name": "bangkok_traffic_02.jpg",
@@ -452,9 +456,13 @@
         "pickup_pct": 0,
         "_note": "COCO dataset has no 'pickup' class. Pickups may appear as car or truck."
       },
-      "grid_id": "G014_041",
+      "grid_id": "G018_020",
       "description": "Intersection at Lat Krabang - 69 recorded accidents",
-      "risk_score": 81.2
+      "risk_score": 1.2,
+      "camera_id": "BKK_CAM_002",
+      "location_name": "Victory Monument Roundabout",
+      "latitude": 13.7632,
+      "longitude": 100.538
     },
     {
       "image_name": "bangkok_traffic_03.jpg",
@@ -690,9 +698,13 @@
         "pickup_pct": 0,
         "_note": "COCO dataset has no 'pickup' class. Pickups may appear as car or truck."
       },
-      "grid_id": "G014_043",
+      "grid_id": "G024_024",
       "description": "Lat Krabang corridor zone - 66 recorded accidents",
-      "risk_score": 77.7
+      "risk_score": 0.0,
+      "camera_id": "BKK_CAM_003",
+      "location_name": "Lat Phrao / Wang Hin Intersection",
+      "latitude": 13.8171,
+      "longitude": 100.57
     },
     {
       "image_name": "bangkok_traffic_04.jpg",
@@ -1028,9 +1040,13 @@
         "pickup_pct": 0,
         "_note": "COCO dataset has no 'pickup' class. Pickups may appear as car or truck."
       },
-      "grid_id": "G014_039",
+      "grid_id": "G011_027",
       "description": "Lat Krabang approach zone - 65 recorded accidents",
-      "risk_score": 76.5
+      "risk_score": 0.0,
+      "camera_id": "BKK_CAM_004",
+      "location_name": "On Nut BTS Station Junction",
+      "latitude": 13.7007,
+      "longitude": 100.6
     },
     {
       "image_name": "bangkok_traffic_05.jpg",
@@ -1326,9 +1342,13 @@
         "pickup_pct": 0,
         "_note": "COCO dataset has no 'pickup' class. Pickups may appear as car or truck."
       },
-      "grid_id": "G014_040",
+      "grid_id": "G022_021",
       "description": "Lat Krabang central zone - 58 recorded accidents",
-      "risk_score": 68.2
+      "risk_score": 4.7,
+      "camera_id": "BKK_CAM_005",
+      "location_name": "Phahon Yothin / Lat Phrao Junction",
+      "latitude": 13.8,
+      "longitude": 100.543
     },
     {
       "image_name": "bangkok_traffic_06.jpg",
@@ -1674,9 +1694,13 @@
         "pickup_pct": 0,
         "_note": "COCO dataset has no 'pickup' class. Pickups may appear as car or truck."
       },
-      "grid_id": "G014_042",
+      "grid_id": "G013_019",
       "description": "Lat Krabang east zone - 54 recorded accidents",
-      "risk_score": 63.5
+      "risk_score": 0.0,
+      "camera_id": "BKK_CAM_006",
+      "location_name": "Rama IV / Silom Intersection",
+      "latitude": 13.722,
+      "longitude": 100.528
     },
     {
       "image_name": "bangkok_traffic_07.jpg",
@@ -2092,9 +2116,13 @@
         "pickup_pct": 0,
         "_note": "COCO dataset has no 'pickup' class. Pickups may appear as car or truck."
       },
-      "grid_id": "G020_005",
+      "grid_id": "G013_026",
       "description": "Bangna expressway zone - 51 recorded accidents",
-      "risk_score": 60.0
+      "risk_score": 0.0,
+      "camera_id": "BKK_CAM_007",
+      "location_name": "Phra Khanong / Sukhumvit 71",
+      "latitude": 13.72,
+      "longitude": 100.588
     }
   ],
   "comparisons": [],

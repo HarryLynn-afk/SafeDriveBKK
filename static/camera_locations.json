@@ -1,0 +1,51 @@
+[
+  {
+    "camera_id": "BKK_CAM_001",
+    "location_name": "Asok Intersection (Sukhumvit 21)",
+    "latitude": 13.7563,
+    "longitude": 100.5610,
+    "image_file": "bangkok_traffic_01.jpg"
+  },
+  {
+    "camera_id": "BKK_CAM_002",
+    "location_name": "Victory Monument Roundabout",
+    "latitude": 13.7632,
+    "longitude": 100.5380,
+    "image_file": "bangkok_traffic_02.jpg"
+  },
+  {
+    "camera_id": "BKK_CAM_003",
+    "location_name": "Lat Phrao / Wang Hin Intersection",
+    "latitude": 13.8171,
+    "longitude": 100.5700,
+    "image_file": "bangkok_traffic_03.jpg"
+  },
+  {
+    "camera_id": "BKK_CAM_004",
+    "location_name": "On Nut BTS Station Junction",
+    "latitude": 13.7007,
+    "longitude": 100.6000,
+    "image_file": "bangkok_traffic_04.jpg"
+  },
+  {
+    "camera_id": "BKK_CAM_005",
+    "location_name": "Phahon Yothin / Lat Phrao Junction",
+    "latitude": 13.8000,
+    "longitude": 100.5430,
+    "image_file": "bangkok_traffic_05.jpg"
+  },
+  {
+    "camera_id": "BKK_CAM_006",
+    "location_name": "Rama IV / Silom Intersection",
+    "latitude": 13.7220,
+    "longitude": 100.5280,
+    "image_file": "bangkok_traffic_06.jpg"
+  },
+  {
+    "camera_id": "BKK_CAM_007",
+    "location_name": "Phra Khanong / Sukhumvit 71",
+    "latitude": 13.7200,
+    "longitude": 100.5880,
+    "image_file": "bangkok_traffic_07.jpg"
+  }
+]
