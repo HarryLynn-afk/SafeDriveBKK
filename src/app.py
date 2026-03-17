@@ -1367,9 +1367,8 @@ def _load_nlp_cache():
 
 @app.route("/nlp")
 def nlp():
-    """NLP analysis page — Thai text → XGBoost features → recommendations."""
-    nlp_data = _load_nlp_cache()
-    return render_template("nlp.html", nlp_data=nlp_data)
+    """Bangkok Safety Assistant — hybrid chatbot page."""
+    return render_template("nlp.html")
 
 
 @app.route("/api/nlp/pipeline-demo")

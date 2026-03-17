@@ -1,0 +1,427 @@
+/* =============================================
+   Bangkok Safety Assistant — Chat UI
+   ============================================= */
+
+/* Page layout */
+.chatbot-page {
+    max-width: 820px;
+    margin: 0 auto;
+    padding-bottom: 2rem;
+}
+
+.chatbot-header {
+    text-align: center;
+    margin-bottom: 1.5rem;
+}
+
+.chatbot-header h1 {
+    font-size: 1.75rem;
+    font-weight: 700;
+    color: var(--rr-primary-dark, #1e3a8a);
+    margin-bottom: 0.25rem;
+}
+
+.chatbot-header .subtitle {
+    color: var(--rr-muted, #6b7280);
+    font-size: 0.95rem;
+    margin: 0;
+}
+
+/* Chat container */
+.chatbot-container {
+    background: var(--rr-card, #fff);
+    border: 1px solid #e5e7eb;
+    border-radius: 1rem;
+    box-shadow: 0 6px 24px rgba(15, 23, 42, 0.07);
+    display: flex;
+    flex-direction: column;
+    overflow: hidden;
+}
+
+/* Messages area */
+.chat-messages {
+    flex: 1;
+    padding: 1.25rem 1.25rem 0.5rem;
+    max-height: 480px;
+    min-height: 320px;
+    overflow-y: auto;
+    scroll-behavior: smooth;
+}
+
+.chat-messages::-webkit-scrollbar {
+    width: 6px;
+}
+
+.chat-messages::-webkit-scrollbar-thumb {
+    background: #d1d5db;
+    border-radius: 3px;
+}
+
+/* Individual message */
+.message {
+    display: flex;
+    gap: 0.65rem;
+    margin-bottom: 1rem;
+    animation: msgSlideIn 0.3s ease-out;
+}
+
+@keyframes msgSlideIn {
+    from { opacity: 0; transform: translateY(10px); }
+    to   { opacity: 1; transform: translateY(0); }
+}
+
+.message.user {
+    flex-direction: row-reverse;
+}
+
+.message-avatar {
+    width: 36px;
+    height: 36px;
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 1.2rem;
+    flex-shrink: 0;
+    background: #eff6ff;
+    border: 1px solid #bfdbfe;
+}
+
+.message.user .message-avatar {
+    background: #e0e7ff;
+    border-color: #c7d2fe;
+}
+
+.message-content {
+    max-width: 75%;
+}
+
+.message-text {
+    padding: 0.75rem 1rem;
+    border-radius: 1rem;
+    font-size: 0.92rem;
+    line-height: 1.55;
+    word-wrap: break-word;
+}
+
+.message.bot .message-text {
+    background: #f3f4f6;
+    border-top-left-radius: 0.25rem;
+    color: var(--rr-text, #1f2937);
+}
+
+.message.user .message-text {
+    background: var(--rr-primary, #1d4ed8);
+    color: #fff;
+    border-top-right-radius: 0.25rem;
+}
+
+.message-text p {
+    margin: 0 0 0.5rem;
+}
+
+.message-text p:last-child {
+    margin-bottom: 0;
+}
+
+.message-text ul,
+.message-text ol {
+    margin: 0.35rem 0;
+    padding-left: 1.25rem;
+}
+
+.message-text li {
+    margin-bottom: 0.2rem;
+}
+
+.message-text strong {
+    font-weight: 600;
+}
+
+/* Source badge */
+.message-source {
+    display: inline-block;
+    font-size: 0.7rem;
+    padding: 0.15rem 0.5rem;
+    border-radius: 0.75rem;
+    margin-top: 0.35rem;
+    font-weight: 500;
+    letter-spacing: 0.02em;
+}
+
+.message-source.scripted {
+    background: #dbeafe;
+    color: #1e40af;
+}
+
+.message-source.groq {
+    background: #fef3c7;
+    color: #92400e;
+}
+
+.message-source.error {
+    background: #fee2e2;
+    color: #991b1b;
+}
+
+/* Suggestions */
+.chat-suggestions {
+    padding: 0.75rem 1.25rem;
+    border-top: 1px solid #f3f4f6;
+}
+
+.suggestions-label {
+    font-size: 0.78rem;
+    color: var(--rr-muted, #6b7280);
+    margin-bottom: 0.5rem;
+    font-weight: 500;
+    text-transform: uppercase;
+    letter-spacing: 0.04em;
+}
+
+.suggestions-buttons {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.4rem;
+}
+
+.suggestion-btn {
+    background: #eff6ff;
+    color: var(--rr-primary, #1d4ed8);
+    border: 1px solid #bfdbfe;
+    border-radius: 2rem;
+    padding: 0.35rem 0.85rem;
+    font-size: 0.82rem;
+    cursor: pointer;
+    transition: all 0.2s ease;
+    white-space: nowrap;
+}
+
+.suggestion-btn:hover {
+    background: var(--rr-primary, #1d4ed8);
+    color: #fff;
+    border-color: var(--rr-primary, #1d4ed8);
+    transform: translateY(-1px);
+}
+
+/* Typing indicator */
+.typing-indicator {
+    display: flex;
+    align-items: center;
+    gap: 0.35rem;
+    padding: 0.6rem 1.25rem;
+    color: var(--rr-muted, #6b7280);
+    font-size: 0.82rem;
+}
+
+.typing-dot {
+    width: 7px;
+    height: 7px;
+    border-radius: 50%;
+    background: #9ca3af;
+    animation: typingBounce 1.4s infinite ease-in-out;
+}
+
+.typing-dot:nth-child(2) {
+    animation-delay: 0.2s;
+}
+
+.typing-dot:nth-child(3) {
+    animation-delay: 0.4s;
+}
+
+@keyframes typingBounce {
+    0%, 80%, 100% { transform: scale(0.6); opacity: 0.4; }
+    40% { transform: scale(1); opacity: 1; }
+}
+
+/* Input area */
+.chat-input {
+    display: flex;
+    gap: 0.5rem;
+    padding: 0.85rem 1.25rem;
+    border-top: 1px solid #e5e7eb;
+    background: #fafbfc;
+}
+
+.chat-input input {
+    flex: 1;
+    padding: 0.6rem 1rem;
+    border: 1px solid #d1d5db;
+    border-radius: 2rem;
+    font-size: 0.92rem;
+    outline: none;
+    transition: border-color 0.2s, box-shadow 0.2s;
+    background: #fff;
+}
+
+.chat-input input:focus {
+    border-color: var(--rr-primary, #1d4ed8);
+    box-shadow: 0 0 0 3px rgba(29, 78, 216, 0.12);
+}
+
+.chat-input input::placeholder {
+    color: #9ca3af;
+}
+
+.btn-send {
+    display: flex;
+    align-items: center;
+    gap: 0.35rem;
+    padding: 0.6rem 1.15rem;
+    background: var(--rr-primary, #1d4ed8);
+    color: #fff;
+    border: none;
+    border-radius: 2rem;
+    font-size: 0.88rem;
+    font-weight: 500;
+    cursor: pointer;
+    transition: background 0.2s, transform 0.15s;
+}
+
+.btn-send:hover {
+    background: var(--rr-primary-dark, #1e3a8a);
+    transform: scale(1.03);
+}
+
+.btn-send:active {
+    transform: scale(0.97);
+}
+
+.btn-send:disabled {
+    opacity: 0.5;
+    cursor: not-allowed;
+    transform: none;
+}
+
+.btn-send svg {
+    flex-shrink: 0;
+}
+
+/* How it works accordion */
+.how-it-works {
+    margin-top: 1.25rem;
+    background: var(--rr-card, #fff);
+    border: 1px solid #e5e7eb;
+    border-radius: 0.9rem;
+    overflow: hidden;
+    box-shadow: 0 2px 8px rgba(15, 23, 42, 0.04);
+}
+
+.accordion-toggle {
+    width: 100%;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 0.85rem 1.25rem;
+    background: none;
+    border: none;
+    font-size: 0.95rem;
+    font-weight: 500;
+    color: var(--rr-text, #1f2937);
+    cursor: pointer;
+    transition: background 0.2s;
+}
+
+.accordion-toggle:hover {
+    background: #f9fafb;
+}
+
+.toggle-icon {
+    transition: transform 0.3s ease;
+}
+
+.toggle-icon.open {
+    transform: rotate(180deg);
+}
+
+.accordion-content {
+    padding: 0 1.25rem 1.25rem;
+}
+
+.pipeline-steps {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+    gap: 1rem;
+}
+
+.pipeline-steps .step {
+    text-align: center;
+    padding: 1rem 0.75rem;
+    border: 1px solid #e5e7eb;
+    border-radius: 0.75rem;
+    background: #f9fafb;
+}
+
+.step-number {
+    width: 32px;
+    height: 32px;
+    margin: 0 auto 0.5rem;
+    background: var(--rr-primary, #1d4ed8);
+    color: #fff;
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-weight: 700;
+    font-size: 0.9rem;
+}
+
+.pipeline-steps .step h3 {
+    font-size: 0.88rem;
+    font-weight: 600;
+    margin-bottom: 0.3rem;
+    color: var(--rr-text, #1f2937);
+}
+
+.pipeline-steps .step p {
+    font-size: 0.8rem;
+    color: var(--rr-muted, #6b7280);
+    margin: 0;
+    line-height: 1.4;
+}
+
+/* Responsive */
+@media (max-width: 768px) {
+    .chatbot-page {
+        padding-left: 0.5rem;
+        padding-right: 0.5rem;
+    }
+
+    .chatbot-header h1 {
+        font-size: 1.35rem;
+    }
+
+    .chat-messages {
+        max-height: 400px;
+        min-height: 260px;
+        padding: 1rem 0.85rem 0.5rem;
+    }
+
+    .message-content {
+        max-width: 85%;
+    }
+
+    .chat-input {
+        padding: 0.65rem 0.85rem;
+    }
+
+    .btn-send span {
+        display: none;
+    }
+
+    .suggestion-btn {
+        font-size: 0.76rem;
+        padding: 0.3rem 0.7rem;
+    }
+
+    .pipeline-steps {
+        grid-template-columns: 1fr 1fr;
+    }
+}
+
+@media (max-width: 480px) {
+    .pipeline-steps {
+        grid-template-columns: 1fr;
+    }
+}
