@@ -26,6 +26,7 @@ SAMPLE_IMAGES_DIR = STATIC_DIR / "sample_images"
 DETECTIONS_DIR = STATIC_DIR / "detections"
 DETECTION_CACHE_PATH = STATIC_DIR / "detection_cache.json"
 METADATA_PATH = SAMPLE_IMAGES_DIR / "metadata.json"
+CAMERA_LOCATIONS_PATH = STATIC_DIR / "camera_locations.json"
 
 # Map COCO class IDs to our XGBoost feature names
 COCO_TO_XGBOOST = {
@@ -45,6 +46,51 @@ COCO_TO_XGBOOST = {
 }
 
 VEHICLE_CLASS_IDS = {0, 2, 3, 5, 7}
+
+
+def map_gps_to_grid(latitude, longitude):
+    """Return the grid_id of the 1 km² cell containing (latitude, longitude).
+
+    Uses nearest-neighbour lookup against the actual grid centres in
+    ml_features.csv so the returned ID is guaranteed to exist in the dataset.
+    Returns None when the coordinate is outside the Bangkok grid extent.
+
+    Parameters
+    ----------
+    latitude : float
+    longitude : float
+
+    Returns
+    -------
+    str or None
+        e.g. ``"G017_023"`` or ``None`` if out of range.
+    """
+    # Bangkok grid extent with a half-cell margin (~0.0045°)
+    LAT_MIN, LAT_MAX = 13.6, 13.95
+    LON_MIN, LON_MAX = 100.35, 100.905
+
+    if not (LAT_MIN <= latitude <= LAT_MAX and LON_MIN <= longitude <= LON_MAX):
+        LOGGER.warning(
+            "GPS (%.4f, %.4f) is outside the Bangkok grid extent", latitude, longitude
+        )
+        return None
+
+    try:
+        grid_df = pd.read_csv(ML_FEATURES_PATH, encoding="utf-8-sig",
+                              usecols=["grid_id", "center_lat", "center_lon"])
+    except Exception as exc:
+        LOGGER.error("Could not load ml_features.csv for GPS mapping: %s", exc)
+        return None
+
+    # Euclidean distance in degrees (acceptable for ~1 km scale)
+    grid_df = grid_df.copy()
+    grid_df["dist"] = (
+        (grid_df["center_lat"] - latitude) ** 2
+        + (grid_df["center_lon"] - longitude) ** 2
+    ) ** 0.5
+
+    nearest = grid_df.loc[grid_df["dist"].idxmin()]
+    return nearest["grid_id"]
 
 
 class VehicleDetector:
@@ -339,6 +385,15 @@ class VehicleDetector:
 
         metadata_map = {m["image"]: m for m in metadata}
 
+        # Load camera GPS locations
+        camera_map = {}  # image_file → camera entry
+        if CAMERA_LOCATIONS_PATH.exists():
+            with open(CAMERA_LOCATIONS_PATH) as f:
+                camera_map = {c["image_file"]: c for c in json.load(f)}
+            LOGGER.info("Loaded %d camera GPS locations", len(camera_map))
+        else:
+            LOGGER.warning("camera_locations.json not found at %s", CAMERA_LOCATIONS_PATH)
+
         # Load risk scores for grid_id enrichment
         grid_stats_path = DATA_DIR / "bangkok_grid_stats.csv"
         stats_dict = {}
@@ -360,11 +415,26 @@ class VehicleDetector:
             )
             detection["xgboost_features"] = yolo_features
 
-            # Enrich with metadata (grid_id, description, risk_score)
+            # Resolve grid_id: GPS lookup takes priority over metadata
             meta = metadata_map.get(img_path.name, {})
-            grid_id = meta.get("grid_id", "")
+            cam = camera_map.get(img_path.name, {})
+
+            if cam:
+                gps_grid_id = map_gps_to_grid(cam["latitude"], cam["longitude"])
+                grid_id = gps_grid_id or meta.get("grid_id", "")
+                LOGGER.info(
+                    "  %s → GPS (%.4f, %.4f) → %s",
+                    img_path.name, cam["latitude"], cam["longitude"], grid_id,
+                )
+                detection["camera_id"] = cam["camera_id"]
+                detection["location_name"] = cam["location_name"]
+                detection["latitude"] = cam["latitude"]
+                detection["longitude"] = cam["longitude"]
+            else:
+                grid_id = meta.get("grid_id", "")
+
             detection["grid_id"] = grid_id
-            detection["description"] = meta.get("description", "")
+            detection["description"] = cam.get("location_name") or meta.get("description", "")
             detection["risk_score"] = round(float(stats_dict.get(grid_id, 0)), 1) if grid_id else 0
             image_results.append(detection)
 

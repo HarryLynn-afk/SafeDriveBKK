@@ -18,6 +18,260 @@
     margin-right: 4px;
     vertical-align: middle;
 }
+
+/* ══════════════════════════════════════════════════════════════
+   GALLERY GRID
+══════════════════════════════════════════════════════════════ */
+.det-gallery-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(150px, 1fr));
+    gap: 12px;
+    margin-top: 16px;
+}
+.det-thumb {
+    border-radius: 8px;
+    overflow: hidden;
+    cursor: pointer;
+    box-shadow: 0 2px 6px rgba(0,0,0,0.10);
+    transition: transform 0.18s ease, box-shadow 0.18s ease, outline 0.1s;
+    outline: 3px solid transparent;
+    background: #000;
+}
+.det-thumb:hover {
+    transform: scale(1.05);
+    box-shadow: 0 6px 18px rgba(0,0,0,0.20);
+}
+.det-thumb.active {
+    outline: 3px solid #0d6efd;
+}
+.det-thumb img {
+    width: 100%;
+    height: 100px;
+    object-fit: cover;
+    display: block;
+    transition: opacity 0.18s;
+}
+.det-thumb:hover img { opacity: 0.88; }
+.det-thumb-label {
+    font-size: 0.68rem;
+    color: #495057;
+    padding: 4px 6px 5px;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    background: #fff;
+    border-top: 1px solid #e9ecef;
+}
+
+/* ══════════════════════════════════════════════════════════════
+   MODAL BACKDROP + PANEL
+══════════════════════════════════════════════════════════════ */
+.det-backdrop {
+    position: fixed; inset: 0;
+    background: rgba(0,0,0,0.72);
+    z-index: 1050;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 16px;
+    opacity: 0;
+    transition: opacity 0.25s ease;
+    pointer-events: none;
+}
+.det-backdrop.open {
+    opacity: 1;
+    pointer-events: all;
+}
+.det-panel {
+    background: #fff;
+    border-radius: 12px;
+    width: 100%;
+    max-width: 1040px;
+    max-height: 92vh;
+    overflow-y: auto;
+    box-shadow: 0 20px 60px rgba(0,0,0,0.4);
+    transform: translateY(24px) scale(0.97);
+    transition: transform 0.28s ease, opacity 0.25s ease;
+    opacity: 0;
+}
+.det-backdrop.open .det-panel {
+    transform: translateY(0) scale(1);
+    opacity: 1;
+}
+
+/* ── Modal header ─── */
+.det-modal-header {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    padding: 12px 16px;
+    border-bottom: 1px solid #e9ecef;
+    position: sticky; top: 0;
+    background: #fff;
+    z-index: 2;
+    border-radius: 12px 12px 0 0;
+}
+.det-scene-counter {
+    font-size: 0.72rem;
+    color: #6c757d;
+    white-space: nowrap;
+}
+.det-scene-title {
+    flex: 1;
+    font-weight: 600;
+    font-size: 0.95rem;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+.det-nav-btn {
+    background: #f8f9fa;
+    border: 1px solid #dee2e6;
+    border-radius: 6px;
+    padding: 4px 10px;
+    font-size: 0.8rem;
+    cursor: pointer;
+    transition: background 0.15s;
+    white-space: nowrap;
+}
+.det-nav-btn:hover { background: #e9ecef; }
+.det-nav-btn:disabled { opacity: 0.35; cursor: default; }
+.det-close-btn {
+    background: none;
+    border: none;
+    font-size: 1.4rem;
+    line-height: 1;
+    color: #6c757d;
+    cursor: pointer;
+    padding: 0 4px;
+    transition: color 0.15s;
+}
+.det-close-btn:hover { color: #dc3545; }
+
+/* ── Images row ─── */
+.det-images-row {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 0;
+}
+@media (max-width: 640px) {
+    .det-images-row { grid-template-columns: 1fr; }
+    .det-gallery-grid { grid-template-columns: repeat(2, 1fr); }
+}
+.det-img-panel { position: relative; }
+.det-img-panel + .det-img-panel { border-left: 1px solid #e9ecef; }
+.det-img-label {
+    font-size: 0.68rem;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.6px;
+    color: #6c757d;
+    padding: 8px 12px 4px;
+}
+.det-img-panel img {
+    width: 100%;
+    max-height: 320px;
+    object-fit: cover;
+    display: block;
+    opacity: 0;
+    transition: opacity 0.3s;
+}
+.det-img-panel img.loaded { opacity: 1; }
+.det-spinner {
+    position: absolute;
+    top: 50%; left: 50%;
+    transform: translate(-50%, -50%);
+    width: 28px; height: 28px;
+    border: 3px solid #dee2e6;
+    border-top-color: #0d6efd;
+    border-radius: 50%;
+    animation: det-spin 0.7s linear infinite;
+}
+@keyframes det-spin { to { transform: translate(-50%,-50%) rotate(360deg); } }
+.det-spinner.hidden { display: none; }
+
+/* ── Stats row ─── */
+.det-stats-row {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 0;
+    border-top: 1px solid #e9ecef;
+}
+@media (max-width: 640px) {
+    .det-stats-row { grid-template-columns: 1fr; }
+}
+.det-stats-panel {
+    padding: 14px 16px;
+}
+.det-stats-panel + .det-stats-panel { border-left: 1px solid #e9ecef; }
+.det-stats-panel h6 {
+    font-size: 0.72rem;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+    color: #6c757d;
+    margin-bottom: 10px;
+}
+
+/* ── Vehicle bars ─── */
+.det-vbar-row { margin-bottom: 8px; }
+.det-vbar-header {
+    display: flex;
+    justify-content: space-between;
+    font-size: 0.78rem;
+    margin-bottom: 3px;
+}
+.det-vbar-track {
+    height: 7px;
+    background: #e9ecef;
+    border-radius: 4px;
+    overflow: hidden;
+}
+.det-vbar-fill {
+    height: 100%;
+    border-radius: 4px;
+    width: 0;
+    transition: width 0.55s cubic-bezier(0.4,0,0.2,1);
+}
+
+/* ── Risk meters ─── */
+.det-risk-row { margin-bottom: 10px; }
+.det-risk-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    font-size: 0.78rem;
+    margin-bottom: 3px;
+}
+.det-risk-track {
+    height: 10px;
+    background: #e9ecef;
+    border-radius: 5px;
+    overflow: hidden;
+}
+.det-risk-fill {
+    height: 100%;
+    border-radius: 5px;
+    width: 0;
+    transition: width 0.8s cubic-bezier(0.4,0,0.2,1);
+}
+.det-risk-delta {
+    display: inline-block;
+    font-size: 0.7rem;
+    font-weight: 700;
+    color: #fd7e14;
+    margin-left: 4px;
+}
+@keyframes det-pulse {
+    0%, 100% { opacity: 1; }
+    50%       { opacity: 0.5; }
+}
+.det-risk-critical .det-risk-fill { animation: det-pulse 1.2s ease-in-out infinite; }
+.det-zone-info {
+    padding: 14px 16px;
+    font-size: 0.78rem;
+    color: #6c757d;
+    border-top: 1px solid #e9ecef;
+}
 </style>
 {% endblock %}
 
@@ -63,73 +317,49 @@
     </div>
 
     <!-- ══════════════════════════════════════════════════════════
-         SECTION 2: Before/After Detection Gallery
+         SECTION 2: Interactive Before/After Detection Gallery
     ══════════════════════════════════════════════════════════ -->
     <div class="stats-card mb-4">
         <div class="d-flex align-items-center justify-content-between mb-1">
-            <h3 class="mb-0">Concept Demo: Real-Time Traffic Monitoring</h3>
+            <h3 class="mb-0">Live Vehicle Detection Gallery</h3>
             <span class="badge bg-secondary">YOLOv8 · COCO Dataset</span>
         </div>
-        <p class="text-muted small mb-3">These sample images show how the system would work with live traffic camera feeds. In production, vehicle counts from each intersection would update risk scores dynamically.</p>
-
-        {% if detection_data.image_results %}
-        <p class="text-muted small mb-2">
-            Click any scene — compare original vs AI detection:
+        <p class="text-muted small mb-1">
+            Click any scene to see YOLO analysis — original vs. annotated, vehicle counts, and live risk impact.
+        </p>
+        <p class="text-muted small mb-0">
             <span class="vtype-dot" style="background:#ef4444"></span>Motorcycle
             <span class="vtype-dot ms-2" style="background:#3b82f6"></span>Car
             <span class="vtype-dot ms-2" style="background:#eab308"></span>Truck
             <span class="vtype-dot ms-2" style="background:#22c55e"></span>Bus
+            &nbsp;·&nbsp; <kbd>←</kbd><kbd>→</kbd> navigate &nbsp;·&nbsp; <kbd>Esc</kbd> close
         </p>
 
-        <!-- Thumbnail strip -->
-        <div class="d-flex gap-2 flex-wrap mb-3" id="scene-thumbnails">
+        {% if detection_data.image_results %}
+        <div class="det-gallery-grid" id="det-gallery">
             {% for img in detection_data.image_results %}
-            <div class="scene-thumb border rounded overflow-hidden"
-                 style="width:100px; height:68px; cursor:pointer; flex-shrink:0; transition:all 0.2s;"
-                 onclick="selectScene({{ loop.index0 }})">
+            <div class="det-thumb" id="det-thumb-{{ loop.index0 }}"
+                 onclick="detGallery.open({{ loop.index0 }})"
+                 role="button" tabindex="0"
+                 aria-label="Open scene {{ loop.index0 + 1 }}: {{ img.location_name or img.image_name }}">
                 <img src="{{ url_for('static', filename='sample_images/' + img.image_name) }}"
-                     style="width:100%; height:100%; object-fit:cover;"
-                     alt="{{ img.image_name }}">
+                     alt="{{ img.location_name or img.image_name }}"
+                     loading="lazy">
+                <div class="det-thumb-label">
+                    {{ img.location_name or img.image_name }}
+                </div>
             </div>
             {% endfor %}
         </div>
-
-        <!-- Expanded before/after view -->
-        <div id="scene-detail" class="border rounded p-3" style="background:#f8f9fa; display:none;">
-            <div class="row g-3 align-items-start">
-                <div class="col-md-5">
-                    <p class="text-muted small fw-semibold mb-1 text-uppercase">Before — Original</p>
-                    <img id="scene-original" src="" class="img-fluid rounded w-100"
-                         style="object-fit:cover; max-height:260px;">
-                </div>
-                <div class="col-md-5">
-                    <p class="text-muted small fw-semibold mb-1 text-uppercase">After — YOLOv8 Detection</p>
-                    <img id="scene-annotated" src="" class="img-fluid rounded w-100"
-                         style="object-fit:cover; max-height:260px;">
-                </div>
-                <div class="col-md-2">
-                    <p class="text-muted small fw-semibold mb-1 text-uppercase">Vehicles</p>
-                    <div id="scene-counts"></div>
-                    <hr class="my-2">
-                    <p class="text-muted small fw-semibold mb-1 text-uppercase">Risk Impact</p>
-                    <div id="scene-risk"></div>
-                    <div class="text-muted mt-2" style="font-size:0.72rem;" id="scene-zone"></div>
-                </div>
-            </div>
-        </div>
-
         {% else %}
-        <div class="alert alert-info mb-0" role="alert">
+        <div class="alert alert-info mt-3 mb-0" role="alert">
             <h5 class="alert-heading">📷 Add Traffic Images to See Real Detections</h5>
-            <p>This section shows real YOLOv8 detection results with bounding boxes drawn around each detected vehicle. Follow these steps to populate it:</p>
-            <hr>
             <ol class="mb-2">
-                <li>Copy <strong>.jpg</strong> or <strong>.png</strong> Bangkok traffic scene images into <code>static/sample_images/</code></li>
-                <li>Install the detector: <code>pip install ultralytics</code></li>
-                <li>Run the setup script: <code>python scripts/setup_nlp_detection.py</code></li>
-                <li>Reload this page — annotated detection results appear automatically</li>
+                <li>Copy <strong>.jpg</strong> or <strong>.png</strong> images into <code>static/sample_images/</code></li>
+                <li>Install: <code>pip install ultralytics</code></li>
+                <li>Run: <code>python scripts/setup_nlp_detection.py</code></li>
+                <li>Reload this page</li>
             </ol>
-            <p class="mb-0"><strong>YOLOv8 will detect:</strong> motorcycles, cars, trucks, and buses in each image and save annotated copies with bounding boxes to <code>static/detection_results/</code>.</p>
         </div>
         {% endif %}
     </div>
@@ -221,7 +451,57 @@
     </div>
     {% endif %}
 
+</div><!-- /container -->
 
+<!-- ══════════════════════════════════════════════════════════
+     DETECTION MODAL (portal — outside .container)
+══════════════════════════════════════════════════════════ -->
+<div id="det-backdrop" class="det-backdrop" role="dialog" aria-modal="true" aria-label="Scene comparison">
+    <div class="det-panel" id="det-panel">
+
+        <!-- Header: nav + title + close -->
+        <div class="det-modal-header">
+            <button class="det-nav-btn" id="det-btn-prev" onclick="detGallery.navigate(-1)" aria-label="Previous scene">&#8592; Prev</button>
+            <span class="det-scene-counter" id="det-counter">Scene 1 of 7</span>
+            <span class="det-scene-title" id="det-title"></span>
+            <button class="det-nav-btn" id="det-btn-next" onclick="detGallery.navigate(1)" aria-label="Next scene">Next &#8594;</button>
+            <button class="det-close-btn" onclick="detGallery.close()" aria-label="Close">&times;</button>
+        </div>
+
+        <!-- Before / After images -->
+        <div class="det-images-row">
+            <div class="det-img-panel">
+                <div class="det-img-label">BEFORE &mdash; Original</div>
+                <div style="position:relative;">
+                    <img id="det-img-orig" src="" alt="Original traffic scene">
+                    <div class="det-spinner" id="det-spin-orig"></div>
+                </div>
+            </div>
+            <div class="det-img-panel">
+                <div class="det-img-label">AFTER &mdash; YOLOv8 Detection</div>
+                <div style="position:relative;">
+                    <img id="det-img-ann" src="" alt="YOLO annotated scene">
+                    <div class="det-spinner" id="det-spin-ann"></div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Vehicle counts + Risk meters -->
+        <div class="det-stats-row">
+            <div class="det-stats-panel">
+                <h6>Vehicle Counts</h6>
+                <div id="det-vcounts"></div>
+            </div>
+            <div class="det-stats-panel">
+                <h6>Risk Impact</h6>
+                <div id="det-risk"></div>
+            </div>
+        </div>
+
+        <!-- Zone / location footer -->
+        <div class="det-zone-info" id="det-zone"></div>
+
+    </div>
 </div>
 {% endblock %}
 
@@ -229,80 +509,242 @@
 <script>
 const DETECTION_DATA = {{ detection_data | tojson }};
 
-// ── Before/After Scene Selector ──────────────────────────────
-(function() {
-    const imgs = DETECTION_DATA.image_results || [];
-    if (!imgs.length) return;
+/* ═══════════════════════════════════════════════════════════════
+   DETECTION GALLERY — modal, navigation, vehicle bars, risk meters
+═══════════════════════════════════════════════════════════════ */
+const detGallery = (function () {
+    const imgs   = DETECTION_DATA.image_results || [];
+    const total  = imgs.length;
+    let current  = 0;
+    let isOpen   = false;
 
-    function selectScene(idx) {
-        const img = imgs[idx];
-        const vc = img.vehicle_counts || {};
-        const total = Math.max(img.total_vehicles || 1, 1);
+    // DOM refs (resolved once on first open)
+    let backdrop, panel, btnPrev, btnNext, counter,
+        titleEl, imgOrig, imgAnn, spinOrig, spinAnn,
+        vcountsEl, riskEl, zoneEl;
 
-        // Highlight active thumbnail
-        document.querySelectorAll('.scene-thumb').forEach((el, i) => {
-            el.style.opacity = i === idx ? '1' : '0.5';
-            el.style.outline = i === idx ? '3px solid #0d6efd' : 'none';
-        });
-
-        // Show detail pane
-        document.getElementById('scene-detail').style.display = 'block';
-        document.getElementById('scene-original').src = `/static/sample_images/${img.image_name}`;
-        document.getElementById('scene-annotated').src = `/static/${img.annotated_image}`;
-
-        // Vehicle count bars
-        const vcItems = [
-            ['🏍️', 'Moto', vc.motorcycle || 0, '#ef4444'],
-            ['🚗', 'Car',  vc.car || 0,        '#3b82f6'],
-            ['🚛', 'Truck',vc.truck || 0,      '#eab308'],
-            ['🚌', 'Bus',  vc.bus || 0,        '#22c55e'],
-        ];
-        document.getElementById('scene-counts').innerHTML = vcItems.map(([icon, label, count, color]) => `
-            <div class="mb-1">
-                <div class="d-flex justify-content-between" style="font-size:0.76rem;">
-                    <span>${icon} ${label}</span><strong>${count}</strong>
-                </div>
-                <div class="progress" style="height:5px;">
-                    <div class="progress-bar" style="width:${Math.round(count / total * 100)}%; background:${color};"></div>
-                </div>
-            </div>
-        `).join('');
-
-        // Risk impact meter
-        const baseRisk = img.risk_score || 60;
-        const motoPct = (img.xgboost_features || {}).motorcycle_pct || 0;
-        const bump = motoPct > 50 ? 20 : motoPct > 30 ? 10 : 0;
-        const liveRisk = Math.min(100, Math.round(baseRisk + bump));
-        const elevated = bump > 0;
-        const riskColor = liveRisk >= 80 ? '#dc3545' : liveRisk >= 60 ? '#fd7e14' : '#198754';
-
-        document.getElementById('scene-risk').innerHTML = `
-            <div style="font-size:0.75rem;" class="mb-1">Historical <strong>${Math.round(baseRisk)}/100</strong></div>
-            <div class="progress mb-2" style="height:6px;">
-                <div class="progress-bar bg-secondary" style="width:${Math.round(baseRisk)}%;"></div>
-            </div>
-            <div style="font-size:0.75rem;" class="mb-1">
-                Snapshot <strong style="color:${riskColor}">${liveRisk}/100</strong>
-                ${elevated ? '<span class="badge bg-warning text-dark ms-1" style="font-size:0.6rem;">⚠️</span>' : ''}
-            </div>
-            <div class="progress" style="height:6px;">
-                <div class="progress-bar" style="width:${liveRisk}%; background:${riskColor};"></div>
-            </div>
-            ${elevated ? '<div class="text-warning" style="font-size:0.7rem; margin-top:3px;">Motorcycle % elevated</div>' : ''}
-        `;
-
-        // Zone label
-        document.getElementById('scene-zone').innerHTML = img.grid_id
-            ? `📍 ${img.grid_id}${img.description ? '<br>' + img.description : ''}`
-            : '';
+    function _refs() {
+        if (backdrop) return;
+        backdrop  = document.getElementById('det-backdrop');
+        panel     = document.getElementById('det-panel');
+        btnPrev   = document.getElementById('det-btn-prev');
+        btnNext   = document.getElementById('det-btn-next');
+        counter   = document.getElementById('det-counter');
+        titleEl   = document.getElementById('det-title');
+        imgOrig   = document.getElementById('det-img-orig');
+        imgAnn    = document.getElementById('det-img-ann');
+        spinOrig  = document.getElementById('det-spin-orig');
+        spinAnn   = document.getElementById('det-spin-ann');
+        vcountsEl = document.getElementById('det-vcounts');
+        riskEl    = document.getElementById('det-risk');
+        zoneEl    = document.getElementById('det-zone');
     }
 
-    window.selectScene = selectScene;
-    selectScene(0); // auto-select first scene
+    /* ── thumbnail active state ────────────────────────── */
+    function _highlightThumb(idx) {
+        document.querySelectorAll('.det-thumb').forEach((el, i) => {
+            el.classList.toggle('active', i === idx);
+        });
+    }
+
+    /* ── image loader with spinner ──────────────────────── */
+    function _loadImg(imgEl, spinEl, src) {
+        imgEl.classList.remove('loaded');
+        spinEl.classList.remove('hidden');
+        imgEl.onload  = () => { imgEl.classList.add('loaded'); spinEl.classList.add('hidden'); };
+        imgEl.onerror = () => { spinEl.classList.add('hidden'); imgEl.style.opacity = '0.3'; };
+        imgEl.src = src;
+    }
+
+    /* ── risk colour ────────────────────────────────────── */
+    function _riskColor(score) {
+        if (score >= 70) return '#dc3545';
+        if (score >= 40) return '#fd7e14';
+        return '#198754';
+    }
+
+    /* ── vehicle count bars ─────────────────────────────── */
+    function _renderVehicles(vc) {
+        const moto  = vc.motorcycle || 0;
+        const car   = vc.car        || 0;
+        const truck = vc.truck      || 0;
+        const bus   = vc.bus        || 0;
+        const tot   = Math.max(moto + car + truck + bus, 1);
+
+        const rows = [
+            { icon: '🏍️', label: 'Motorcycle', count: moto,  color: '#ef4444' },
+            { icon: '🚗', label: 'Car',         count: car,   color: '#3b82f6' },
+            { icon: '🚛', label: 'Truck',       count: truck, color: '#eab308' },
+            { icon: '🚌', label: 'Bus',         count: bus,   color: '#22c55e' },
+        ];
+
+        vcountsEl.innerHTML = rows.map(r => {
+            const pct = Math.round(r.count / tot * 100);
+            return `<div class="det-vbar-row">
+                <div class="det-vbar-header">
+                    <span>${r.icon} ${r.label}</span>
+                    <strong>${r.count} <span style="color:#adb5bd;font-weight:400">(${pct}%)</span></strong>
+                </div>
+                <div class="det-vbar-track">
+                    <div class="det-vbar-fill" data-w="${pct}" style="background:${r.color};"></div>
+                </div>
+            </div>`;
+        }).join('');
+
+        // Animate bars next frame
+        requestAnimationFrame(() => {
+            vcountsEl.querySelectorAll('.det-vbar-fill').forEach(el => {
+                el.style.width = el.dataset.w + '%';
+            });
+        });
+    }
+
+    /* ── risk meters ────────────────────────────────────── */
+    function _renderRisk(img) {
+        const baseRisk = img.risk_score || 0;
+        const vc       = img.vehicle_counts || {};
+        const moto     = vc.motorcycle || 0;
+        const tot      = Math.max(moto + (vc.car||0) + (vc.truck||0) + (vc.bus||0), 1);
+        const motoPct  = moto / tot * 100;
+
+        let bump = 0;
+        if      (motoPct > 70) bump = 20;
+        else if (motoPct > 60) bump = 15;
+        else if (motoPct > 50) bump = 10;
+
+        const liveRisk  = Math.min(100, Math.round(baseRisk + bump));
+        const elevated  = bump > 0;
+        const baseColor = _riskColor(baseRisk);
+        const liveColor = _riskColor(liveRisk);
+        const critical  = liveRisk >= 80;
+
+        riskEl.innerHTML = `
+            <div class="det-risk-row">
+                <div class="det-risk-header">
+                    <span>Historical base</span>
+                    <strong style="color:${baseColor}">${Math.round(baseRisk)}/100</strong>
+                </div>
+                <div class="det-risk-track">
+                    <div class="det-risk-fill" data-w="${Math.round(baseRisk)}" style="background:${baseColor};"></div>
+                </div>
+            </div>
+            <div class="det-risk-row${critical ? ' det-risk-critical' : ''}">
+                <div class="det-risk-header">
+                    <span>Live snapshot${elevated ? ' ⚠️' : ''}</span>
+                    <strong style="color:${liveColor}">${liveRisk}/100${elevated ? `<span class="det-risk-delta">+${bump}</span>` : ''}</strong>
+                </div>
+                <div class="det-risk-track">
+                    <div class="det-risk-fill" data-w="${liveRisk}" style="background:${liveColor};"></div>
+                </div>
+            </div>
+            ${elevated ? `<div style="font-size:0.72rem;color:#fd7e14;margin-top:5px;">Motorcycle share elevated &mdash; live risk adjusted upward.</div>` : ''}
+        `;
+
+        // Animate fills next frame
+        requestAnimationFrame(() => {
+            riskEl.querySelectorAll('.det-risk-fill').forEach(el => {
+                el.style.width = el.dataset.w + '%';
+            });
+        });
+    }
+
+    /* ── populate modal for scene idx ──────────────────── */
+    function _populate(idx) {
+        const img = imgs[idx];
+        if (!img) return;
+
+        // Header
+        counter.textContent = `Scene ${idx + 1} of ${total}`;
+        titleEl.textContent = img.location_name || img.description || img.image_name;
+        btnPrev.disabled = (idx === 0);
+        btnNext.disabled = (idx === total - 1);
+
+        // Images
+        _loadImg(imgOrig, spinOrig, `/static/sample_images/${img.image_name}`);
+        _loadImg(imgAnn,  spinAnn,  `/static/${img.annotated_image}`);
+
+        // Stats
+        _renderVehicles(img.vehicle_counts || {});
+        _renderRisk(img);
+
+        // Zone info
+        const parts = [];
+        if (img.grid_id)       parts.push(`📍 Zone: <strong>${img.grid_id}</strong>`);
+        if (img.camera_id)     parts.push(`📷 ${img.camera_id}`);
+        if (img.latitude)      parts.push(`🌐 ${img.latitude.toFixed(4)}, ${img.longitude.toFixed(4)}`);
+        zoneEl.innerHTML = parts.join('&ensp;·&ensp;');
+
+        // Thumbnail highlight
+        _highlightThumb(idx);
+        current = idx;
+    }
+
+    /* ── open ───────────────────────────────────────────── */
+    function open(idx) {
+        _refs();
+        if (!total) return;
+        idx = Math.max(0, Math.min(total - 1, idx));
+
+        // Reset scroll position in panel
+        panel.scrollTop = 0;
+
+        _populate(idx);
+
+        backdrop.classList.add('open');
+        document.body.style.overflow = 'hidden';
+        isOpen = true;
+
+        // focus panel for keyboard events
+        panel.focus && panel.focus();
+    }
+
+    /* ── close ──────────────────────────────────────────── */
+    function close() {
+        _refs();
+        backdrop.classList.remove('open');
+        document.body.style.overflow = '';
+        isOpen = false;
+    }
+
+    /* ── navigate inside modal ──────────────────────────── */
+    function navigate(delta) {
+        if (!isOpen) return;
+        const next = current + delta;
+        if (next >= 0 && next < total) _populate(next);
+    }
+
+    /* ── backdrop click-outside ─────────────────────────── */
+    document.addEventListener('DOMContentLoaded', () => {
+        _refs();
+        document.getElementById('det-backdrop').addEventListener('click', e => {
+            if (e.target === backdrop) close();
+        });
+    });
+
+    /* ── keyboard ───────────────────────────────────────── */
+    document.addEventListener('keydown', e => {
+        if (!isOpen) return;
+        if (e.key === 'Escape')     close();
+        if (e.key === 'ArrowRight') navigate(1);
+        if (e.key === 'ArrowLeft')  navigate(-1);
+    });
+
+    /* ── thumbnail keyboard (Enter/Space) ───────────────── */
+    document.addEventListener('DOMContentLoaded', () => {
+        document.querySelectorAll('.det-thumb').forEach((el, i) => {
+            el.addEventListener('keydown', e => {
+                if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); open(i); }
+            });
+        });
+    });
+
+    return { open, close, navigate };
 })();
 
-// ── Vehicle Feature Importance Chart ────────────────────────
-(function() {
+/* ═══════════════════════════════════════════════════════════════
+   VEHICLE FEATURE IMPORTANCE CHART
+═══════════════════════════════════════════════════════════════ */
+(function () {
     const vi = (DETECTION_DATA.vehicle_importance || {}).vehicle_features || [];
     if (!vi.length) return;
     const colors = vi.map(f => f.yolo_detectable ? '#0d6efd' : '#adb5bd');
@@ -310,11 +752,7 @@ const DETECTION_DATA = {{ detection_data | tojson }};
         type: 'bar',
         data: {
             labels: vi.map(f => f.feature),
-            datasets: [{
-                label: 'Importance %',
-                data: vi.map(f => f.importance_pct),
-                backgroundColor: colors
-            }]
+            datasets: [{ label: 'Importance %', data: vi.map(f => f.importance_pct), backgroundColor: colors }]
         },
         options: {
             indexAxis: 'y',
@@ -324,8 +762,7 @@ const DETECTION_DATA = {{ detection_data | tojson }};
                 tooltip: {
                     callbacks: {
                         afterLabel: ctx => vi[ctx.dataIndex].yolo_detectable
-                            ? '✓ YOLO detectable'
-                            : '✗ Not in COCO dataset'
+                            ? '✓ YOLO detectable' : '✗ Not in COCO dataset'
                     }
                 }
             }
