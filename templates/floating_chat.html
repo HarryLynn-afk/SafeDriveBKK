@@ -1,0 +1,53 @@
+<!-- Floating Chat Assistant -->
+<button class="chat-fab" id="chatFab" title="Ask Safety Assistant">
+    &#x1F4AC;
+</button>
+
+<div class="chat-widget-overlay" id="chatWidget">
+    <!-- Header -->
+    <div class="chat-widget-header">
+        <div class="chat-widget-title">
+            <h3>&#x1F916; Safety Assistant</h3>
+            <div class="chat-widget-status">
+                <span class="status-dot"></span>
+                <span>Online</span>
+            </div>
+        </div>
+        <button class="chat-widget-close" id="chatWidgetClose" title="Close">&times;</button>
+    </div>
+
+    <!-- Messages -->
+    <div class="chat-widget-messages" id="chatWidgetMessages">
+        <div class="message bot">
+            <div class="message-avatar">&#x1F916;</div>
+            <div class="message-content">
+                <div class="message-bubble">
+                    <p>Hi! I'm your Bangkok Safety Assistant. Ask me about dangerous areas, safe routes, or accident patterns!</p>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Quick suggestions -->
+    <div class="chat-widget-suggestions" id="chatWidgetSuggestions">
+        <button class="suggestion-chip" data-question="Which areas are most dangerous?">Dangerous areas</button>
+        <button class="suggestion-chip" data-question="When is the safest time to drive?">Safe times</button>
+        <button class="suggestion-chip" data-question="What should Bangkok do?">Recommendations</button>
+    </div>
+
+    <!-- Input -->
+    <div class="chat-widget-input">
+        <input
+            type="text"
+            id="chatWidgetInput"
+            placeholder="Ask about road safety..."
+            autocomplete="off"
+        >
+        <button id="chatWidgetSend" title="Send">
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                <line x1="22" y1="2" x2="11" y2="13"></line>
+                <polygon points="22 2 15 22 11 13 2 9 22 2"></polygon>
+            </svg>
+        </button>
+    </div>
+</div>
