@@ -9,12 +9,17 @@ import sys
 from datetime import datetime
 from pathlib import Path
 
+from dotenv import load_dotenv
+load_dotenv(Path(__file__).resolve().parent.parent / ".env")
+
 import numpy as np
 import pandas as pd
 import requests
 from flask import Flask, jsonify, render_template, request, send_file
 
 from ml_model import RiskPredictor
+from chatbot_intents import detect_intent, get_scripted_response
+from chatbot_groq import get_groq_response
 
 BASE_DIR = Path(__file__).resolve().parent.parent
 DATA_DIR = BASE_DIR / "data" / "processed"
@@ -1365,9 +1370,8 @@ def _load_nlp_cache():
 
 @app.route("/nlp")
 def nlp():
-    """NLP analysis page — Thai text → XGBoost features → recommendations."""
-    nlp_data = _load_nlp_cache()
-    return render_template("nlp.html", nlp_data=nlp_data)
+    """Bangkok Safety Assistant — hybrid chatbot page."""
+    return render_template("nlp.html")
 
 
 @app.route("/api/nlp/pipeline-demo")
@@ -1526,6 +1530,71 @@ def detection_pipeline():
         return jsonify({"error": str(exc)}), 500
 
 
+# ---------------------------------------------------------------------------
+# Chatbot — hybrid scripted + Groq AI
+# ---------------------------------------------------------------------------
+
+_chatbot_data_path = BASE_DIR / "static" / "chatbot_data.json"
+try:
+    with open(_chatbot_data_path, "r", encoding="utf-8") as _f:
+        CHATBOT_DATA = json.load(_f)
+    print(f"Chatbot data loaded: {_chatbot_data_path}")
+except FileNotFoundError:
+    CHATBOT_DATA = {}
+    print(f"Warning: chatbot data not found at {_chatbot_data_path}")
+
+
+@app.route("/api/chatbot", methods=["POST"])
+def chatbot():
+    """
+    Hybrid chatbot endpoint:
+    1. Try pattern matching (fast, reliable)
+    2. Fall back to Groq AI (flexible)
+    """
+    try:
+        data = request.json
+        user_message = data.get("message", "").strip()
+
+        if not user_message:
+            return jsonify({"success": False, "error": "Empty message"}), 400
+
+        # Step 1: Try intent detection (scripted)
+        intent = detect_intent(user_message)
+
+        if intent:
+            response = get_scripted_response(intent, user_message)
+            response["source"] = "scripted"
+            response["intent"] = intent
+        else:
+            # Step 2: AI response (flexible, creative)
+            response = get_groq_response(user_message, CHATBOT_DATA)
+
+        return jsonify({"success": True, "response": response})
+
+    except Exception as e:
+        return jsonify({
+            "success": False,
+            "error": str(e),
+            "fallback": "I encountered an error. Please try asking your question differently or use one of the suggested questions.",
+        }), 500
+
+
+@app.route("/api/chatbot/suggestions", methods=["GET"])
+def chatbot_suggestions():
+    """Return suggested questions for UI."""
+    suggestions = [
+        "Which areas have the most speeding accidents?",
+        "Is Asok Intersection safe?",
+        "What time are accidents most common?",
+        "Where should Bangkok install speed cameras?",
+        "Show me drunk driving patterns",
+        "What causes most accidents?",
+        "Is Sukhumvit safe at night?",
+        "Where are the 7 traffic cameras?",
+    ]
+    return jsonify({"success": True, "suggestions": suggestions})
+
+
 if __name__ == "__main__":
     print()
     print("=" * 64)
@@ -1559,6 +1628,8 @@ if __name__ == "__main__":
     print("  GET  /detection                Object detection (Track 3)")
     print("  GET  /api/nlp/*                NLP endpoints")
     print("  GET  /api/detection/*          Detection endpoints")
+    print("  POST /api/chatbot              Hybrid chatbot")
+    print("  GET  /api/chatbot/suggestions  Suggested questions")
     print("=" * 64)
     port = int(os.environ.get("PORT", 5000))
     print(f"Starting on http://0.0.0.0:{port}")

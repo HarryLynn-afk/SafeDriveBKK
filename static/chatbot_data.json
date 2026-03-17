@@ -1,0 +1,1637 @@
+{
+  "metadata": {
+    "generated_by": "chatbot_data_processor.py",
+    "project": "RoadRisk Bangkok",
+    "description": "Aggregated data for the Bangkok Road Safety chatbot"
+  },
+  "stats": {
+    "total_accidents": 2669,
+    "total_zones": 2418,
+    "high_risk_zones": 126,
+    "date_range": "January - December 2024",
+    "data_source": "Thai Ministry of Transport",
+    "nlp_processed": true,
+    "deaths": 45,
+    "serious_injuries": 45,
+    "minor_injuries": 1685,
+    "total_injuries": 1730,
+    "model_accuracy": 83.8,
+    "model_lift": 17.5,
+    "danger_zones_detected": "39/39"
+  },
+  "causes": {
+    "speeding": {
+      "thai_name": "ขับรถเร็วเกินอัตรากำหนด",
+      "english_name": "Speeding",
+      "count": 2104,
+      "percentage": 78.8,
+      "feature_importance": 0.071,
+      "top_zones": [
+        {
+          "grid_id": "G020_002",
+          "location": "Thon Buri / Phetkasem Highway (Km 24)",
+          "accidents": 85,
+          "cause_count": 70,
+          "cause_pct": 82.3,
+          "risk_score": 100.0
+        },
+        {
+          "grid_id": "G014_041",
+          "location": "Lat Krabang / Motorway (Eastern)",
+          "accidents": 69,
+          "cause_count": 66,
+          "cause_pct": 95.7,
+          "risk_score": 81.2
+        },
+        {
+          "grid_id": "G014_043",
+          "location": "Lat Krabang / Motorway (East End)",
+          "accidents": 66,
+          "cause_count": 65,
+          "cause_pct": 98.5,
+          "risk_score": 77.7
+        },
+        {
+          "grid_id": "G014_039",
+          "location": "Lat Krabang / Highway 3242",
+          "accidents": 65,
+          "cause_count": 58,
+          "cause_pct": 89.2,
+          "risk_score": 76.5
+        },
+        {
+          "grid_id": "G014_040",
+          "location": "Lat Krabang / Motorway Junction",
+          "accidents": 58,
+          "cause_count": 57,
+          "cause_pct": 98.3,
+          "risk_score": 68.2
+        },
+        {
+          "grid_id": "G014_042",
+          "location": "Lat Krabang / Industrial Zone",
+          "accidents": 54,
+          "cause_count": 53,
+          "cause_pct": 98.2,
+          "risk_score": 63.5
+        },
+        {
+          "grid_id": "G020_001",
+          "location": "Thon Buri / Phetkasem Outer Ring",
+          "accidents": 47,
+          "cause_count": 37,
+          "cause_pct": 78.7,
+          "risk_score": 55.3
+        },
+        {
+          "grid_id": "G020_003",
+          "location": "Thon Buri / Phetkasem Highway (Km 16)",
+          "accidents": 44,
+          "cause_count": 36,
+          "cause_pct": 81.8,
+          "risk_score": 51.8
+        },
+        {
+          "grid_id": "G020_005",
+          "location": "Phutthamonthon / Borommaratchachonnani Rd",
+          "accidents": 51,
+          "cause_count": 32,
+          "cause_pct": 62.8,
+          "risk_score": 60.0
+        },
+        {
+          "grid_id": "G020_006",
+          "location": "Phutthamonthon / Highway 338",
+          "accidents": 39,
+          "cause_count": 32,
+          "cause_pct": 82.0,
+          "risk_score": 45.9
+        }
+      ]
+    },
+    "cutting_in_front": {
+      "thai_name": "คน/รถ/สัตว์ตัดหน้ากระชั้นชิด",
+      "english_name": "Cutting in front",
+      "count": 126,
+      "percentage": 4.7,
+      "feature_importance": 0.174,
+      "top_zones": [
+        {
+          "grid_id": "G020_005",
+          "location": "Phutthamonthon / Borommaratchachonnani Rd",
+          "accidents": 51,
+          "cause_count": 15,
+          "cause_pct": 29.4,
+          "risk_score": 60.0
+        },
+        {
+          "grid_id": "G020_010",
+          "location": "Taling Chan / Si Rat Expressway",
+          "accidents": 36,
+          "cause_count": 9,
+          "cause_pct": 25.0,
+          "risk_score": 42.4
+        },
+        {
+          "grid_id": "G020_012",
+          "location": "Bang Kruai / Charansanitwong Rd",
+          "accidents": 31,
+          "cause_count": 9,
+          "cause_pct": 29.0,
+          "risk_score": 36.5
+        },
+        {
+          "grid_id": "G020_011",
+          "location": "Taling Chan / Ratchaphruek Rd",
+          "accidents": 30,
+          "cause_count": 9,
+          "cause_pct": 30.0,
+          "risk_score": 35.3
+        },
+        {
+          "grid_id": "G020_002",
+          "location": "Thon Buri / Phetkasem Highway (Km 24)",
+          "accidents": 85,
+          "cause_count": 8,
+          "cause_pct": 9.4,
+          "risk_score": 100.0
+        },
+        {
+          "grid_id": "G020_008",
+          "location": "Taling Chan / Kanchanaphisek Expressway",
+          "accidents": 39,
+          "cause_count": 6,
+          "cause_pct": 15.4,
+          "risk_score": 45.9
+        },
+        {
+          "grid_id": "G020_007",
+          "location": "Phutthamonthon / Borommaratchachonnani Soi",
+          "accidents": 33,
+          "cause_count": 6,
+          "cause_pct": 18.2,
+          "risk_score": 38.8
+        },
+        {
+          "grid_id": "G020_009",
+          "location": "Taling Chan / Ratchaphruek Intersection",
+          "accidents": 24,
+          "cause_count": 5,
+          "cause_pct": 20.8,
+          "risk_score": 28.2
+        },
+        {
+          "grid_id": "G020_003",
+          "location": "Thon Buri / Phetkasem Highway (Km 16)",
+          "accidents": 44,
+          "cause_count": 4,
+          "cause_pct": 9.1,
+          "risk_score": 51.8
+        },
+        {
+          "grid_id": "G020_000",
+          "location": "Thon Buri / Phetkasem Outer Ring (West)",
+          "accidents": 30,
+          "cause_count": 4,
+          "cause_pct": 14.9,
+          "risk_score": 35.3
+        }
+      ]
+    },
+    "tire_blowout___worn_tires": {
+      "thai_name": "ยางเสื่อมสภาพ/ยางแตก",
+      "english_name": "Tire blowout / worn tires",
+      "count": 51,
+      "percentage": 1.9,
+      "feature_importance": 0.0,
+      "top_zones": [
+        {
+          "grid_id": "G014_041",
+          "location": "Lat Krabang / Motorway (Eastern)",
+          "accidents": 69,
+          "cause_count": 3,
+          "cause_pct": 4.3,
+          "risk_score": 81.2
+        },
+        {
+          "grid_id": "G023_036",
+          "location": "Khlong Sam Wa / Hathairat Rd",
+          "accidents": 27,
+          "cause_count": 3,
+          "cause_pct": 11.1,
+          "risk_score": 31.8
+        },
+        {
+          "grid_id": "G027_035",
+          "location": "Zone G027_035",
+          "accidents": 13,
+          "cause_count": 3,
+          "cause_pct": 23.1,
+          "risk_score": 15.3
+        },
+        {
+          "grid_id": "G014_047",
+          "location": "Zone G014_047",
+          "accidents": 10,
+          "cause_count": 3,
+          "cause_pct": 30.0,
+          "risk_score": 11.8
+        },
+        {
+          "grid_id": "G024_036",
+          "location": "Min Buri / Ramkhamhaeng Rd (East)",
+          "accidents": 32,
+          "cause_count": 2,
+          "cause_pct": 6.2,
+          "risk_score": 37.6
+        },
+        {
+          "grid_id": "G014_049",
+          "location": "Zone G014_049",
+          "accidents": 12,
+          "cause_count": 2,
+          "cause_pct": 16.7,
+          "risk_score": 14.1
+        },
+        {
+          "grid_id": "G014_051",
+          "location": "Zone G014_051",
+          "accidents": 12,
+          "cause_count": 2,
+          "cause_pct": 16.7,
+          "risk_score": 14.1
+        },
+        {
+          "grid_id": "G010_038",
+          "location": "Zone G010_038",
+          "accidents": 11,
+          "cause_count": 2,
+          "cause_pct": 18.2,
+          "risk_score": 12.9
+        },
+        {
+          "grid_id": "G032_037",
+          "location": "Zone G032_037",
+          "accidents": 11,
+          "cause_count": 2,
+          "cause_pct": 18.2,
+          "risk_score": 12.9
+        },
+        {
+          "grid_id": "G018_037",
+          "location": "Zone G018_037",
+          "accidents": 4,
+          "cause_count": 2,
+          "cause_pct": 50.0,
+          "risk_score": 4.7
+        }
+      ]
+    },
+    "drowsy_driving": {
+      "thai_name": "หลับใน",
+      "english_name": "Drowsy driving",
+      "count": 43,
+      "percentage": 1.6,
+      "feature_importance": 0.0,
+      "top_zones": [
+        {
+          "grid_id": "G014_039",
+          "location": "Lat Krabang / Highway 3242",
+          "accidents": 65,
+          "cause_count": 2,
+          "cause_pct": 3.1,
+          "risk_score": 76.5
+        },
+        {
+          "grid_id": "G020_003",
+          "location": "Thon Buri / Phetkasem Highway (Km 16)",
+          "accidents": 44,
+          "cause_count": 2,
+          "cause_pct": 4.5,
+          "risk_score": 51.8
+        },
+        {
+          "grid_id": "G020_004",
+          "location": "Thon Buri / Phetkasem Highway (Km 20)",
+          "accidents": 28,
+          "cause_count": 2,
+          "cause_pct": 7.1,
+          "risk_score": 32.9
+        },
+        {
+          "grid_id": "G014_048",
+          "location": "Lat Krabang Airport Zone",
+          "accidents": 25,
+          "cause_count": 2,
+          "cause_pct": 8.0,
+          "risk_score": 29.4
+        },
+        {
+          "grid_id": "G014_049",
+          "location": "Zone G014_049",
+          "accidents": 12,
+          "cause_count": 2,
+          "cause_pct": 16.7,
+          "risk_score": 14.1
+        },
+        {
+          "grid_id": "G010_038",
+          "location": "Zone G010_038",
+          "accidents": 11,
+          "cause_count": 2,
+          "cause_pct": 18.2,
+          "risk_score": 12.9
+        },
+        {
+          "grid_id": "G023_053",
+          "location": "Zone G023_053",
+          "accidents": 6,
+          "cause_count": 2,
+          "cause_pct": 33.3,
+          "risk_score": 7.1
+        },
+        {
+          "grid_id": "G023_052",
+          "location": "Zone G023_052",
+          "accidents": 3,
+          "cause_count": 2,
+          "cause_pct": 66.7,
+          "risk_score": 3.5
+        },
+        {
+          "grid_id": "G014_040",
+          "location": "Lat Krabang / Motorway Junction",
+          "accidents": 58,
+          "cause_count": 1,
+          "cause_pct": 1.7,
+          "risk_score": 68.2
+        },
+        {
+          "grid_id": "G020_001",
+          "location": "Thon Buri / Phetkasem Outer Ring",
+          "accidents": 47,
+          "cause_count": 1,
+          "cause_pct": 2.1,
+          "risk_score": 55.3
+        }
+      ]
+    },
+    "running_red_light___traffic_sign_violation": {
+      "thai_name": "ฝ่าฝืนสัญญาณไฟ/เครื่องหมายจราจร",
+      "english_name": "Running red light / traffic sign violation",
+      "count": 22,
+      "percentage": 0.8,
+      "feature_importance": 0.0,
+      "top_zones": [
+        {
+          "grid_id": "G014_048",
+          "location": "Lat Krabang Airport Zone",
+          "accidents": 25,
+          "cause_count": 12,
+          "cause_pct": 48.0,
+          "risk_score": 29.4
+        },
+        {
+          "grid_id": "G020_001",
+          "location": "Thon Buri / Phetkasem Outer Ring",
+          "accidents": 47,
+          "cause_count": 5,
+          "cause_pct": 10.6,
+          "risk_score": 55.3
+        },
+        {
+          "grid_id": "G020_008",
+          "location": "Taling Chan / Kanchanaphisek Expressway",
+          "accidents": 39,
+          "cause_count": 2,
+          "cause_pct": 5.1,
+          "risk_score": 45.9
+        },
+        {
+          "grid_id": "G002_017",
+          "location": "Zone G002_017",
+          "accidents": 22,
+          "cause_count": 1,
+          "cause_pct": 4.5,
+          "risk_score": 25.9
+        },
+        {
+          "grid_id": "G015_032",
+          "location": "Zone G015_032",
+          "accidents": 20,
+          "cause_count": 1,
+          "cause_pct": 5.0,
+          "risk_score": 23.5
+        },
+        {
+          "grid_id": "G017_038",
+          "location": "Zone G017_038",
+          "accidents": 17,
+          "cause_count": 1,
+          "cause_pct": 5.9,
+          "risk_score": 20.0
+        }
+      ]
+    },
+    "other_causes": {
+      "thai_name": "อื่นๆ",
+      "english_name": "Other causes",
+      "count": 120,
+      "percentage": 4.5,
+      "feature_importance": 0.0,
+      "top_zones": []
+    }
+  },
+  "time_patterns": {
+    "most_dangerous_hour": "10:00-11:00",
+    "most_dangerous_hour_count": 175,
+    "safest_hour": "3:00-4:00",
+    "safest_hour_count": 54,
+    "most_dangerous_day": "Saturday",
+    "most_dangerous_day_count": 450,
+    "most_dangerous_month": "March",
+    "most_dangerous_month_count": 275,
+    "rush_hour_accidents": 981,
+    "rush_hour_pct": 36.8,
+    "weekend_accidents": 764,
+    "weekend_pct": 28.6,
+    "weekday_accidents": 1905,
+    "weekend_vs_weekday": "Weekend 28.6% vs Weekday 71.4%",
+    "hourly": {
+      "00:00": {
+        "count": 68,
+        "percentage": 2.5
+      },
+      "01:00": {
+        "count": 76,
+        "percentage": 2.8
+      },
+      "02:00": {
+        "count": 55,
+        "percentage": 2.1
+      },
+      "03:00": {
+        "count": 54,
+        "percentage": 2.0
+      },
+      "04:00": {
+        "count": 74,
+        "percentage": 2.8
+      },
+      "05:00": {
+        "count": 65,
+        "percentage": 2.4
+      },
+      "06:00": {
+        "count": 94,
+        "percentage": 3.5
+      },
+      "07:00": {
+        "count": 154,
+        "percentage": 5.8
+      },
+      "08:00": {
+        "count": 111,
+        "percentage": 4.2
+      },
+      "09:00": {
+        "count": 136,
+        "percentage": 5.1
+      },
+      "10:00": {
+        "count": 175,
+        "percentage": 6.6
+      },
+      "11:00": {
+        "count": 122,
+        "percentage": 4.6
+      },
+      "12:00": {
+        "count": 129,
+        "percentage": 4.8
+      },
+      "13:00": {
+        "count": 147,
+        "percentage": 5.5
+      },
+      "14:00": {
+        "count": 114,
+        "percentage": 4.3
+      },
+      "15:00": {
+        "count": 122,
+        "percentage": 4.6
+      },
+      "16:00": {
+        "count": 164,
+        "percentage": 6.1
+      },
+      "17:00": {
+        "count": 119,
+        "percentage": 4.5
+      },
+      "18:00": {
+        "count": 135,
+        "percentage": 5.1
+      },
+      "19:00": {
+        "count": 162,
+        "percentage": 6.1
+      },
+      "20:00": {
+        "count": 110,
+        "percentage": 4.1
+      },
+      "21:00": {
+        "count": 116,
+        "percentage": 4.3
+      },
+      "22:00": {
+        "count": 100,
+        "percentage": 3.7
+      },
+      "23:00": {
+        "count": 67,
+        "percentage": 2.5
+      }
+    },
+    "daily": {
+      "Monday": {
+        "count": 394,
+        "percentage": 14.8
+      },
+      "Tuesday": {
+        "count": 366,
+        "percentage": 13.7
+      },
+      "Wednesday": {
+        "count": 373,
+        "percentage": 14.0
+      },
+      "Thursday": {
+        "count": 337,
+        "percentage": 12.6
+      },
+      "Friday": {
+        "count": 435,
+        "percentage": 16.3
+      },
+      "Saturday": {
+        "count": 450,
+        "percentage": 16.9
+      },
+      "Sunday": {
+        "count": 314,
+        "percentage": 11.8
+      }
+    },
+    "monthly": {
+      "January": {
+        "count": 197,
+        "percentage": 7.4
+      },
+      "February": {
+        "count": 253,
+        "percentage": 9.5
+      },
+      "March": {
+        "count": 275,
+        "percentage": 10.3
+      },
+      "April": {
+        "count": 274,
+        "percentage": 10.3
+      },
+      "May": {
+        "count": 215,
+        "percentage": 8.1
+      },
+      "June": {
+        "count": 212,
+        "percentage": 7.9
+      },
+      "July": {
+        "count": 213,
+        "percentage": 8.0
+      },
+      "August": {
+        "count": 221,
+        "percentage": 8.3
+      },
+      "September": {
+        "count": 229,
+        "percentage": 8.6
+      },
+      "October": {
+        "count": 196,
+        "percentage": 7.3
+      },
+      "November": {
+        "count": 217,
+        "percentage": 8.1
+      },
+      "December": {
+        "count": 167,
+        "percentage": 6.3
+      }
+    }
+  },
+  "zones": {
+    "G020_002": {
+      "location": "Thon Buri / Phetkasem Highway (Km 24)",
+      "center_lat": 13.784500000000008,
+      "center_lon": 100.3725,
+      "risk_score": 100.0,
+      "risk_level": "high",
+      "total_accidents": 85,
+      "dominant_cause": "speeding",
+      "dominant_cause_pct": 82.3,
+      "cause_breakdown": {
+        "speeding": 82.3,
+        "cutting_in_front": 9.4,
+        "red_light": 0.0,
+        "tire_blowout": 1.2,
+        "drowsy_driving": 0.0,
+        "other": 7.1
+      },
+      "severity_mean": 0.741,
+      "has_fatality": true,
+      "motorcycle_pct": 13.4,
+      "rush_hour_pct": 41.2,
+      "weekend_pct": 37.6
+    },
+    "G014_041": {
+      "location": "Lat Krabang / Motorway (Eastern)",
+      "center_lat": 13.730500000000005,
+      "center_lon": 100.7235,
+      "risk_score": 81.2,
+      "risk_level": "high",
+      "total_accidents": 69,
+      "dominant_cause": "speeding",
+      "dominant_cause_pct": 95.7,
+      "cause_breakdown": {
+        "speeding": 95.7,
+        "cutting_in_front": 0.0,
+        "red_light": 0.0,
+        "tire_blowout": 4.3,
+        "drowsy_driving": 0.0,
+        "other": 0.0
+      },
+      "severity_mean": 0.275,
+      "has_fatality": false,
+      "motorcycle_pct": 0.0,
+      "rush_hour_pct": 37.7,
+      "weekend_pct": 29.0
+    },
+    "G014_043": {
+      "location": "Lat Krabang / Motorway (East End)",
+      "center_lat": 13.730500000000005,
+      "center_lon": 100.7415,
+      "risk_score": 77.7,
+      "risk_level": "high",
+      "total_accidents": 66,
+      "dominant_cause": "speeding",
+      "dominant_cause_pct": 98.5,
+      "cause_breakdown": {
+        "speeding": 98.5,
+        "cutting_in_front": 0.0,
+        "red_light": 0.0,
+        "tire_blowout": 1.5,
+        "drowsy_driving": 0.0,
+        "other": 0.0
+      },
+      "severity_mean": 0.303,
+      "has_fatality": false,
+      "motorcycle_pct": 0.0,
+      "rush_hour_pct": 39.4,
+      "weekend_pct": 40.9
+    },
+    "G014_039": {
+      "location": "Lat Krabang / Highway 3242",
+      "center_lat": 13.730500000000005,
+      "center_lon": 100.7055,
+      "risk_score": 76.5,
+      "risk_level": "high",
+      "total_accidents": 65,
+      "dominant_cause": "speeding",
+      "dominant_cause_pct": 89.2,
+      "cause_breakdown": {
+        "speeding": 89.2,
+        "cutting_in_front": 0.0,
+        "red_light": 0.0,
+        "tire_blowout": 1.5,
+        "drowsy_driving": 3.1,
+        "other": 6.2
+      },
+      "severity_mean": 0.262,
+      "has_fatality": false,
+      "motorcycle_pct": 0.0,
+      "rush_hour_pct": 27.7,
+      "weekend_pct": 21.5
+    },
+    "G014_040": {
+      "location": "Lat Krabang / Motorway Junction",
+      "center_lat": 13.730500000000005,
+      "center_lon": 100.71450000000002,
+      "risk_score": 68.2,
+      "risk_level": "high",
+      "total_accidents": 58,
+      "dominant_cause": "speeding",
+      "dominant_cause_pct": 98.3,
+      "cause_breakdown": {
+        "speeding": 98.3,
+        "cutting_in_front": 0.0,
+        "red_light": 0.0,
+        "tire_blowout": 0.0,
+        "drowsy_driving": 1.7,
+        "other": 0.0
+      },
+      "severity_mean": 0.259,
+      "has_fatality": false,
+      "motorcycle_pct": 0.0,
+      "rush_hour_pct": 36.2,
+      "weekend_pct": 25.9
+    },
+    "G014_042": {
+      "location": "Lat Krabang / Industrial Zone",
+      "center_lat": 13.730500000000005,
+      "center_lon": 100.73250000000002,
+      "risk_score": 63.5,
+      "risk_level": "high",
+      "total_accidents": 54,
+      "dominant_cause": "speeding",
+      "dominant_cause_pct": 98.2,
+      "cause_breakdown": {
+        "speeding": 98.2,
+        "cutting_in_front": 0.0,
+        "red_light": 0.0,
+        "tire_blowout": 1.9,
+        "drowsy_driving": 0.0,
+        "other": 0.0
+      },
+      "severity_mean": 0.481,
+      "has_fatality": false,
+      "motorcycle_pct": 0.0,
+      "rush_hour_pct": 42.6,
+      "weekend_pct": 29.6
+    },
+    "G020_005": {
+      "location": "Phutthamonthon / Borommaratchachonnani Rd",
+      "center_lat": 13.784500000000008,
+      "center_lon": 100.3995,
+      "risk_score": 60.0,
+      "risk_level": "high",
+      "total_accidents": 51,
+      "dominant_cause": "speeding",
+      "dominant_cause_pct": 62.8,
+      "cause_breakdown": {
+        "speeding": 62.8,
+        "cutting_in_front": 29.4,
+        "red_light": 0.0,
+        "tire_blowout": 0.0,
+        "drowsy_driving": 0.0,
+        "other": 7.8
+      },
+      "severity_mean": 0.647,
+      "has_fatality": false,
+      "motorcycle_pct": 16.2,
+      "rush_hour_pct": 49.0,
+      "weekend_pct": 27.4
+    },
+    "G020_001": {
+      "location": "Thon Buri / Phetkasem Outer Ring",
+      "center_lat": 13.784500000000008,
+      "center_lon": 100.3635,
+      "risk_score": 55.3,
+      "risk_level": "high",
+      "total_accidents": 47,
+      "dominant_cause": "speeding",
+      "dominant_cause_pct": 78.7,
+      "cause_breakdown": {
+        "speeding": 78.7,
+        "cutting_in_front": 2.1,
+        "red_light": 10.6,
+        "tire_blowout": 0.0,
+        "drowsy_driving": 2.1,
+        "other": 6.4
+      },
+      "severity_mean": 0.574,
+      "has_fatality": false,
+      "motorcycle_pct": 19.1,
+      "rush_hour_pct": 38.3,
+      "weekend_pct": 34.0
+    },
+    "G020_003": {
+      "location": "Thon Buri / Phetkasem Highway (Km 16)",
+      "center_lat": 13.784500000000008,
+      "center_lon": 100.3815,
+      "risk_score": 51.8,
+      "risk_level": "high",
+      "total_accidents": 44,
+      "dominant_cause": "speeding",
+      "dominant_cause_pct": 81.8,
+      "cause_breakdown": {
+        "speeding": 81.8,
+        "cutting_in_front": 9.1,
+        "red_light": 0.0,
+        "tire_blowout": 0.0,
+        "drowsy_driving": 4.5,
+        "other": 4.5
+      },
+      "severity_mean": 0.818,
+      "has_fatality": false,
+      "motorcycle_pct": 15.4,
+      "rush_hour_pct": 40.9,
+      "weekend_pct": 31.8
+    },
+    "G020_006": {
+      "location": "Phutthamonthon / Highway 338",
+      "center_lat": 13.784500000000008,
+      "center_lon": 100.4085,
+      "risk_score": 45.9,
+      "risk_level": "high",
+      "total_accidents": 39,
+      "dominant_cause": "speeding",
+      "dominant_cause_pct": 82.0,
+      "cause_breakdown": {
+        "speeding": 82.0,
+        "cutting_in_front": 7.7,
+        "red_light": 0.0,
+        "tire_blowout": 0.0,
+        "drowsy_driving": 0.0,
+        "other": 10.3
+      },
+      "severity_mean": 0.846,
+      "has_fatality": true,
+      "motorcycle_pct": 19.0,
+      "rush_hour_pct": 28.2,
+      "weekend_pct": 38.5
+    },
+    "G020_008": {
+      "location": "Taling Chan / Kanchanaphisek Expressway",
+      "center_lat": 13.784500000000008,
+      "center_lon": 100.4265,
+      "risk_score": 45.9,
+      "risk_level": "high",
+      "total_accidents": 39,
+      "dominant_cause": "speeding",
+      "dominant_cause_pct": 74.4,
+      "cause_breakdown": {
+        "speeding": 74.4,
+        "cutting_in_front": 15.4,
+        "red_light": 5.1,
+        "tire_blowout": 2.6,
+        "drowsy_driving": 0.0,
+        "other": 2.6
+      },
+      "severity_mean": 0.718,
+      "has_fatality": false,
+      "motorcycle_pct": 31.2,
+      "rush_hour_pct": 38.5,
+      "weekend_pct": 33.3
+    },
+    "G020_010": {
+      "location": "Taling Chan / Si Rat Expressway",
+      "center_lat": 13.784500000000008,
+      "center_lon": 100.4445,
+      "risk_score": 42.4,
+      "risk_level": "high",
+      "total_accidents": 36,
+      "dominant_cause": "speeding",
+      "dominant_cause_pct": 72.2,
+      "cause_breakdown": {
+        "speeding": 72.2,
+        "cutting_in_front": 25.0,
+        "red_light": 0.0,
+        "tire_blowout": 0.0,
+        "drowsy_driving": 0.0,
+        "other": 2.8
+      },
+      "severity_mean": 0.694,
+      "has_fatality": false,
+      "motorcycle_pct": 25.6,
+      "rush_hour_pct": 58.3,
+      "weekend_pct": 36.1
+    },
+    "G020_007": {
+      "location": "Phutthamonthon / Borommaratchachonnani Soi",
+      "center_lat": 13.784500000000008,
+      "center_lon": 100.4175,
+      "risk_score": 38.8,
+      "risk_level": "high",
+      "total_accidents": 33,
+      "dominant_cause": "speeding",
+      "dominant_cause_pct": 69.7,
+      "cause_breakdown": {
+        "speeding": 69.7,
+        "cutting_in_front": 18.2,
+        "red_light": 0.0,
+        "tire_blowout": 0.0,
+        "drowsy_driving": 3.0,
+        "other": 9.1
+      },
+      "severity_mean": 0.939,
+      "has_fatality": true,
+      "motorcycle_pct": 18.8,
+      "rush_hour_pct": 51.5,
+      "weekend_pct": 30.3
+    },
+    "G024_036": {
+      "location": "Min Buri / Ramkhamhaeng Rd (East)",
+      "center_lat": 13.820500000000008,
+      "center_lon": 100.6785,
+      "risk_score": 37.6,
+      "risk_level": "high",
+      "total_accidents": 32,
+      "dominant_cause": "speeding",
+      "dominant_cause_pct": 87.5,
+      "cause_breakdown": {
+        "speeding": 87.5,
+        "cutting_in_front": 6.2,
+        "red_light": 0.0,
+        "tire_blowout": 6.2,
+        "drowsy_driving": 0.0,
+        "other": 0.0
+      },
+      "severity_mean": 0.656,
+      "has_fatality": false,
+      "motorcycle_pct": 1.6,
+      "rush_hour_pct": 31.2,
+      "weekend_pct": 18.8
+    },
+    "G020_012": {
+      "location": "Bang Kruai / Charansanitwong Rd",
+      "center_lat": 13.784500000000008,
+      "center_lon": 100.4625,
+      "risk_score": 36.5,
+      "risk_level": "high",
+      "total_accidents": 31,
+      "dominant_cause": "speeding",
+      "dominant_cause_pct": 54.8,
+      "cause_breakdown": {
+        "speeding": 54.8,
+        "cutting_in_front": 29.0,
+        "red_light": 0.0,
+        "tire_blowout": 0.0,
+        "drowsy_driving": 3.2,
+        "other": 12.9
+      },
+      "severity_mean": 1.323,
+      "has_fatality": true,
+      "motorcycle_pct": 28.8,
+      "rush_hour_pct": 41.9,
+      "weekend_pct": 32.3
+    },
+    "G025_036": {
+      "location": "Nong Chok / Suwinthawong Rd",
+      "center_lat": 13.829500000000008,
+      "center_lon": 100.6785,
+      "risk_score": 36.5,
+      "risk_level": "high",
+      "total_accidents": 31,
+      "dominant_cause": "speeding",
+      "dominant_cause_pct": 100.0,
+      "cause_breakdown": {
+        "speeding": 100.0,
+        "cutting_in_front": 0.0,
+        "red_light": 0.0,
+        "tire_blowout": 0.0,
+        "drowsy_driving": 0.0,
+        "other": 0.0
+      },
+      "severity_mean": 1.226,
+      "has_fatality": false,
+      "motorcycle_pct": 1.3,
+      "rush_hour_pct": 41.9,
+      "weekend_pct": 32.3
+    },
+    "G004_006": {
+      "location": "Bang Khun Thian / Rama II Highway",
+      "center_lat": 13.6405,
+      "center_lon": 100.4085,
+      "risk_score": 35.3,
+      "risk_level": "high",
+      "total_accidents": 30,
+      "dominant_cause": "speeding",
+      "dominant_cause_pct": 90.0,
+      "cause_breakdown": {
+        "speeding": 90.0,
+        "cutting_in_front": 0.0,
+        "red_light": 0.0,
+        "tire_blowout": 0.0,
+        "drowsy_driving": 0.0,
+        "other": 10.0
+      },
+      "severity_mean": 1.233,
+      "has_fatality": true,
+      "motorcycle_pct": 17.0,
+      "rush_hour_pct": 33.3,
+      "weekend_pct": 36.7
+    },
+    "G018_038": {
+      "location": "Saphan Sung / Ramkhamhaeng Rd",
+      "center_lat": 13.766500000000006,
+      "center_lon": 100.6965,
+      "risk_score": 35.3,
+      "risk_level": "high",
+      "total_accidents": 30,
+      "dominant_cause": "speeding",
+      "dominant_cause_pct": 100.0,
+      "cause_breakdown": {
+        "speeding": 100.0,
+        "cutting_in_front": 0.0,
+        "red_light": 0.0,
+        "tire_blowout": 0.0,
+        "drowsy_driving": 0.0,
+        "other": 0.0
+      },
+      "severity_mean": 0.967,
+      "has_fatality": false,
+      "motorcycle_pct": 0.0,
+      "rush_hour_pct": 60.0,
+      "weekend_pct": 20.0
+    },
+    "G020_000": {
+      "location": "Thon Buri / Phetkasem Outer Ring (West)",
+      "center_lat": 13.784500000000008,
+      "center_lon": 100.3545,
+      "risk_score": 35.3,
+      "risk_level": "high",
+      "total_accidents": 30,
+      "dominant_cause": "speeding",
+      "dominant_cause_pct": 69.2,
+      "cause_breakdown": {
+        "speeding": 69.2,
+        "cutting_in_front": 14.9,
+        "red_light": 0.0,
+        "tire_blowout": 2.1,
+        "drowsy_driving": 1.1,
+        "other": 12.8
+      },
+      "severity_mean": 0.702,
+      "has_fatality": false,
+      "motorcycle_pct": 8.6,
+      "rush_hour_pct": 39.4,
+      "weekend_pct": 28.7
+    },
+    "G020_011": {
+      "location": "Taling Chan / Ratchaphruek Rd",
+      "center_lat": 13.784500000000008,
+      "center_lon": 100.4535,
+      "risk_score": 35.3,
+      "risk_level": "high",
+      "total_accidents": 30,
+      "dominant_cause": "speeding",
+      "dominant_cause_pct": 56.7,
+      "cause_breakdown": {
+        "speeding": 56.7,
+        "cutting_in_front": 30.0,
+        "red_light": 0.0,
+        "tire_blowout": 3.3,
+        "drowsy_driving": 0.0,
+        "other": 10.0
+      },
+      "severity_mean": 1.1,
+      "has_fatality": true,
+      "motorcycle_pct": 26.7,
+      "rush_hour_pct": 46.7,
+      "weekend_pct": 33.3
+    },
+    "G002_004": {
+      "location": "Bang Bon / Ekkachai Rd",
+      "center_lat": 13.6225,
+      "center_lon": 100.3905,
+      "risk_score": 34.1,
+      "risk_level": "high",
+      "total_accidents": 29,
+      "dominant_cause": "speeding",
+      "dominant_cause_pct": 79.3,
+      "cause_breakdown": {
+        "speeding": 79.3,
+        "cutting_in_front": 10.3,
+        "red_light": 0.0,
+        "tire_blowout": 0.0,
+        "drowsy_driving": 0.0,
+        "other": 10.3
+      },
+      "severity_mean": 0.621,
+      "has_fatality": true,
+      "motorcycle_pct": 17.6,
+      "rush_hour_pct": 37.9,
+      "weekend_pct": 20.7
+    },
+    "G005_007": {
+      "location": "Bang Khae / Kanchanaphisek Rd",
+      "center_lat": 13.649500000000002,
+      "center_lon": 100.4175,
+      "risk_score": 34.1,
+      "risk_level": "high",
+      "total_accidents": 29,
+      "dominant_cause": "speeding",
+      "dominant_cause_pct": 96.5,
+      "cause_breakdown": {
+        "speeding": 96.5,
+        "cutting_in_front": 0.0,
+        "red_light": 0.0,
+        "tire_blowout": 0.0,
+        "drowsy_driving": 0.0,
+        "other": 3.5
+      },
+      "severity_mean": 0.586,
+      "has_fatality": false,
+      "motorcycle_pct": 24.6,
+      "rush_hour_pct": 27.6,
+      "weekend_pct": 37.9
+    },
+    "G014_044": {
+      "location": "Lat Krabang / Chaloem Phra Kiat Rd",
+      "center_lat": 13.730500000000005,
+      "center_lon": 100.75050000000002,
+      "risk_score": 32.9,
+      "risk_level": "high",
+      "total_accidents": 28,
+      "dominant_cause": "speeding",
+      "dominant_cause_pct": 96.4,
+      "cause_breakdown": {
+        "speeding": 96.4,
+        "cutting_in_front": 0.0,
+        "red_light": 0.0,
+        "tire_blowout": 3.6,
+        "drowsy_driving": 0.0,
+        "other": 0.0
+      },
+      "severity_mean": 1.036,
+      "has_fatality": true,
+      "motorcycle_pct": 1.8,
+      "rush_hour_pct": 32.1,
+      "weekend_pct": 25.0
+    },
+    "G020_004": {
+      "location": "Thon Buri / Phetkasem Highway (Km 20)",
+      "center_lat": 13.784500000000008,
+      "center_lon": 100.3905,
+      "risk_score": 32.9,
+      "risk_level": "high",
+      "total_accidents": 28,
+      "dominant_cause": "speeding",
+      "dominant_cause_pct": 60.7,
+      "cause_breakdown": {
+        "speeding": 60.7,
+        "cutting_in_front": 10.7,
+        "red_light": 0.0,
+        "tire_blowout": 0.0,
+        "drowsy_driving": 7.1,
+        "other": 21.4
+      },
+      "severity_mean": 0.5,
+      "has_fatality": false,
+      "motorcycle_pct": 8.9,
+      "rush_hour_pct": 35.7,
+      "weekend_pct": 32.1
+    },
+    "G007_010": {
+      "location": "Nong Khaem / Petchkasem 81",
+      "center_lat": 13.667500000000002,
+      "center_lon": 100.4445,
+      "risk_score": 31.8,
+      "risk_level": "high",
+      "total_accidents": 27,
+      "dominant_cause": "speeding",
+      "dominant_cause_pct": 92.6,
+      "cause_breakdown": {
+        "speeding": 92.6,
+        "cutting_in_front": 3.7,
+        "red_light": 0.0,
+        "tire_blowout": 0.0,
+        "drowsy_driving": 0.0,
+        "other": 3.7
+      },
+      "severity_mean": 0.519,
+      "has_fatality": false,
+      "motorcycle_pct": 21.6,
+      "rush_hour_pct": 33.3,
+      "weekend_pct": 14.8
+    },
+    "G023_036": {
+      "location": "Khlong Sam Wa / Hathairat Rd",
+      "center_lat": 13.811500000000008,
+      "center_lon": 100.6785,
+      "risk_score": 31.8,
+      "risk_level": "high",
+      "total_accidents": 27,
+      "dominant_cause": "speeding",
+      "dominant_cause_pct": 81.5,
+      "cause_breakdown": {
+        "speeding": 81.5,
+        "cutting_in_front": 3.7,
+        "red_light": 0.0,
+        "tire_blowout": 11.1,
+        "drowsy_driving": 3.7,
+        "other": 0.0
+      },
+      "severity_mean": 1.481,
+      "has_fatality": true,
+      "motorcycle_pct": 4.2,
+      "rush_hour_pct": 33.3,
+      "weekend_pct": 14.8
+    },
+    "G020_037": {
+      "location": "Prawet / Srinakarin Rd",
+      "center_lat": 13.784500000000008,
+      "center_lon": 100.6875,
+      "risk_score": 30.6,
+      "risk_level": "high",
+      "total_accidents": 26,
+      "dominant_cause": "speeding",
+      "dominant_cause_pct": 96.2,
+      "cause_breakdown": {
+        "speeding": 96.2,
+        "cutting_in_front": 0.0,
+        "red_light": 0.0,
+        "tire_blowout": 3.9,
+        "drowsy_driving": 0.0,
+        "other": 0.0
+      },
+      "severity_mean": 1.962,
+      "has_fatality": false,
+      "motorcycle_pct": 3.5,
+      "rush_hour_pct": 46.1,
+      "weekend_pct": 23.1
+    },
+    "G014_048": {
+      "location": "Lat Krabang Airport Zone",
+      "center_lat": 13.730500000000005,
+      "center_lon": 100.78650000000002,
+      "risk_score": 29.4,
+      "risk_level": "high",
+      "total_accidents": 25,
+      "dominant_cause": "red_light",
+      "dominant_cause_pct": 48.0,
+      "cause_breakdown": {
+        "speeding": 44.0,
+        "cutting_in_front": 0.0,
+        "red_light": 48.0,
+        "tire_blowout": 0.0,
+        "drowsy_driving": 8.0,
+        "other": 0.0
+      },
+      "severity_mean": 0.28,
+      "has_fatality": false,
+      "motorcycle_pct": 0.0,
+      "rush_hour_pct": 28.0,
+      "weekend_pct": 16.0
+    },
+    "G006_009": {
+      "location": "Nong Khaem / Kanchanaphisek (South)",
+      "center_lat": 13.658500000000002,
+      "center_lon": 100.4355,
+      "risk_score": 28.2,
+      "risk_level": "high",
+      "total_accidents": 24,
+      "dominant_cause": "speeding",
+      "dominant_cause_pct": 87.5,
+      "cause_breakdown": {
+        "speeding": 87.5,
+        "cutting_in_front": 8.3,
+        "red_light": 0.0,
+        "tire_blowout": 0.0,
+        "drowsy_driving": 0.0,
+        "other": 4.2
+      },
+      "severity_mean": 0.75,
+      "has_fatality": false,
+      "motorcycle_pct": 31.9,
+      "rush_hour_pct": 25.0,
+      "weekend_pct": 25.0
+    },
+    "G008_012": {
+      "location": "Zone G008_012",
+      "center_lat": 13.676500000000004,
+      "center_lon": 100.4625,
+      "risk_score": 28.2,
+      "risk_level": "high",
+      "total_accidents": 24,
+      "dominant_cause": "speeding",
+      "dominant_cause_pct": 91.7,
+      "cause_breakdown": {
+        "speeding": 91.7,
+        "cutting_in_front": 4.2,
+        "red_light": 0.0,
+        "tire_blowout": 4.2,
+        "drowsy_driving": 0.0,
+        "other": 0.0
+      },
+      "severity_mean": 1.292,
+      "has_fatality": true,
+      "motorcycle_pct": 27.5,
+      "rush_hour_pct": 50.0,
+      "weekend_pct": 29.2
+    }
+  },
+  "recommendations": [
+    {
+      "priority": 1,
+      "title": "Speed Camera Deployment",
+      "description": "Deploy automated speed enforcement in high-speeding zones. 82% of top danger zones have speeding as the dominant cause.",
+      "target_cause": "Speeding",
+      "zones_affected": 118,
+      "expected_impact": "30-40% reduction in speed-related accidents",
+      "cost_estimate": "฿2.5M per camera installation",
+      "recommendation_type": "enforcement"
+    },
+    {
+      "priority": 2,
+      "title": "Intersection Safety Redesign",
+      "description": "Redesign dangerous intersections with better signage, barriers, and traffic signals to reduce cutting-in-front accidents.",
+      "target_cause": "Cutting in front",
+      "zones_affected": 1,
+      "expected_impact": "25-35% reduction in intersection collisions",
+      "cost_estimate": "฿5-15M per intersection",
+      "recommendation_type": "infrastructure"
+    },
+    {
+      "priority": 3,
+      "title": "Rumble Strips & Road Surface Treatment",
+      "description": "Install rumble strips on highway stretches with high rear-end collision rates. Target drowsy driving zones.",
+      "target_cause": "Drowsy driving",
+      "zones_affected": 1,
+      "expected_impact": "20-30% reduction in drowsy-driving crashes",
+      "cost_estimate": "฿500K per km of highway",
+      "recommendation_type": "infrastructure"
+    },
+    {
+      "priority": 4,
+      "title": "Red Light Camera Network",
+      "description": "Install red-light cameras at intersections with high traffic signal violations.",
+      "target_cause": "Running red light",
+      "zones_affected": 0,
+      "expected_impact": "40-50% reduction in red-light violations",
+      "cost_estimate": "฿1.5M per intersection",
+      "recommendation_type": "enforcement"
+    },
+    {
+      "priority": 5,
+      "title": "Vehicle Inspection Checkpoints",
+      "description": "Set up mobile inspection points in zones with high tire blowout and mechanical failure rates.",
+      "target_cause": "Tire blowout / mechanical",
+      "zones_affected": 0,
+      "expected_impact": "15-25% reduction in mechanical-failure crashes",
+      "cost_estimate": "฿200K per checkpoint per month",
+      "recommendation_type": "enforcement"
+    }
+  ],
+  "thai_keywords": {
+    "speeding": {
+      "thai_terms": [
+        "ขับรถเร็วเกินอัตรากำหนด"
+      ],
+      "related_words": [
+        {
+          "thai": "ขับรถเร็วเกินอัตรากำหนด",
+          "english": "Speeding",
+          "frequency": 2104
+        }
+      ]
+    },
+    "cutting_in_front": {
+      "thai_terms": [
+        "คน/รถ/สัตว์ตัดหน้ากระชั้นชิด",
+        "เปลี่ยนช่องทางกะทันหัน",
+        "ขับรถตามกระชั้นชิด"
+      ],
+      "related_words": [
+        {
+          "thai": "คน/รถ/สัตว์ตัดหน้ากระชั้นชิด",
+          "english": "Cutting in front",
+          "frequency": 126
+        },
+        {
+          "thai": "เปลี่ยนช่องทางกะทันหัน",
+          "english": "Sudden lane change",
+          "frequency": 4
+        },
+        {
+          "thai": "ขับรถตามกระชั้นชิด",
+          "english": "Tailgating",
+          "frequency": 2
+        }
+      ]
+    },
+    "drowsy_driving": {
+      "thai_terms": [
+        "หลับใน"
+      ],
+      "related_words": [
+        {
+          "thai": "หลับใน",
+          "english": "Drowsy driving",
+          "frequency": 43
+        }
+      ]
+    },
+    "drunk_driving": {
+      "thai_terms": [
+        "เมาสุรา"
+      ],
+      "related_words": [
+        {
+          "thai": "เมาสุรา",
+          "english": "Drunk driving",
+          "frequency": 6
+        }
+      ]
+    },
+    "red_light": {
+      "thai_terms": [
+        "ฝ่าฝืนสัญญาณไฟ/เครื่องหมายจราจร"
+      ],
+      "related_words": [
+        {
+          "thai": "ฝ่าฝืนสัญญาณไฟ/เครื่องหมายจราจร",
+          "english": "Running red light",
+          "frequency": 22
+        }
+      ]
+    },
+    "mechanical": {
+      "thai_terms": [
+        "ยางเสื่อมสภาพ/ยางแตก",
+        "อุปกรณ์ยานพาหนะบกพร่อง",
+        "ระบบห้ามล้อขัดข้อง/ระบบเบรกชำรุด"
+      ],
+      "related_words": [
+        {
+          "thai": "ยางเสื่อมสภาพ/ยางแตก",
+          "english": "Tire blowout",
+          "frequency": 51
+        },
+        {
+          "thai": "อุปกรณ์ยานพาหนะบกพร่อง",
+          "english": "Vehicle malfunction",
+          "frequency": 11
+        },
+        {
+          "thai": "ระบบห้ามล้อขัดข้อง/ระบบเบรกชำรุด",
+          "english": "Brake failure",
+          "frequency": 8
+        }
+      ]
+    },
+    "road_conditions": {
+      "thai_terms": [
+        "ถนนลื่น",
+        "ถนนชำรุด",
+        "มีกองวัสดุ/สิ่งกีดขวาง",
+        "แสงสว่างไม่เพียงพอ"
+      ],
+      "related_words": [
+        {
+          "thai": "ถนนลื่น",
+          "english": "Slippery road",
+          "frequency": 17
+        },
+        {
+          "thai": "ถนนชำรุด",
+          "english": "ถนนชำรุด",
+          "frequency": 1
+        },
+        {
+          "thai": "มีกองวัสดุ/สิ่งกีดขวาง",
+          "english": "มีกองวัสดุ/สิ่งกีดขวาง",
+          "frequency": 4
+        },
+        {
+          "thai": "แสงสว่างไม่เพียงพอ",
+          "english": "แสงสว่างไม่เพียงพอ",
+          "frequency": 1
+        }
+      ]
+    },
+    "reckless_driving": {
+      "thai_terms": [
+        "ขับรถย้อนศร",
+        "แซงรถอย่างผิดกฎหมาย",
+        "ความประมาท/เร่งรีบ (วิ่งตัดหน้า)",
+        "สูญเสียการควบคุม"
+      ],
+      "related_words": [
+        {
+          "thai": "ขับรถย้อนศร",
+          "english": "Wrong-way driving",
+          "frequency": 5
+        },
+        {
+          "thai": "แซงรถอย่างผิดกฎหมาย",
+          "english": "Illegal overtaking",
+          "frequency": 2
+        },
+        {
+          "thai": "ความประมาท/เร่งรีบ (วิ่งตัดหน้า)",
+          "english": "ความประมาท/เร่งรีบ (วิ่งตัดหน้า)",
+          "frequency": 5
+        },
+        {
+          "thai": "สูญเสียการควบคุม",
+          "english": "สูญเสียการควบคุม",
+          "frequency": 3
+        }
+      ]
+    },
+    "collision_types": {
+      "thai_terms": [
+        "ชนท้าย",
+        "ชนด้านข้าง",
+        "พลิกคว่ำ/ตกถนนในทางตรง",
+        "ชนสิ่งกีดขวาง (บนผิวจราจร)",
+        "ชนคนเดินเท้า"
+      ],
+      "related_words": [
+        {
+          "thai": "ชนท้าย",
+          "english": "ชนท้าย",
+          "frequency": 1908
+        },
+        {
+          "thai": "ชนด้านข้าง",
+          "english": "ชนด้านข้าง",
+          "frequency": 26
+        },
+        {
+          "thai": "พลิกคว่ำ/ตกถนนในทางตรง",
+          "english": "พลิกคว่ำ/ตกถนนในทางตรง",
+          "frequency": 453
+        },
+        {
+          "thai": "ชนสิ่งกีดขวาง (บนผิวจราจร)",
+          "english": "ชนสิ่งกีดขวาง (บนผิวจราจร)",
+          "frequency": 123
+        },
+        {
+          "thai": "ชนคนเดินเท้า",
+          "english": "ชนคนเดินเท้า",
+          "frequency": 16
+        }
+      ]
+    }
+  },
+  "cameras": [
+    {
+      "camera_id": "BKK_CAM_001",
+      "location": "Asok Intersection (Sukhumvit 21)",
+      "lat": 13.7563,
+      "lon": 100.561,
+      "image": "bangkok_traffic_01.jpg"
+    },
+    {
+      "camera_id": "BKK_CAM_002",
+      "location": "Victory Monument Roundabout",
+      "lat": 13.7632,
+      "lon": 100.538,
+      "image": "bangkok_traffic_02.jpg"
+    },
+    {
+      "camera_id": "BKK_CAM_003",
+      "location": "Lat Phrao / Wang Hin Intersection",
+      "lat": 13.8171,
+      "lon": 100.57,
+      "image": "bangkok_traffic_03.jpg"
+    },
+    {
+      "camera_id": "BKK_CAM_004",
+      "location": "On Nut BTS Station Junction",
+      "lat": 13.7007,
+      "lon": 100.6,
+      "image": "bangkok_traffic_04.jpg"
+    },
+    {
+      "camera_id": "BKK_CAM_005",
+      "location": "Phahon Yothin / Lat Phrao Junction",
+      "lat": 13.8,
+      "lon": 100.543,
+      "image": "bangkok_traffic_05.jpg"
+    },
+    {
+      "camera_id": "BKK_CAM_006",
+      "location": "Rama IV / Silom Intersection",
+      "lat": 13.722,
+      "lon": 100.528,
+      "image": "bangkok_traffic_06.jpg"
+    },
+    {
+      "camera_id": "BKK_CAM_007",
+      "location": "Phra Khanong / Sukhumvit 71",
+      "lat": 13.72,
+      "lon": 100.588,
+      "image": "bangkok_traffic_07.jpg"
+    }
+  ],
+  "model_importance": {
+    "severity": 53.7,
+    "spatial": 20.66,
+    "temporal": 11.83,
+    "vehicle": 9.99,
+    "nlp_text": 3.82,
+    "top_feature": "severity_mean (53.6%)",
+    "key_insight": "Severity of past accidents is the strongest predictor of future danger, not just accident count."
+  }
+}
