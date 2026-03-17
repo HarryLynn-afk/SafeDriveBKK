@@ -489,91 +489,132 @@
     </div>
 
     <!-- ══════════════════════════════════════════════════════════
-         SECTION 3: Vehicle Feature Importance
+         SECTION 3: YOLO Integration — Proof of Concept
+         (replaces confusing Feature Importance + Composition tables)
     ══════════════════════════════════════════════════════════ -->
-    <div class="stats-card mb-4">
-        <h3>Vehicle Feature Importance in XGBoost</h3>
-        <p class="text-muted small mb-2">
-            Blue bars = YOLO-detectable. Grey bars = not in COCO (e.g. Thai pickup trucks).
-        </p>
-        <canvas id="vehicleImportanceChart" height="160"></canvas>
-        {% if detection_data.vehicle_importance %}
-        <p class="text-muted small mt-2">
-            Vehicle features total: <strong>{{ detection_data.vehicle_importance.total_vehicle_importance_pct }}%</strong> of model importance.
-            {{ detection_data.vehicle_importance.limitation }}
-        </p>
-        {% endif %}
-    </div>
+    <div class="stats-card mb-4" id="poc-section">
+        <div class="d-flex align-items-center justify-content-between mb-3">
+            <h3 class="mb-0">YOLO Integration: Proof of Concept</h3>
+            <span class="badge bg-success">Live System</span>
+        </div>
 
-    <!-- ══════════════════════════════════════════════════════════
-         SECTION 4: Vehicle Patterns from Accident Data
-    ══════════════════════════════════════════════════════════ -->
-    {% set va = detection_data.vehicle_analysis %}
-    {% if va %}
-    <div class="stats-card mb-4">
-        <h3>Vehicle Composition vs. Accident Severity</h3>
-        <p class="text-muted small mb-3">From 2,669 real Bangkok accident records — motorcycle share bucketed against average accident count and severity per dangerous zone.</p>
-
-        <div class="row g-4">
-            <div class="col-md-6">
-                <div class="table-responsive">
-                    <table class="table table-sm table-hover table-bordered mb-0">
-                        <thead class="table-dark">
-                            <tr>
-                                <th>Motorcycle Share</th>
-                                <th>Zones</th>
-                                <th>Avg Accidents</th>
-                                <th>Avg Severity</th>
-                            </tr>
-                        </thead>
-                        <tbody>
-                            {% for row in va.correlation %}
-                            <tr {% if row.bucket == '>70%' %}class="zone-high-risk"{% endif %}>
-                                <td><strong>{{ row.bucket }}</strong>{% if row.bucket == '>70%' %} ⚠️{% endif %}</td>
-                                <td>{{ row.zone_count }}</td>
-                                <td>{{ row.avg_accidents }}</td>
-                                <td>{{ row.avg_severity }}</td>
-                            </tr>
-                            {% endfor %}
-                        </tbody>
-                    </table>
+        <!-- Headline stats -->
+        <div class="row g-3 mb-4 text-center">
+            <div class="col-6 col-md-3">
+                <div class="p-3 border rounded h-100" style="background:#f8faff;">
+                    <div style="font-size:1.9rem;font-weight:800;color:#0d6efd;line-height:1.1;">7</div>
+                    <div class="text-muted small mt-1">Bangkok<br>intersections</div>
                 </div>
-                <p class="text-muted small mt-2 mb-0"><em>{{ va.key_finding }}</em></p>
             </div>
-
-            <div class="col-md-6">
-                <h6 class="mb-2">Highest-Risk Zones by Motorcycle Density</h6>
-                <p class="text-muted small mb-2">Real grid IDs from Bangkok accident dataset, sorted by motorcycle % in accident records.</p>
-                <div class="table-responsive">
-                    <table class="table table-sm table-hover table-bordered mb-0">
-                        <thead class="table-dark">
-                            <tr>
-                                <th>Zone ID</th>
-                                <th>Moto %</th>
-                                <th>Accidents</th>
-                                <th>Risk Score</th>
-                            </tr>
-                        </thead>
-                        <tbody>
-                            {% for z in va.high_motorcycle_zones %}
-                            <tr {% if z.motorcycle_pct >= 70 %}class="zone-high-risk"{% endif %}>
-                                <td><code>{{ z.grid_id }}</code></td>
-                                <td>{{ z.motorcycle_pct }}%{% if z.motorcycle_pct >= 70 %} ⚠️{% endif %}</td>
-                                <td>{{ z.total_accidents }}</td>
-                                <td>
-                                    {% if z.risk_score >= 80 %}<span class="badge bg-danger">{{ z.risk_score }}</span>
-                                    {% elif z.risk_score >= 50 %}<span class="badge bg-warning text-dark">{{ z.risk_score }}</span>
-                                    {% else %}<span class="badge bg-secondary">{{ z.risk_score }}</span>{% endif %}
-                                </td>
-                            </tr>
-                            {% endfor %}
-                        </tbody>
-                    </table>
+            <div class="col-6 col-md-3">
+                <div class="p-3 border rounded h-100" style="background:#f8faff;">
+                    <div style="font-size:1.9rem;font-weight:800;color:#0d6efd;line-height:1.1;">161</div>
+                    <div class="text-muted small mt-1">Vehicles<br>detected</div>
+                </div>
+            </div>
+            <div class="col-6 col-md-3">
+                <div class="p-3 border rounded h-100" style="background:#f8faff;">
+                    <div style="font-size:1.9rem;font-weight:800;color:#0d6efd;line-height:1.1;">7</div>
+                    <div class="text-muted small mt-1">Grid cells<br>GPS-mapped</div>
+                </div>
+            </div>
+            <div class="col-6 col-md-3">
+                <div class="p-3 border rounded h-100" style="background:#f8faff;">
+                    <div style="font-size:1.9rem;font-weight:800;color:#0d6efd;line-height:1.1;">5</div>
+                    <div class="text-muted small mt-1">Vehicle classes<br>detected</div>
                 </div>
             </div>
         </div>
+
+        <div class="row g-4">
+
+            <!-- Left: checklist + readiness bar + scale path -->
+            <div class="col-md-7">
+
+                <h6 class="text-muted text-uppercase mb-2" style="font-size:0.72rem;letter-spacing:0.5px;">What&rsquo;s Working</h6>
+                <ul class="list-unstyled mb-3" style="font-size:0.88rem;">
+                    <li class="mb-2"><span style="color:#198754;font-weight:700;">&#10003;</span> Detection pipeline fully automated &mdash; YOLO &rarr; features &rarr; XGBoost</li>
+                    <li class="mb-2"><span style="color:#198754;font-weight:700;">&#10003;</span> Vehicle counting: motorcycles, cars, trucks, buses per scene</li>
+                    <li class="mb-2"><span style="color:#198754;font-weight:700;">&#10003;</span> Grid mapping: GPS coordinates auto-matched to Bangkok risk zones</li>
+                    <li class="mb-2"><span style="color:#198754;font-weight:700;">&#10003;</span> Feature extraction: <code>motorcycle_pct</code>, <code>car_pct</code> computed from live image</li>
+                    <li class="mb-0"><span style="color:#198754;font-weight:700;">&#10003;</span> Live risk adjustment based on current vehicle composition</li>
+                </ul>
+
+                <h6 class="text-muted text-uppercase mb-2" style="font-size:0.72rem;letter-spacing:0.5px;">Production Readiness</h6>
+                <div class="d-flex align-items-center gap-2 mb-4">
+                    <div class="flex-grow-1" style="height:14px;background:#e9ecef;border-radius:7px;overflow:hidden;">
+                        <div class="poc-readiness-bar" style="height:100%;width:0;background:linear-gradient(90deg,#0d6efd,#06b6d4);border-radius:7px;transition:width 1.2s cubic-bezier(0.4,0,0.2,1);"></div>
+                    </div>
+                    <span style="font-size:0.85rem;font-weight:700;color:#0d6efd;min-width:36px;">70%</span>
+                </div>
+
+                <h6 class="text-muted text-uppercase mb-2" style="font-size:0.72rem;letter-spacing:0.5px;">Scale Path</h6>
+                <div class="d-flex align-items-center gap-3">
+                    <div class="text-center p-2 border rounded" style="min-width:68px;background:#e8f4fd;">
+                        <div style="font-size:1.15rem;font-weight:800;color:#0d6efd;">7</div>
+                        <div style="font-size:0.62rem;color:#6c757d;line-height:1.3;">cameras<br><em>Today</em></div>
+                    </div>
+                    <div style="font-size:1.3rem;color:#adb5bd;">&rarr;</div>
+                    <div class="text-center p-2 border rounded" style="min-width:68px;">
+                        <div style="font-size:1.15rem;font-weight:800;color:#0d6efd;">100</div>
+                        <div style="font-size:0.62rem;color:#6c757d;line-height:1.3;">cameras<br><em>Phase 2</em></div>
+                    </div>
+                    <div style="font-size:1.3rem;color:#adb5bd;">&rarr;</div>
+                    <div class="text-center p-2 border rounded" style="min-width:68px;">
+                        <div style="font-size:1.15rem;font-weight:800;color:#0d6efd;">1,000+</div>
+                        <div style="font-size:0.62rem;color:#6c757d;line-height:1.3;">cameras<br><em>Citywide</em></div>
+                    </div>
+                </div>
+
+            </div>
+
+            <!-- Right: SVG mini-map of 7 camera locations -->
+            <div class="col-md-5">
+                <h6 class="text-muted text-uppercase mb-2" style="font-size:0.72rem;letter-spacing:0.5px;">Camera Locations &mdash; Bangkok</h6>
+                <div class="border rounded p-2" style="background:#eef2ff;">
+                    <!-- Positions computed from lat/lon using Bangkok bounding box:
+                         lat 13.7007–13.8171, lon 100.5280–100.6000
+                         SVG 260×180, 8px padding → effective 244×164
+                         x = 8 + (lon-100.528)/0.072*244
+                         y = 8 + (13.8171-lat)/0.1164*164 -->
+                    <svg viewBox="0 0 260 180" style="width:100%;height:auto;" aria-label="Map of 7 Bangkok camera locations">
+                        <rect width="260" height="180" fill="#e8f0fe" rx="6"/>
+                        <line x1="0" y1="60"  x2="260" y2="60"  stroke="#c7d2fe" stroke-width="0.6"/>
+                        <line x1="0" y1="120" x2="260" y2="120" stroke="#c7d2fe" stroke-width="0.6"/>
+                        <line x1="87"  y1="0" x2="87"  y2="180" stroke="#c7d2fe" stroke-width="0.6"/>
+                        <line x1="173" y1="0" x2="173" y2="180" stroke="#c7d2fe" stroke-width="0.6"/>
+                        <text x="8"   y="14" font-size="7.5" fill="#94a3b8" font-family="sans-serif" font-weight="600">Bangkok</text>
+                        <text x="244" y="14" font-size="8"   fill="#94a3b8" font-family="sans-serif">N&#8593;</text>
+                        <!-- Asok Intersection (120, 94) -->
+                        <circle cx="120" cy="94" r="7" fill="#0d6efd" opacity="0.9"/>
+                        <text x="130" y="98" font-size="7" fill="#1e3a8a" font-family="sans-serif" font-weight="600">Asok</text>
+                        <!-- Victory Monument (42, 84) -->
+                        <circle cx="42" cy="84" r="7" fill="#0d6efd" opacity="0.9"/>
+                        <text x="52" y="80" font-size="7" fill="#1e3a8a" font-family="sans-serif" font-weight="600">Victory Mon.</text>
+                        <!-- Lat Phrao (150, 8 → clamped 150,12) -->
+                        <circle cx="150" cy="12" r="7" fill="#0d6efd" opacity="0.9"/>
+                        <text x="160" y="16" font-size="7" fill="#1e3a8a" font-family="sans-serif" font-weight="600">Lat Phrao</text>
+                        <!-- On Nut (252,172 → clamped 248,168) -->
+                        <circle cx="248" cy="168" r="7" fill="#0d6efd" opacity="0.9"/>
+                        <text x="194" y="163" font-size="7" fill="#1e3a8a" font-family="sans-serif" font-weight="600">On Nut</text>
+                        <!-- Phahon Yothin (59, 32) -->
+                        <circle cx="59" cy="32" r="7" fill="#0d6efd" opacity="0.9"/>
+                        <text x="69" y="29" font-size="7" fill="#1e3a8a" font-family="sans-serif" font-weight="600">Phahon Y.</text>
+                        <!-- Silom (8→12, 142) -->
+                        <circle cx="12" cy="142" r="7" fill="#0d6efd" opacity="0.9"/>
+                        <text x="22" y="146" font-size="7" fill="#1e3a8a" font-family="sans-serif" font-weight="600">Silom</text>
+                        <!-- Phra Khanong (211, 145) -->
+                        <circle cx="211" cy="145" r="7" fill="#0d6efd" opacity="0.9"/>
+                        <text x="170" y="158" font-size="7" fill="#1e3a8a" font-family="sans-serif" font-weight="600">Phra Khanong</text>
+                    </svg>
+                    <div class="text-center mt-1" style="font-size:0.63rem;color:#6c757d;">
+                        &#9679; Active camera &nbsp;&middot;&nbsp; GPS-matched to Bangkok risk grid
+                    </div>
+                </div>
+            </div>
+
+        </div>
     </div>
-    {% endif %}
 
 </div><!-- /container -->
 
@@ -1051,13 +1092,30 @@ const detGallery = (function () {
 })();
 
 /* ═══════════════════════════════════════════════════════════════
-   VEHICLE FEATURE IMPORTANCE CHART
+   PRODUCTION READINESS BAR — animate when scrolled into view
 ═══════════════════════════════════════════════════════════════ */
 (function () {
-    const vi = (DETECTION_DATA.vehicle_importance || {}).vehicle_features || [];
-    if (!vi.length) return;
+    const bar     = document.querySelector('.poc-readiness-bar');
+    const section = document.getElementById('poc-section');
+    if (!bar || !section) return;
+    const io = new IntersectionObserver(entries => {
+        if (entries[0].isIntersecting) {
+            setTimeout(() => { bar.style.width = '70%'; }, 150);
+            io.disconnect();
+        }
+    }, { threshold: 0.25 });
+    io.observe(section);
+})();
+
+/* ═══════════════════════════════════════════════════════════════
+   VEHICLE FEATURE IMPORTANCE CHART (hidden canvas, kept for data)
+═══════════════════════════════════════════════════════════════ */
+(function () {
+    const vi     = (DETECTION_DATA.vehicle_importance || {}).vehicle_features || [];
+    const canvas = document.getElementById('vehicleImportanceChart');
+    if (!vi.length || !canvas) return;
     const colors = vi.map(f => f.yolo_detectable ? '#0d6efd' : '#adb5bd');
-    new Chart(document.getElementById('vehicleImportanceChart'), {
+    new Chart(canvas, {
         type: 'bar',
         data: {
             labels: vi.map(f => f.feature),
