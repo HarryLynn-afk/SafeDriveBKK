@@ -272,6 +272,130 @@
     color: #6c757d;
     border-top: 1px solid #e9ecef;
 }
+
+/* ══ LIVE SCAN ANIMATION ══════════════════════════════════════ */
+.det-scan-line {
+    position: absolute; left: 0; right: 0; top: 0; height: 3px;
+    background: linear-gradient(90deg, transparent 0%, #00f5ff 50%, transparent 100%);
+    box-shadow: 0 0 10px #00f5ff, 0 0 22px rgba(0,245,255,0.35);
+    animation: det-scanmove 1.6s linear forwards;
+    pointer-events: none; z-index: 5;
+}
+@keyframes det-scanmove {
+    from { top: 0;    opacity: 1; }
+    to   { top: 100%; opacity: 0.3; }
+}
+
+/* Annotated overlay — hidden until .revealed is added by JS */
+#det-img-ann-overlay {
+    position: absolute; top: 0; left: 0;
+    width: 100%; max-height: 320px; object-fit: cover; display: block;
+    opacity: 0;
+    transition: opacity 0.9s ease;
+    z-index: 2;
+    pointer-events: none;
+}
+#det-img-ann-overlay.revealed { opacity: 1; }
+
+/* Live feed label colour transitions */
+#det-left-label { transition: color 0.4s ease; }
+#det-left-label.scanning { color: #0d6efd; }
+#det-left-label.detected { color: #198754; }
+
+/* ── AI Analysis Panel (right side of images-row) ─── */
+.det-analysis-panel {
+    overflow-y: auto;
+    max-height: 340px;
+}
+.det-analysis-panel .det-img-label {
+    position: sticky; top: 0;
+    background: #fff; z-index: 3;
+    border-bottom: 1px solid #f0f0f0;
+    padding-bottom: 5px;
+}
+
+/* Stage rows */
+.det-stage-row {
+    display: flex; align-items: center; gap: 8px;
+    font-size: 0.8rem; padding: 6px 12px 2px; color: #495057;
+}
+.det-stage-spinner {
+    flex-shrink: 0;
+    width: 12px; height: 12px; border-radius: 50%;
+    border: 2px solid #dee2e6; border-top-color: #0d6efd;
+    animation: det-spin 0.6s linear infinite;
+}
+.det-stage-done-icon { color: #198754; font-size: 0.8rem; flex-shrink: 0; }
+.det-stage-done-text { color: #198754; font-weight: 600; }
+.det-stage-muted     { color: #6c757d; font-style: italic; }
+
+/* Scan progress bar */
+.det-scan-track-wrap { padding: 4px 12px 2px; }
+.det-scan-track {
+    position: relative; height: 8px;
+    background: #e9ecef; border-radius: 4px; overflow: hidden;
+}
+.det-scan-fill {
+    height: 100%;
+    background: linear-gradient(90deg, #0d6efd 0%, #00c8ff 100%);
+    border-radius: 4px; width: 0;
+}
+.det-scan-pct {
+    font-size: 0.62rem; color: #6c757d;
+    text-align: right; padding-top: 1px;
+}
+
+/* Detection items (fade+slide in one by one) */
+.det-det-item {
+    display: flex; align-items: center; justify-content: space-between;
+    font-size: 0.76rem; padding: 2px 12px;
+    opacity: 0; transform: translateX(-10px);
+    transition: opacity 0.22s ease, transform 0.22s ease;
+}
+.det-det-item.visible { opacity: 1; transform: translateX(0); }
+.det-det-conf {
+    font-size: 0.67rem; color: #6c757d;
+    background: #f8f9fa; border: 1px solid #e9ecef;
+    border-radius: 3px; padding: 0 4px;
+}
+.det-det-more {
+    font-size: 0.7rem; color: #6c757d;
+    padding: 1px 12px 4px; font-style: italic;
+}
+
+/* Feature extraction output */
+.det-features-body {
+    font-size: 0.72rem; padding: 3px 12px 6px;
+    display: grid; grid-template-columns: 1fr 1fr; gap: 3px 8px;
+    color: #495057;
+}
+.det-feature-key { color: #6c757d; }
+.det-feature-val { font-weight: 600; color: #0d6efd; }
+
+/* XGBoost risk output */
+.det-xgb-body { padding: 3px 12px 10px; font-size: 0.78rem; }
+.det-xgb-score {
+    display: flex; justify-content: space-between; align-items: center;
+    margin-bottom: 4px;
+}
+.det-live-risk-track {
+    height: 11px; background: #e9ecef;
+    border-radius: 5px; overflow: hidden;
+}
+.det-live-risk-fill {
+    height: 100%; border-radius: 5px;
+    width: 0; transition: width 0.9s cubic-bezier(0.4,0,0.2,1);
+}
+
+/* Replay button */
+.det-replay-btn {
+    display: block; margin: 8px 12px 6px;
+    padding: 5px 14px; font-size: 0.76rem;
+    border: 1px solid #dee2e6; border-radius: 6px;
+    background: #f8f9fa; cursor: pointer;
+    transition: background 0.15s, border-color 0.15s; color: #495057;
+}
+.det-replay-btn:hover { background: #e9ecef; border-color: #adb5bd; }
 </style>
 {% endblock %}
 
@@ -468,22 +592,73 @@
             <button class="det-close-btn" onclick="detGallery.close()" aria-label="Close">&times;</button>
         </div>
 
-        <!-- Before / After images -->
+        <!-- Left: original → annotated crossfade | Right: live AI analysis panel -->
         <div class="det-images-row">
+
+            <!-- LEFT — image with scan line + annotated overlay -->
             <div class="det-img-panel">
-                <div class="det-img-label">BEFORE &mdash; Original</div>
-                <div style="position:relative;">
+                <div class="det-img-label" id="det-left-label">LIVE FEED &mdash; Loading&hellip;</div>
+                <div style="position:relative; overflow:hidden;" id="det-img-wrap">
                     <img id="det-img-orig" src="" alt="Original traffic scene">
                     <div class="det-spinner" id="det-spin-orig"></div>
+                    <img id="det-img-ann-overlay" src="" alt="YOLO annotated scene">
+                    <!-- scan line injected here by JS -->
                 </div>
             </div>
-            <div class="det-img-panel">
-                <div class="det-img-label">AFTER &mdash; YOLOv8 Detection</div>
-                <div style="position:relative;">
-                    <img id="det-img-ann" src="" alt="YOLO annotated scene">
-                    <div class="det-spinner" id="det-spin-ann"></div>
+
+            <!-- RIGHT — AI Analysis Panel (animated pipeline) -->
+            <div class="det-img-panel det-analysis-panel">
+                <div class="det-img-label">AI ANALYSIS</div>
+                <div id="det-analysis-body">
+
+                    <!-- Stage 0: initialising -->
+                    <div class="det-stage-row" id="det-stage-init">
+                        <span class="det-stage-spinner"></span>
+                        <span class="det-stage-muted" id="det-stage-init-text">Initializing camera feed&hellip;</span>
+                    </div>
+
+                    <!-- Stage 1: scanning -->
+                    <div id="det-stage-scan" style="display:none">
+                        <div class="det-stage-row">
+                            <span class="det-stage-spinner"></span>
+                            <span>🔍 Running YOLOv8 Detection&hellip;</span>
+                        </div>
+                        <div class="det-scan-track-wrap">
+                            <div class="det-scan-track">
+                                <div class="det-scan-fill" id="det-scan-fill"></div>
+                            </div>
+                            <div class="det-scan-pct" id="det-scan-pct">0%</div>
+                        </div>
+                    </div>
+
+                    <!-- Detection items (populated by JS, one-by-one) -->
+                    <div id="det-items-list"></div>
+
+                    <!-- Stage 2: feature extraction -->
+                    <div id="det-stage-features" style="display:none">
+                        <div class="det-stage-row">
+                            <span class="det-stage-done-icon">✓</span>
+                            <span class="det-stage-done-text">Feature Extraction</span>
+                        </div>
+                        <div class="det-features-body" id="det-features-body"></div>
+                    </div>
+
+                    <!-- Stage 3: XGBoost prediction -->
+                    <div id="det-stage-xgb" style="display:none">
+                        <div class="det-stage-row">
+                            <span class="det-stage-done-icon">✓</span>
+                            <span class="det-stage-done-text">XGBoost Prediction</span>
+                        </div>
+                        <div class="det-xgb-body" id="det-xgb-body"></div>
+                    </div>
+
+                    <!-- Replay button (appears after animation completes) -->
+                    <button class="det-replay-btn" id="det-replay-btn"
+                            style="display:none" onclick="detGallery.replay()">&#8635; Replay</button>
+
                 </div>
             </div>
+
         </div>
 
         <!-- Vehicle counts + Risk meters -->
@@ -510,76 +685,89 @@
 const DETECTION_DATA = {{ detection_data | tojson }};
 
 /* ═══════════════════════════════════════════════════════════════
-   DETECTION GALLERY — modal, navigation, vehicle bars, risk meters
+   DETECTION GALLERY — split-screen live comparison
+   Left panel: original → scan line → annotated crossfade
+   Right panel: animated AI pipeline (scan %, detections, features, risk)
 ═══════════════════════════════════════════════════════════════ */
 const detGallery = (function () {
-    const imgs   = DETECTION_DATA.image_results || [];
-    const total  = imgs.length;
-    let current  = 0;
-    let isOpen   = false;
+    const imgs  = DETECTION_DATA.image_results || [];
+    const total = imgs.length;
+    let current = 0;
+    let isOpen  = false;
 
-    // DOM refs (resolved once on first open)
-    let backdrop, panel, btnPrev, btnNext, counter,
-        titleEl, imgOrig, imgAnn, spinOrig, spinAnn,
-        vcountsEl, riskEl, zoneEl;
+    // DOM refs (lazy-resolved on first open)
+    let backdrop, panel, btnPrev, btnNext, counter, titleEl, zoneEl,
+        imgOrig, annOverlay, spinOrig, imgWrap, leftLabel,
+        scanFill, scanPct, stageInit, stageInitText, stageScan,
+        stageFeatures, stageXgb, itemsList, featuresBody, xgbBody,
+        replayBtn, vcountsEl, riskEl;
+
+    // Animation timers (cleared on navigate/close)
+    let _timers = [];
+    let _scanIv = null;
 
     function _refs() {
         if (backdrop) return;
-        backdrop  = document.getElementById('det-backdrop');
-        panel     = document.getElementById('det-panel');
-        btnPrev   = document.getElementById('det-btn-prev');
-        btnNext   = document.getElementById('det-btn-next');
-        counter   = document.getElementById('det-counter');
-        titleEl   = document.getElementById('det-title');
-        imgOrig   = document.getElementById('det-img-orig');
-        imgAnn    = document.getElementById('det-img-ann');
-        spinOrig  = document.getElementById('det-spin-orig');
-        spinAnn   = document.getElementById('det-spin-ann');
-        vcountsEl = document.getElementById('det-vcounts');
-        riskEl    = document.getElementById('det-risk');
-        zoneEl    = document.getElementById('det-zone');
+        backdrop      = document.getElementById('det-backdrop');
+        panel         = document.getElementById('det-panel');
+        btnPrev       = document.getElementById('det-btn-prev');
+        btnNext       = document.getElementById('det-btn-next');
+        counter       = document.getElementById('det-counter');
+        titleEl       = document.getElementById('det-title');
+        zoneEl        = document.getElementById('det-zone');
+        imgOrig       = document.getElementById('det-img-orig');
+        annOverlay    = document.getElementById('det-img-ann-overlay');
+        spinOrig      = document.getElementById('det-spin-orig');
+        imgWrap       = document.getElementById('det-img-wrap');
+        leftLabel     = document.getElementById('det-left-label');
+        scanFill      = document.getElementById('det-scan-fill');
+        scanPct       = document.getElementById('det-scan-pct');
+        stageInit     = document.getElementById('det-stage-init');
+        stageInitText = document.getElementById('det-stage-init-text');
+        stageScan     = document.getElementById('det-stage-scan');
+        stageFeatures = document.getElementById('det-stage-features');
+        stageXgb      = document.getElementById('det-stage-xgb');
+        itemsList     = document.getElementById('det-items-list');
+        featuresBody  = document.getElementById('det-features-body');
+        xgbBody       = document.getElementById('det-xgb-body');
+        replayBtn     = document.getElementById('det-replay-btn');
+        vcountsEl     = document.getElementById('det-vcounts');
+        riskEl        = document.getElementById('det-risk');
     }
 
-    /* ── thumbnail active state ────────────────────────── */
+    /* ── clear all running animation timers ─────────────── */
+    function _clearAnim() {
+        _timers.forEach(clearTimeout); _timers = [];
+        if (_scanIv) { clearInterval(_scanIv); _scanIv = null; }
+    }
+
+    /* ── helper: setTimeout tracked for cleanup ─────────── */
+    function _t(fn, ms) { _timers.push(setTimeout(fn, ms)); }
+
+    /* ── highlight active thumbnail ─────────────────────── */
     function _highlightThumb(idx) {
-        document.querySelectorAll('.det-thumb').forEach((el, i) => {
-            el.classList.toggle('active', i === idx);
-        });
+        document.querySelectorAll('.det-thumb').forEach((el, i) =>
+            el.classList.toggle('active', i === idx));
     }
 
-    /* ── image loader with spinner ──────────────────────── */
-    function _loadImg(imgEl, spinEl, src) {
-        imgEl.classList.remove('loaded');
-        spinEl.classList.remove('hidden');
-        imgEl.onload  = () => { imgEl.classList.add('loaded'); spinEl.classList.add('hidden'); };
-        imgEl.onerror = () => { spinEl.classList.add('hidden'); imgEl.style.opacity = '0.3'; };
-        imgEl.src = src;
+    /* ── risk bar colour ─────────────────────────────────── */
+    function _riskColor(s) {
+        return s >= 70 ? '#dc3545' : s >= 40 ? '#fd7e14' : '#198754';
     }
 
-    /* ── risk colour ────────────────────────────────────── */
-    function _riskColor(score) {
-        if (score >= 70) return '#dc3545';
-        if (score >= 40) return '#fd7e14';
-        return '#198754';
-    }
-
-    /* ── vehicle count bars ─────────────────────────────── */
+    /* ── vehicle count bars (stats row below images) ─────── */
     function _renderVehicles(vc) {
-        const moto  = vc.motorcycle || 0;
-        const car   = vc.car        || 0;
-        const truck = vc.truck      || 0;
-        const bus   = vc.bus        || 0;
-        const tot   = Math.max(moto + car + truck + bus, 1);
-
+        const moto = vc.motorcycle||0, car = vc.car||0,
+              truck = vc.truck||0,     bus = vc.bus||0;
+        const tot = Math.max(moto+car+truck+bus, 1);
         const rows = [
-            { icon: '🏍️', label: 'Motorcycle', count: moto,  color: '#ef4444' },
-            { icon: '🚗', label: 'Car',         count: car,   color: '#3b82f6' },
-            { icon: '🚛', label: 'Truck',       count: truck, color: '#eab308' },
-            { icon: '🚌', label: 'Bus',         count: bus,   color: '#22c55e' },
+            { icon:'🏍️', label:'Motorcycle', count:moto,  color:'#ef4444' },
+            { icon:'🚗', label:'Car',         count:car,   color:'#3b82f6' },
+            { icon:'🚛', label:'Truck',       count:truck, color:'#eab308' },
+            { icon:'🚌', label:'Bus',         count:bus,   color:'#22c55e' },
         ];
-
         vcountsEl.innerHTML = rows.map(r => {
-            const pct = Math.round(r.count / tot * 100);
+            const pct = Math.round(r.count/tot*100);
             return `<div class="det-vbar-row">
                 <div class="det-vbar-header">
                     <span>${r.icon} ${r.label}</span>
@@ -590,8 +778,6 @@ const detGallery = (function () {
                 </div>
             </div>`;
         }).join('');
-
-        // Animate bars next frame
         requestAnimationFrame(() => {
             vcountsEl.querySelectorAll('.det-vbar-fill').forEach(el => {
                 el.style.width = el.dataset.w + '%';
@@ -599,48 +785,37 @@ const detGallery = (function () {
         });
     }
 
-    /* ── risk meters ────────────────────────────────────── */
+    /* ── risk meters (stats row below images) ────────────── */
     function _renderRisk(img) {
-        const baseRisk = img.risk_score || 0;
-        const vc       = img.vehicle_counts || {};
-        const moto     = vc.motorcycle || 0;
-        const tot      = Math.max(moto + (vc.car||0) + (vc.truck||0) + (vc.bus||0), 1);
-        const motoPct  = moto / tot * 100;
-
-        let bump = 0;
-        if      (motoPct > 70) bump = 20;
-        else if (motoPct > 60) bump = 15;
-        else if (motoPct > 50) bump = 10;
-
-        const liveRisk  = Math.min(100, Math.round(baseRisk + bump));
-        const elevated  = bump > 0;
-        const baseColor = _riskColor(baseRisk);
-        const liveColor = _riskColor(liveRisk);
-        const critical  = liveRisk >= 80;
-
+        const base = img.risk_score || 0;
+        const vc   = img.vehicle_counts || {};
+        const moto = vc.motorcycle||0;
+        const tot  = Math.max(moto+(vc.car||0)+(vc.truck||0)+(vc.bus||0), 1);
+        const mp   = moto/tot*100;
+        const bump = mp>70?20 : mp>60?15 : mp>50?10 : 0;
+        const live = Math.min(100, Math.round(base+bump));
+        const bc = _riskColor(base), lc = _riskColor(live);
+        const critical = live >= 80;
         riskEl.innerHTML = `
             <div class="det-risk-row">
                 <div class="det-risk-header">
                     <span>Historical base</span>
-                    <strong style="color:${baseColor}">${Math.round(baseRisk)}/100</strong>
+                    <strong style="color:${bc}">${Math.round(base)}/100</strong>
                 </div>
                 <div class="det-risk-track">
-                    <div class="det-risk-fill" data-w="${Math.round(baseRisk)}" style="background:${baseColor};"></div>
+                    <div class="det-risk-fill" data-w="${Math.round(base)}" style="background:${bc};"></div>
                 </div>
             </div>
-            <div class="det-risk-row${critical ? ' det-risk-critical' : ''}">
+            <div class="det-risk-row${critical?' det-risk-critical':''}">
                 <div class="det-risk-header">
-                    <span>Live snapshot${elevated ? ' ⚠️' : ''}</span>
-                    <strong style="color:${liveColor}">${liveRisk}/100${elevated ? `<span class="det-risk-delta">+${bump}</span>` : ''}</strong>
+                    <span>Live snapshot${bump>0?' ⚠️':''}</span>
+                    <strong style="color:${lc}">${live}/100${bump>0?`<span class="det-risk-delta">+${bump}</span>`:''}</strong>
                 </div>
                 <div class="det-risk-track">
-                    <div class="det-risk-fill" data-w="${liveRisk}" style="background:${liveColor};"></div>
+                    <div class="det-risk-fill" data-w="${live}" style="background:${lc};"></div>
                 </div>
             </div>
-            ${elevated ? `<div style="font-size:0.72rem;color:#fd7e14;margin-top:5px;">Motorcycle share elevated &mdash; live risk adjusted upward.</div>` : ''}
-        `;
-
-        // Animate fills next frame
+            ${bump>0?`<div style="font-size:0.72rem;color:#fd7e14;margin-top:5px;">Motorcycle share elevated &mdash; live risk adjusted upward.</div>`:''}`;
         requestAnimationFrame(() => {
             riskEl.querySelectorAll('.det-risk-fill').forEach(el => {
                 el.style.width = el.dataset.w + '%';
@@ -648,35 +823,172 @@ const detGallery = (function () {
         });
     }
 
-    /* ── populate modal for scene idx ──────────────────── */
-    function _populate(idx) {
+    /* ── LIVE ANIMATION SEQUENCE ─────────────────────────── */
+    function _playAnimation(idx) {
+        _clearAnim();
         const img = imgs[idx];
         if (!img) return;
 
-        // Header
+        // ── RESET ──
+        stageInit.style.display      = '';
+        stageScan.style.display      = 'none';
+        stageFeatures.style.display  = 'none';
+        stageXgb.style.display       = 'none';
+        replayBtn.style.display      = 'none';
+        itemsList.innerHTML          = '';
+        featuresBody.innerHTML       = '';
+        xgbBody.innerHTML            = '';
+        scanFill.style.width         = '0';
+        scanPct.textContent          = '0%';
+        stageInitText.textContent    = 'Initializing camera feed\u2026';
+        leftLabel.textContent        = 'LIVE FEED \u2014 Camera';
+        leftLabel.className          = 'det-img-label scanning';
+        annOverlay.classList.remove('revealed');
+        // Remove any lingering scan line
+        const oldLine = imgWrap.querySelector('.det-scan-line');
+        if (oldLine) oldLine.remove();
+
+        // ── LOAD IMAGES ──
+        // Original (with spinner)
+        imgOrig.classList.remove('loaded');
+        spinOrig.classList.remove('hidden');
+        imgOrig.onload  = () => { imgOrig.classList.add('loaded'); spinOrig.classList.add('hidden'); };
+        imgOrig.onerror = () => { spinOrig.classList.add('hidden'); };
+        imgOrig.src = `/static/sample_images/${img.image_name}`;
+        // Annotated pre-loads silently (will be revealed at 60% scan)
+        annOverlay.onload = null;
+        annOverlay.src = `/static/${img.annotated_image}`;
+
+        // ── PHASE 1 (400ms): scanning starts ──
+        _t(() => {
+            stageInitText.textContent = 'Camera feed connected \u2714';
+
+            stageScan.style.display = '';
+
+            // Inject cyan scan line div
+            const sl = document.createElement('div');
+            sl.className = 'det-scan-line';
+            imgWrap.appendChild(sl);
+
+            // Tick progress bar (10ms interval, +0.7% per tick → 100% in ~1430ms)
+            let pct = 0;
+            _scanIv = setInterval(() => {
+                pct = Math.min(100, pct + 0.7);
+                scanFill.style.width = pct + '%';
+                scanPct.textContent  = Math.round(pct) + '%';
+
+                // At 60% → crossfade to annotated image
+                if (pct >= 60 && !annOverlay.classList.contains('revealed')) {
+                    annOverlay.classList.add('revealed');
+                    leftLabel.textContent = 'DETECTED \u2014 YOLOv8';
+                    leftLabel.className   = 'det-img-label detected';
+                }
+
+                // Done
+                if (pct >= 100) {
+                    clearInterval(_scanIv); _scanIv = null;
+                    const line = imgWrap.querySelector('.det-scan-line');
+                    if (line) { line.style.opacity = '0'; setTimeout(() => line.remove(), 400); }
+                }
+            }, 10);
+        }, 400);
+
+        // ── PHASE 2 (600ms+): detection items appear one by one ──
+        const ICONS = { motorcycle:'🏍️', car:'🚗', truck:'🚛', bus:'🚌', person:'🚶' };
+        const detections = img.detections || [];
+        const MAX = 12;
+        const shown = detections.slice(0, MAX);
+
+        shown.forEach((det, i) => {
+            _t(() => {
+                const icon = ICONS[det.class_name] || '📦';
+                const conf = ((det.confidence || 0) * 100).toFixed(1);
+                const div  = document.createElement('div');
+                div.className = 'det-det-item';
+                div.innerHTML = `<span>${icon} ${det.class_name}</span><span class="det-det-conf">${conf}%</span>`;
+                itemsList.appendChild(div);
+                requestAnimationFrame(() => div.classList.add('visible'));
+            }, 600 + i * 130);
+        });
+
+        if (detections.length > MAX) {
+            _t(() => {
+                const more = document.createElement('div');
+                more.className = 'det-det-more';
+                more.textContent = `+${detections.length - MAX} more detected`;
+                itemsList.appendChild(more);
+            }, 600 + MAX * 130);
+        }
+
+        // Base time after last item (or minimum 1900ms)
+        const afterItems = 600 + Math.min(shown.length, MAX) * 130 + 300;
+
+        // ── PHASE 3: feature extraction ──
+        const featDelay = Math.max(afterItems, 1900);
+        _t(() => {
+            stageFeatures.style.display = '';
+            const xf  = img.xgboost_features || {};
+            const tot = Math.max(img.total_vehicles || 1, 1);
+            featuresBody.innerHTML = [
+                ['motorcycle_pct', ((xf.motorcycle_pct   || 0).toFixed(2) + '%')],
+                ['car_pct',        ((xf.car_pct          || 0).toFixed(2) + '%')],
+                ['truck_pct',      ((xf.heavy_truck_pct  || 0).toFixed(2) + '%')],
+                ['total_vehicles', tot],
+            ].map(([k,v]) =>
+                `<span class="det-feature-key">${k}:</span><span class="det-feature-val">${v}</span>`
+            ).join('');
+        }, featDelay);
+
+        // ── PHASE 4: XGBoost prediction + risk ──
+        const xgbDelay = Math.max(afterItems + 700, 2500);
+        _t(() => {
+            stageXgb.style.display = '';
+            const vc   = img.vehicle_counts || {};
+            const moto = vc.motorcycle||0;
+            const tot2 = Math.max(moto+(vc.car||0)+(vc.truck||0)+(vc.bus||0), 1);
+            const mp   = moto/tot2*100;
+            const bump = mp>70?20 : mp>60?15 : mp>50?10 : 0;
+            const base = img.risk_score || 0;
+            const live = Math.min(100, Math.round(base+bump));
+            const col  = _riskColor(live);
+            xgbBody.innerHTML = `
+                <div class="det-xgb-score">
+                    <span>Risk Score</span>
+                    <strong style="color:${col}">${live}/100${bump>0?` <span style="color:#fd7e14;font-size:0.7rem">+${bump}</span>`:''}</strong>
+                </div>
+                <div class="det-live-risk-track">
+                    <div class="det-live-risk-fill" id="det-live-fill" style="background:${col};"></div>
+                </div>
+                ${bump>0?'<div style="font-size:0.7rem;color:#fd7e14;margin-top:4px;">⚠️ Motorcycle share elevated</div>':''}`;
+            requestAnimationFrame(() => {
+                const f = document.getElementById('det-live-fill');
+                if (f) f.style.width = live + '%';
+            });
+            // Also populate the summary stats row below images
+            _renderVehicles(vc);
+            _renderRisk(img);
+        }, xgbDelay);
+
+        // ── PHASE 5: replay button ──
+        _t(() => { replayBtn.style.display = ''; }, xgbDelay + 1100);
+    }
+
+    /* ── populate header + zone + trigger animation ──────── */
+    function _populate(idx) {
+        const img = imgs[idx];
+        if (!img) return;
         counter.textContent = `Scene ${idx + 1} of ${total}`;
         titleEl.textContent = img.location_name || img.description || img.image_name;
         btnPrev.disabled = (idx === 0);
         btnNext.disabled = (idx === total - 1);
-
-        // Images
-        _loadImg(imgOrig, spinOrig, `/static/sample_images/${img.image_name}`);
-        _loadImg(imgAnn,  spinAnn,  `/static/${img.annotated_image}`);
-
-        // Stats
-        _renderVehicles(img.vehicle_counts || {});
-        _renderRisk(img);
-
-        // Zone info
         const parts = [];
-        if (img.grid_id)       parts.push(`📍 Zone: <strong>${img.grid_id}</strong>`);
-        if (img.camera_id)     parts.push(`📷 ${img.camera_id}`);
-        if (img.latitude)      parts.push(`🌐 ${img.latitude.toFixed(4)}, ${img.longitude.toFixed(4)}`);
+        if (img.grid_id)   parts.push(`📍 Zone: <strong>${img.grid_id}</strong>`);
+        if (img.camera_id) parts.push(`📷 ${img.camera_id}`);
+        if (img.latitude)  parts.push(`🌐 ${img.latitude.toFixed(4)}, ${img.longitude.toFixed(4)}`);
         zoneEl.innerHTML = parts.join('&ensp;·&ensp;');
-
-        // Thumbnail highlight
         _highlightThumb(idx);
         current = idx;
+        _playAnimation(idx);
     }
 
     /* ── open ───────────────────────────────────────────── */
@@ -684,34 +996,31 @@ const detGallery = (function () {
         _refs();
         if (!total) return;
         idx = Math.max(0, Math.min(total - 1, idx));
-
-        // Reset scroll position in panel
         panel.scrollTop = 0;
-
         _populate(idx);
-
         backdrop.classList.add('open');
         document.body.style.overflow = 'hidden';
         isOpen = true;
-
-        // focus panel for keyboard events
-        panel.focus && panel.focus();
     }
 
     /* ── close ──────────────────────────────────────────── */
     function close() {
         _refs();
+        _clearAnim();
         backdrop.classList.remove('open');
         document.body.style.overflow = '';
         isOpen = false;
     }
 
-    /* ── navigate inside modal ──────────────────────────── */
+    /* ── navigate inside modal (clears running animation) ── */
     function navigate(delta) {
         if (!isOpen) return;
         const next = current + delta;
-        if (next >= 0 && next < total) _populate(next);
+        if (next >= 0 && next < total) { _clearAnim(); _populate(next); }
     }
+
+    /* ── replay current scene ───────────────────────────── */
+    function replay() { _clearAnim(); _playAnimation(current); }
 
     /* ── backdrop click-outside ─────────────────────────── */
     document.addEventListener('DOMContentLoaded', () => {
@@ -738,7 +1047,7 @@ const detGallery = (function () {
         });
     });
 
-    return { open, close, navigate };
+    return { open, close, navigate, replay };
 })();
 
 /* ═══════════════════════════════════════════════════════════════
