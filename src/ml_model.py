@@ -140,8 +140,8 @@ class RiskPredictor:
 
         values = []
         for feat in self._feature_names:
-            val = row.get(feat, 0.0)
-            values.append(float(val) if not pd.isna(val) else 0.0)
+            val = row.get(feat, np.nan)
+            values.append(float(val) if not pd.isna(val) else np.nan)
 
         return pd.DataFrame([values], columns=self._feature_names)
 

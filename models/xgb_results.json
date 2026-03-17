@@ -23,64 +23,64 @@
   "winner_vs_rf": "XGBoost",
   "top_15_features": [
     {
-      "feature": "severity_mean",
-      "importance": 0.53624
-    },
-    {
       "feature": "grid_density",
-      "importance": 0.19613
+      "importance": 0.46239
     },
     {
       "feature": "month_spread",
-      "importance": 0.09755
+      "importance": 0.43487
     },
     {
       "feature": "pickup_count",
-      "importance": 0.0739
-    },
-    {
-      "feature": "rush_hour_pct",
-      "importance": 0.02079
-    },
-    {
-      "feature": "type_ชนด้านข้าง",
-      "importance": 0.01817
-    },
-    {
-      "feature": "type_ชนท้าย",
-      "importance": 0.01757
-    },
-    {
-      "feature": "pickup_pct",
-      "importance": 0.01732
+      "importance": 0.03411
     },
     {
       "feature": "accidents_neighbors_max",
-      "importance": 0.00834
-    },
-    {
-      "feature": "motorcycle_count",
-      "importance": 0.00335
-    },
-    {
-      "feature": "car_count",
-      "importance": 0.00327
-    },
-    {
-      "feature": "cause_คน/รถ/สัตว์ตัดหน้ากระชั้นชิด",
-      "importance": 0.00174
-    },
-    {
-      "feature": "motorcycle_pct",
-      "importance": 0.00161
-    },
-    {
-      "feature": "accidents_sw",
-      "importance": 0.00143
+      "importance": 0.02059
     },
     {
       "feature": "severity_total",
-      "importance": 0.00073
+      "importance": 0.01617
+    },
+    {
+      "feature": "car_count",
+      "importance": 0.01549
+    },
+    {
+      "feature": "accidents_nw",
+      "importance": 0.00453
+    },
+    {
+      "feature": "car_pct",
+      "importance": 0.00446
+    },
+    {
+      "feature": "motorcycle_count",
+      "importance": 0.00387
+    },
+    {
+      "feature": "accidents_neighbors_mean",
+      "importance": 0.00131
+    },
+    {
+      "feature": "weekend_pct",
+      "importance": 0.00128
+    },
+    {
+      "feature": "accidents_n",
+      "importance": 0.00093
+    },
+    {
+      "feature": "accidents_e",
+      "importance": 0.0
+    },
+    {
+      "feature": "accidents_ne",
+      "importance": 0.0
+    },
+    {
+      "feature": "accidents_neighbors_total",
+      "importance": 0.0
     }
   ]
 }

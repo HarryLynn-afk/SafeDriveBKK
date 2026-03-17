@@ -685,13 +685,39 @@
                     <li>Vehicle diversity</li>
                 </ul>
             </div>
+            <div class="feature-category" style="border-top: 3px solid #0d6efd;">
+                <div class="category-icon">&#x1F4F7;</div>
+                <h4>YOLOv8 Live (5) <span class="badge bg-primary" style="font-size:0.65rem; vertical-align:middle;">NEW</span></h4>
+                <ul>
+                    <li>Live motorcycle % (camera)</li>
+                    <li>Live car % (camera)</li>
+                    <li>Live truck % (camera)</li>
+                    <li>Total vehicles detected</li>
+                    <li>Has camera coverage flag</li>
+                </ul>
+            </div>
+        </div>
+
+        <div class="ml-tech-note" style="border-left: 4px solid #0d6efd;">
+            <p>
+                <strong>&#x1F4F7; YOLOv8 Integration (Proof of Concept):</strong>
+                The model now includes 5 live camera features extracted from YOLOv8 detections
+                at 7 Bangkok intersections (Asok, Victory Monument, Lat Phrao, On Nut, Phahon Yothin,
+                Silom, Phra Khanong). These features are passed as <code>NaN</code> for the 2,411 grid
+                cells without cameras — XGBoost handles missing values natively via its learned split
+                direction. At 7/2,418 cells (0.3% coverage), the features register in the model
+                architecture but carry zero importance; importance will increase as the camera network
+                scales. No model retraining is required to add new cameras — update
+                <code>static/camera_locations.json</code> and re-run
+                <code>scripts/setup_nlp_detection.py</code>.
+            </p>
         </div>
 
         <div class="ml-tech-note">
             <p>
                 <em><strong>Methodology:</strong> All models trained on 2,669 real Bangkok accidents (2024)
-                with 44 engineered features across spatial, temporal, severity, and vehicle dimensions.
-                XGBoost selected as production model with spatial analysis available as fallback.</em>
+                with 49 engineered features across spatial, temporal, severity, vehicle, and live-camera
+                dimensions. XGBoost selected as production model with spatial analysis available as fallback.</em>
             </p>
         </div>
     </div>
