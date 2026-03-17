@@ -1415,122 +1415,6 @@ def nlp_wordcloud():
 
 
 # ---------------------------------------------------------------------------
-# Object Detection (Track 3) — serves from cache
-# ---------------------------------------------------------------------------
-DETECTION_CACHE_PATH = BASE_DIR / "static" / "detection_cache.json"
-
-
-def _load_detection_cache():
-    try:
-        if DETECTION_CACHE_PATH.exists():
-            with open(DETECTION_CACHE_PATH, encoding="utf-8") as f:
-                return json.load(f)
-    except (json.JSONDecodeError, OSError):
-        pass
-    # Return skeleton with pipeline data even without images
-    return {
-        "image_results": [],
-        "comparisons": [],
-        "vehicle_importance": _get_vehicle_importance_fallback(),
-        "pipeline": _get_pipeline_fallback(),
-        "total_images": 0,
-    }
-
-
-def _get_vehicle_importance_fallback():
-    """Vehicle feature importance from CSV when no detection cache exists."""
-    try:
-        imp_path = BASE_DIR / "models" / "xgb_feature_importance.csv"
-        if not imp_path.exists():
-            return {}
-        imp = pd.read_csv(imp_path)
-        imp_dict = dict(zip(imp["feature"], imp["importance"]))
-        vehicle_features = [
-            "pickup_count", "pickup_pct", "motorcycle_count", "car_count",
-            "motorcycle_pct", "car_pct", "heavy_truck_count", "heavy_truck_pct",
-            "max_vehicles",
-        ]
-        features = []
-        total = 0
-        for f in vehicle_features:
-            v = imp_dict.get(f, 0)
-            total += v
-            features.append({
-                "feature": f,
-                "importance_pct": round(v * 100, 3),
-                "yolo_detectable": f not in ("pickup_count", "pickup_pct", "max_vehicles"),
-            })
-        features.sort(key=lambda x: x["importance_pct"], reverse=True)
-        return {
-            "vehicle_features": features,
-            "total_vehicle_importance_pct": round(total * 100, 2),
-            "highlight": "pickup_count is #4 most important feature overall at 7.39%",
-            "limitation": "COCO has no pickup class; pickups classified as car/truck by YOLO",
-        }
-    except Exception:
-        return {}
-
-
-def _get_pipeline_fallback():
-    """Static pipeline diagram data."""
-    return {
-        "stages": [
-            {"stage": 1, "title": "Camera Feed", "description": "CCTV camera at Bangkok intersection", "icon": "camera"},
-            {"stage": 2, "title": "YOLOv8 Detection", "description": "Process frame, detect vehicles by type", "icon": "eye",
-             "features_produced": ["car_count", "motorcycle_count", "heavy_truck_count"]},
-            {"stage": 3, "title": "Feature Aggregation", "description": "Aggregate counts per grid cell per time window", "icon": "grid",
-             "features_produced": ["motorcycle_pct", "car_pct", "heavy_truck_pct"]},
-            {"stage": 4, "title": "XGBoost Prediction", "description": "Feed vehicle features into trained model", "icon": "brain"},
-            {"stage": 5, "title": "Dynamic Risk Map", "description": "Real-time risk score updates per zone", "icon": "map"},
-        ],
-        "key_message": "No model retraining needed. YOLO provides fresher values for features the model already understands.",
-    }
-
-
-@app.route("/detection")
-def detection():
-    """Object detection page — YOLO vehicle detection mapped to XGBoost features."""
-    detection_data = _load_detection_cache()
-    return render_template("detection.html", detection_data=detection_data)
-
-
-@app.route("/api/detection/results")
-def detection_results():
-    """All detection results from cache."""
-    try:
-        cache = _load_detection_cache()
-        return jsonify({
-            "image_results": cache.get("image_results", []),
-            "total_images": cache.get("total_images", 0),
-        })
-    except Exception as exc:
-        return jsonify({"error": str(exc)}), 500
-
-
-@app.route("/api/detection/compare/<grid_id>")
-def detection_compare(grid_id):
-    """YOLO vs model comparison for a specific grid zone."""
-    try:
-        cache = _load_detection_cache()
-        for comp in cache.get("comparisons", []):
-            if comp.get("grid_id") == grid_id:
-                return jsonify(comp)
-        return jsonify({"error": f"No comparison data for grid {grid_id}"}), 404
-    except Exception as exc:
-        return jsonify({"error": str(exc)}), 500
-
-
-@app.route("/api/detection/pipeline")
-def detection_pipeline():
-    """Future vision pipeline diagram data."""
-    try:
-        cache = _load_detection_cache()
-        return jsonify(cache.get("pipeline", {}))
-    except Exception as exc:
-        return jsonify({"error": str(exc)}), 500
-
-
-# ---------------------------------------------------------------------------
 # Chatbot — hybrid scripted + Groq AI
 # ---------------------------------------------------------------------------
 
@@ -1625,9 +1509,7 @@ if __name__ == "__main__":
     print("  POST /api/compare-predictions  ML vs spatial")
     print("  POST /api/refresh-demo-routes  Refresh demos")
     print("  GET  /nlp                      NLP analysis (Track 1)")
-    print("  GET  /detection                Object detection (Track 3)")
     print("  GET  /api/nlp/*                NLP endpoints")
-    print("  GET  /api/detection/*          Detection endpoints")
     print("  POST /api/chatbot              Hybrid chatbot")
     print("  GET  /api/chatbot/suggestions  Suggested questions")
     print("=" * 64)
