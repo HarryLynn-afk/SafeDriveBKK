@@ -34,14 +34,11 @@ def load_chatbot_data():
 
 
 def _fmt_zone_list(zones, limit=5):
-    """Format a list of zone dicts into numbered lines."""
+    """Format a list of zone dicts into simple bullet lines."""
     lines = []
-    for i, z in enumerate(zones[:limit], 1):
-        risk_badge = "HIGH" if z.get("risk_score", 0) >= 55 else "MEDIUM" if z.get("risk_score", 0) >= 30 else "LOW"
-        lines.append(
-            f"{i}. {z['location']} — {z.get('cause_count', z.get('total_accidents', '?'))} accidents, "
-            f"risk score {z.get('risk_score', '?')} ({risk_badge})"
-        )
+    for z in zones[:limit]:
+        count = z.get("cause_count", z.get("total_accidents", "?"))
+        lines.append(f"• **{z['location']}** - {count} accidents")
     return "\n".join(lines)
 
 
@@ -216,6 +213,7 @@ INTENTS = {
     "time_patterns": {
         "patterns": [
             re.compile(r"when.*(?:most|many).*accidents?", re.I),
+            re.compile(r"when.*accidents?.*(?:most|common|frequent|happen)", re.I),
             re.compile(r"(?:most|peak).*dangerous.*(?:time|hour|day|month|period)", re.I),
             re.compile(r"(?:what|which).*(?:time|hour|day|month).*(?:dangerous|worst|most)", re.I),
             re.compile(r"(?:time|temporal|hourly|daily|monthly).*(?:pattern|trend|distribution)", re.I),
@@ -319,102 +317,78 @@ def get_scripted_response(intent, user_message=""):
 def handle_speeding_zones(user_message=""):
     data = load_chatbot_data()
     speeding = data["causes"]["speeding"]
-    total = data["stats"]["total_accidents"]
 
     return {
         "type": "list",
         "message": (
-            f"Speeding is the #1 cause of accidents in Bangkok, responsible for "
-            f"{speeding['percentage']}% of all {total:,} accidents ({speeding['count']:,} cases).\n\n"
-            f"Top speeding hotspots:\n{_fmt_zone_list(speeding['top_zones'], 5)}"
+            f"Speeding is Bangkok's #1 problem ({speeding['percentage']}% of accidents). "
+            f"Worst areas:\n{_fmt_zone_list(speeding['top_zones'], 5)}\n\n"
+            f"These zones need speed cameras urgently."
         ),
         "data": speeding["top_zones"][:5],
-        "followup": "Would you like details on any specific zone, or want to see the cause breakdown?",
+        "followup": "Need route alternatives? 🚗",
     }
 
 
 def handle_drunk_zones(user_message=""):
     data = load_chatbot_data()
-    stats = data["stats"]
-
-    # Drunk driving data from thai_keywords
-    drunk_kw = data["thai_keywords"].get("drunk_driving", {})
-    drunk_words = drunk_kw.get("related_words", [])
-    drunk_freq = drunk_words[0]["frequency"] if drunk_words else 0
 
     # Find zones with high weekend % (proxy for alcohol-related risk)
     weekend_zones = []
     for gid, zone in data["zones"].items():
         if zone["weekend_pct"] > 40:
             weekend_zones.append({
-                "grid_id": gid,
                 "location": zone["location"],
                 "total_accidents": zone["total_accidents"],
                 "weekend_pct": zone["weekend_pct"],
-                "risk_score": zone["risk_score"],
             })
     weekend_zones.sort(key=lambda z: z["weekend_pct"], reverse=True)
 
-    zone_text = ""
-    if weekend_zones:
-        lines = []
-        for i, z in enumerate(weekend_zones[:5], 1):
-            lines.append(
-                f"{i}. {z['location']} — {z['weekend_pct']}% weekend accidents, "
-                f"risk score {z['risk_score']}"
-            )
-        zone_text = "\n\nZones with highest weekend accident concentration (often alcohol-related):\n" + "\n".join(lines)
+    zone_lines = "\n".join(
+        f"• **{z['location']}** - {z['weekend_pct']}% weekend accidents"
+        for z in weekend_zones[:5]
+    )
 
     return {
         "type": "list",
         "message": (
-            f"Our dataset recorded {drunk_freq} explicitly drunk-driving incidents in Bangkok (2024) "
-            f"from the Thai term 'เมาสุรา'. However, alcohol involvement is likely underreported in "
-            f"official records.\n\n"
-            f"Weekend accidents (28.6% of total) often correlate with alcohol — "
-            f"Saturday is the most dangerous day with {data['time_patterns']['most_dangerous_day_count']} accidents."
-            f"{zone_text}"
+            f"⚠️ Drunk driving is underreported, but weekend nights are the biggest red flag. "
+            f"Saturday is the worst day ({data['time_patterns']['most_dangerous_day_count']} accidents).\n\n"
+            f"High-risk weekend zones:\n{zone_lines}\n\n"
+            f"Avoid driving late on Friday/Saturday nights if possible."
         ),
         "data": weekend_zones[:5],
-        "followup": "Want to see the weekend vs weekday breakdown, or time-of-day patterns?",
+        "followup": "Want weekend vs weekday details? 🕐",
     }
 
 
 def handle_dangerous_zones(user_message=""):
     data = load_chatbot_data()
     zones = data["zones"]
-    stats = data["stats"]
 
     top5 = []
     for gid, z in list(zones.items())[:5]:
         top5.append({
-            "grid_id": gid,
             "location": z["location"],
             "total_accidents": z["total_accidents"],
-            "risk_score": z["risk_score"],
             "dominant_cause": z["dominant_cause"],
-            "dominant_cause_pct": z["dominant_cause_pct"],
             "has_fatality": z["has_fatality"],
         })
 
     lines = []
-    for i, z in enumerate(top5, 1):
-        fatality_flag = " ⚠ fatalities recorded" if z["has_fatality"] else ""
-        lines.append(
-            f"{i}. {z['location']} — {z['total_accidents']} accidents, "
-            f"risk {z['risk_score']}, main cause: {z['dominant_cause']} ({z['dominant_cause_pct']}%)"
-            f"{fatality_flag}"
-        )
+    for z in top5:
+        fatality = " ⚠️" if z["has_fatality"] else ""
+        lines.append(f"• **{z['location']}** - {z['total_accidents']} accidents ({z['dominant_cause']}){fatality}")
 
     return {
         "type": "list",
         "message": (
-            f"Bangkok has {stats['high_risk_zones']} high-risk zones out of {stats['total_zones']:,} "
-            f"monitored grid cells. The top 5% of zones contain the majority of accidents.\n\n"
-            f"Top 5 most dangerous zones:\n" + "\n".join(lines)
+            f"Bangkok's most dangerous zones (avoid if possible):\n" +
+            "\n".join(lines) +
+            f"\n\nSpeeding is the main cause in most of these areas."
         ),
         "data": top5,
-        "followup": "Want to know what causes accidents in a specific zone, or see the full heatmap?",
+        "followup": "Want safer route alternatives? 🚗",
     }
 
 
@@ -444,53 +418,40 @@ def handle_zone_safety(user_message=""):
 
     if zone and gid:
         z = zone
-        cause_lines = []
-        for cause, pct in sorted(z["cause_breakdown"].items(), key=lambda x: x[1], reverse=True):
-            if pct > 0:
-                cause_lines.append(f"  - {cause.replace('_', ' ').title()}: {pct}%")
-
-        risk_desc = "HIGH RISK" if z["risk_score"] >= 55 else "MEDIUM RISK" if z["risk_score"] >= 30 else "LOW RISK"
+        risk_desc = "HIGH RISK ⚠️" if z["risk_score"] >= 55 else "MEDIUM RISK" if z["risk_score"] >= 30 else "LOW RISK ✅"
+        top_cause = max(z["cause_breakdown"].items(), key=lambda x: x[1])
 
         return {
             "type": "single",
             "message": (
-                f"Zone {gid} — {z['location']}\n"
-                f"Risk level: {risk_desc} (score: {z['risk_score']})\n"
-                f"Total accidents: {z['total_accidents']}\n"
-                f"Fatalities recorded: {'Yes' if z['has_fatality'] else 'No'}\n"
-                f"Motorcycle involvement: {z['motorcycle_pct']}%\n"
-                f"Rush hour accidents: {z['rush_hour_pct']}%\n\n"
-                f"Cause breakdown:\n" + "\n".join(cause_lines)
+                f"{risk_desc}: **{z['location']}**\n\n"
+                f"Main problem: {top_cause[0].replace('_', ' ').title()} ({top_cause[1]}% of accidents here). "
+                f"{'Avoid rush hours (5-7 PM) when it gets most dangerous.' if z['rush_hour_pct'] > 30 else 'Exercise caution at all hours.'}"
             ),
             "data": [z],
-            "followup": "Would you like route recommendations to avoid this area?",
+            "followup": "Want safer route alternatives? 🚗",
         }
     elif zone:
-        # Matched a camera, not a zone
         return {
             "type": "single",
             "message": (
-                f"We have a YOLOv8 camera at {zone['location']} "
-                f"(coordinates: {zone['lat']}, {zone['lon']}). "
-                f"This camera monitors real-time vehicle composition for our risk model.\n\n"
-                f"For detailed zone risk data, try asking about one of our top 30 monitored zones."
+                f"We have a traffic camera at **{zone['location']}** monitoring this area. "
+                f"For zone risk details, ask about a specific area like Asok or Lat Krabang."
             ),
             "data": [zone],
-            "followup": "Want to see all camera locations or the most dangerous zones?",
+            "followup": "Want to see the most dangerous zones? ⚠️",
         }
     else:
-        # No match — list what we know
-        available = [z["location"] for z in list(data["zones"].values())[:10]]
+        available = [z["location"] for z in list(data["zones"].values())[:5]]
         return {
             "type": "single",
             "message": (
-                f"I don't have specific data for \"{location_query}\". "
-                f"Our model covers {data['stats']['total_zones']:,} grid zones in Bangkok.\n\n"
-                f"Try asking about one of these high-risk areas:\n" +
-                "\n".join(f"  - {loc}" for loc in available)
+                f"I don't have data for \"{location_query}\". "
+                f"Try asking about:\n" +
+                "\n".join(f"• {loc}" for loc in available)
             ),
             "data": [],
-            "followup": "Or try the Trip Planner for route-specific risk analysis.",
+            "followup": "Or use the Trip Planner for any route! 🚗",
         }
 
 
@@ -498,17 +459,11 @@ def handle_route_safety(user_message=""):
     return {
         "type": "info",
         "message": (
-            "For personalized route safety analysis, use our Trip Planner!\n\n"
-            "It compares multiple routes using the XGBoost risk model and shows:\n"
-            "- Risk score per 1km segment\n"
-            "- Number of danger zones on each route\n"
-            "- Safer alternative routes that avoid high-risk areas\n"
-            "- Real-time navigation with voice warnings\n\n"
-            "Enter your start and destination in the Trip Planner to get "
-            "AI-powered route recommendations."
+            "Use our **Trip Planner** for the safest route! It compares routes and shows danger zones along the way, "
+            "plus suggests safer alternatives. Just enter your start and destination."
         ),
         "data": [],
-        "followup": "Would you like to know which areas to avoid, or see the most dangerous zones?",
+        "followup": "Want to know which areas to avoid? ⚠️",
     }
 
 
@@ -516,21 +471,17 @@ def handle_camera_locations(user_message=""):
     data = load_chatbot_data()
     cameras = data["cameras"]
 
-    lines = []
-    for cam in cameras:
-        lines.append(f"  - {cam['camera_id']}: {cam['location']} ({cam['lat']}, {cam['lon']})")
+    lines = [f"• **{cam['location']}**" for cam in cameras]
 
     return {
         "type": "list",
         "message": (
-            f"We have {len(cameras)} YOLOv8 traffic cameras deployed across Bangkok as a "
-            f"proof-of-concept for our smart city monitoring network:\n\n" +
+            f"We have {len(cameras)} traffic cameras across Bangkok:\n" +
             "\n".join(lines) +
-            f"\n\nThese cameras detect vehicles in real-time and feed vehicle composition data "
-            f"(car/motorcycle/truck ratios) into our XGBoost risk prediction model."
+            f"\n\nThey detect vehicles in real-time and feed into our risk model."
         ),
         "data": cameras,
-        "followup": "Want to know how vehicle detection feeds into risk prediction?",
+        "followup": "Want to see the most dangerous zones? ⚠️",
     }
 
 
@@ -539,26 +490,21 @@ def handle_high_risk_zones(user_message=""):
     high_risk = []
     for gid, z in data["zones"].items():
         if z["risk_level"] == "high":
-            high_risk.append({"grid_id": gid, **z})
+            high_risk.append(z)
 
     high_risk.sort(key=lambda z: z["risk_score"], reverse=True)
 
-    lines = []
-    for i, z in enumerate(high_risk[:10], 1):
-        lines.append(
-            f"{i}. {z['location']} — {z['total_accidents']} accidents, "
-            f"risk {z['risk_score']}"
-        )
+    lines = [f"• **{z['location']}** - {z['total_accidents']} accidents" for z in high_risk[:5]]
 
     return {
         "type": "list",
         "message": (
-            f"Bangkok has {data['stats']['high_risk_zones']} high-risk zones (risk score >= 55). "
-            f"These zones represent about 5% of the city but contain the majority of accidents.\n\n"
-            f"Top 10 high-risk zones:\n" + "\n".join(lines)
+            f"⚠️ Bangkok has {data['stats']['high_risk_zones']} high-risk zones. Top ones to avoid:\n" +
+            "\n".join(lines) +
+            f"\n\nThese make up ~5% of the city but cause most accidents."
         ),
-        "data": high_risk[:10],
-        "followup": "Want to dive into a specific zone, or see recommendations for reducing risk?",
+        "data": high_risk[:5],
+        "followup": "Want safer route suggestions? 🚗",
     }
 
 
@@ -568,29 +514,25 @@ def handle_motorcycle_zones(user_message=""):
     moto_zones = []
     for gid, z in data["zones"].items():
         if z["motorcycle_pct"] > 15:
-            moto_zones.append({"grid_id": gid, **z})
+            moto_zones.append(z)
 
     moto_zones.sort(key=lambda z: z["motorcycle_pct"], reverse=True)
 
-    lines = []
-    for i, z in enumerate(moto_zones[:5], 1):
-        lines.append(
-            f"{i}. {z['location']} — {z['motorcycle_pct']}% motorcycle involvement, "
-            f"{z['total_accidents']} accidents, risk {z['risk_score']}"
-        )
-
-    if not lines:
-        lines = ["No zones with >15% motorcycle involvement in the top 30."]
+    if moto_zones:
+        lines = [f"• **{z['location']}** - {z['motorcycle_pct']}% motorcycle involvement" for z in moto_zones[:5]]
+        zone_text = "\n".join(lines)
+    else:
+        zone_text = "No major motorcycle hotspots in the top monitored zones."
 
     return {
         "type": "list",
         "message": (
-            f"Motorcycle accidents are a major concern in Bangkok. "
-            f"Our model tracks motorcycle involvement as a percentage of vehicles per zone.\n\n"
-            f"Zones with highest motorcycle involvement:\n" + "\n".join(lines)
+            f"🏍️ Motorcycle accidents are a big concern in Bangkok. Riskiest areas:\n" +
+            zone_text +
+            f"\n\nRiders: wear helmets and watch for blind spots at intersections."
         ),
         "data": moto_zones[:5],
-        "followup": "Want to see how motorcycle density correlates with accident severity?",
+        "followup": "Want safer routes for motorcyclists? 🚗",
     }
 
 
@@ -599,98 +541,70 @@ def handle_motorcycle_zones(user_message=""):
 def handle_cause_breakdown(user_message=""):
     data = load_chatbot_data()
     causes = data["causes"]
-    total = data["stats"]["total_accidents"]
 
     lines = []
-    for key, cause in causes.items():
+    for cause in sorted(causes.values(), key=lambda c: c["count"], reverse=True):
         if cause["count"] > 0:
-            lines.append(f"  - {cause['english_name']}: {cause['count']:,} ({cause['percentage']}%)")
+            lines.append(f"• **{cause['english_name']}** - {cause['percentage']}%")
 
     return {
         "type": "stats",
         "message": (
-            f"Analysis of {total:,} Bangkok accident reports (2024) using Thai NLP "
-            f"text classification identified these causes:\n\n" +
+            f"What causes Bangkok accidents:\n" +
             "\n".join(lines) +
-            f"\n\nKey insight: Speeding alone accounts for nearly 4 out of 5 accidents. "
-            f"The Thai term 'ขับรถเร็วเกินอัตรากำหนด' (driving faster than the speed limit) "
-            f"appears in {causes['speeding']['count']:,} reports."
+            f"\n\nSpeeding is the overwhelming #1 cause - nearly 4 out of 5 accidents."
         ),
         "data": [{"cause": c["english_name"], "count": c["count"], "pct": c["percentage"]}
                  for c in causes.values()],
-        "followup": "Want to see which zones are worst for a specific cause?",
+        "followup": "Want to see the worst zones for any cause? 💡",
     }
 
 
 def handle_speeding_stats(user_message=""):
     data = load_chatbot_data()
     speeding = data["causes"]["speeding"]
-    total = data["stats"]["total_accidents"]
-    importance = data["model_importance"]
 
     return {
         "type": "stats",
         "message": (
-            f"Speeding in Bangkok (2024):\n\n"
-            f"- {speeding['count']:,} out of {total:,} accidents ({speeding['percentage']}%)\n"
-            f"- Thai NLP term: '{speeding['thai_name']}'\n"
-            f"- XGBoost feature importance: {speeding['feature_importance']}%\n"
-            f"- Most common collision type in speeding zones: rear-end collision (ชนท้าย)\n"
-            f"- {len(speeding['top_zones'])} high-concentration zones identified\n\n"
-            f"Top speeding zone: {speeding['top_zones'][0]['location']} with "
-            f"{speeding['top_zones'][0]['cause_count']} speeding-related accidents."
+            f"Speeding causes **{speeding['percentage']}%** of all Bangkok accidents - it's the #1 problem by far.\n\n"
+            f"Worst zone: **{speeding['top_zones'][0]['location']}** with {speeding['top_zones'][0]['cause_count']} speeding accidents. "
+            f"Speed cameras could cut these numbers by 30-40%."
         ),
         "data": speeding["top_zones"][:3],
-        "followup": "Want to see the top speeding zones on a map, or compare with other causes?",
+        "followup": "Want to see top speeding zones? 🚗",
     }
 
 
 def handle_drunk_stats(user_message=""):
     data = load_chatbot_data()
-    drunk_kw = data["thai_keywords"].get("drunk_driving", {})
-    drunk_words = drunk_kw.get("related_words", [])
-    drunk_freq = drunk_words[0]["frequency"] if drunk_words else 0
-    total = data["stats"]["total_accidents"]
 
     return {
         "type": "stats",
         "message": (
-            f"Drunk driving in Bangkok (2024):\n\n"
-            f"- {drunk_freq} explicitly recorded cases out of {total:,} accidents\n"
-            f"- Thai NLP term: 'เมาสุรา'\n"
-            f"- This represents only {round(drunk_freq / total * 100, 2)}% of records\n\n"
-            f"Important caveat: Drunk driving is significantly underreported in Thai "
-            f"government accident data. The official cause classification relies on "
-            f"the investigating officer's assessment, and alcohol testing is not "
-            f"performed at every accident scene.\n\n"
-            f"Proxy indicator: Saturday has the most accidents "
-            f"({data['time_patterns']['most_dangerous_day_count']}), and late-night hours "
-            f"(11PM-3AM) show elevated risk — patterns consistent with alcohol involvement."
+            f"Drunk driving is heavily underreported in official data, but the patterns tell the story. "
+            f"Saturday is the deadliest day ({data['time_patterns']['most_dangerous_day_count']} accidents), "
+            f"and late nights (11 PM - 3 AM) show elevated risk.\n\n"
+            f"Best advice: avoid driving on Friday/Saturday nights if you can."
         ),
         "data": [],
-        "followup": "Want to see weekend vs weekday patterns, or time-of-day analysis?",
+        "followup": "Want to see weekend patterns? 🕐",
     }
 
 
 def handle_cutting_stats(user_message=""):
     data = load_chatbot_data()
     cutting = data["causes"]["cutting_in_front"]
-    total = data["stats"]["total_accidents"]
 
     return {
         "type": "stats",
         "message": (
-            f"Cutting in front (aggressive lane changes) in Bangkok (2024):\n\n"
-            f"- {cutting['count']:,} cases out of {total:,} accidents ({cutting['percentage']}%)\n"
-            f"- Thai NLP term: '{cutting['thai_name']}'\n"
-            f"- XGBoost feature importance: {cutting['feature_importance']}%\n"
-            f"- This is the 2nd most common cause after speeding\n\n"
-            f"Despite being only {cutting['percentage']}% of total accidents, cutting-in-front "
-            f"has a {cutting['feature_importance']}% feature importance in our XGBoost model — "
-            f"meaning it's a stronger predictor of zone danger than its raw frequency suggests."
+            f"Cutting in front (aggressive lane changes) is the #2 cause at {cutting['percentage']}% of accidents.\n\n"
+            f"It's actually a stronger danger signal than speeding - zones with lots of cutting are "
+            f"especially risky. Stay alert at busy intersections and keep safe following distance."
         ),
         "data": cutting["top_zones"][:3],
-        "followup": "Want to see which intersections have the most cutting-in-front incidents?",
+        "followup": "Want to see the worst intersections for this? ⚠️",
     }
 
 
@@ -704,29 +618,21 @@ def handle_cause_comparison(user_message=""):
             "cause": c["english_name"],
             "count": c["count"],
             "percentage": c["percentage"],
-            "importance": c["feature_importance"],
         })
     rows.sort(key=lambda r: r["count"], reverse=True)
 
-    lines = []
-    for r in rows:
-        bar_len = int(r["percentage"] / 2)
-        bar = "█" * bar_len
-        lines.append(f"  {r['cause']:<45} {r['count']:>5}  ({r['percentage']:>5.1f}%)  {bar}")
+    lines = [f"• **{r['cause']}** - {r['percentage']}%" for r in rows if r["count"] > 0]
 
     return {
         "type": "comparison",
         "message": (
-            f"Cause comparison across {data['stats']['total_accidents']:,} Bangkok accidents (2024):\n\n" +
+            f"Bangkok accident causes:\n" +
             "\n".join(lines) +
-            f"\n\nSpeeding is overwhelmingly dominant. However, XGBoost feature importance "
-            f"reveals that 'cutting in front' ({causes['cutting_in_front']['feature_importance']}%) "
-            f"is a stronger risk predictor than speeding ({causes['speeding']['feature_importance']}%) "
-            f"despite far fewer incidents — suggesting cutting-in-front concentrates in "
-            f"genuinely dangerous zones."
+            f"\n\nSpeeding dominates, but cutting in front is actually a stronger danger signal "
+            f"per zone - those intersections are especially risky."
         ),
         "data": rows,
-        "followup": "Want to see the spatial distribution of any specific cause?",
+        "followup": "Want to see the worst zones for any cause? 💡",
     }
 
 
@@ -736,53 +642,36 @@ def handle_time_patterns(user_message=""):
     data = load_chatbot_data()
     tp = data["time_patterns"]
 
-    # Find top 3 hours
-    hourly = tp["hourly"]
-    top_hours = sorted(hourly.items(), key=lambda x: x[1]["count"], reverse=True)[:3]
-
     return {
         "type": "stats",
         "message": (
-            f"When do Bangkok accidents happen? (2024 data)\n\n"
-            f"Peak hour:  {tp['most_dangerous_hour']} ({tp['most_dangerous_hour_count']} accidents)\n"
-            f"Safest hour: {tp['safest_hour']} ({tp['safest_hour_count']} accidents)\n"
-            f"Peak day:   {tp['most_dangerous_day']} ({tp['most_dangerous_day_count']} accidents)\n"
-            f"Peak month: {tp['most_dangerous_month']} ({tp['most_dangerous_month_count']} accidents)\n\n"
-            f"Top 3 most dangerous hours:\n" +
-            "\n".join(f"  - {h}: {d['count']} accidents ({d['percentage']}%)" for h, d in top_hours) +
-            f"\n\nRush hour accounts for {tp['rush_hour_pct']}% of all accidents. "
-            f"Weekends account for {tp['weekend_pct']}% despite being only 2/7 of the week."
+            f"Most dangerous: **{tp['most_dangerous_hour']}** (evening rush - {tp['most_dangerous_hour_count']} accidents).\n"
+            f"Safest for normal travel: **10 AM - 3 PM** (between rush hours).\n"
+            f"Weekend nights (10 PM - 2 AM) are risky due to drunk driving. Plan accordingly! 🕐"
         ),
-        "data": [{"hour": h, **d} for h, d in top_hours],
-        "followup": "Want to see the rush hour breakdown or weekend patterns?",
+        "data": [],
+        "followup": "Want rush hour or weekend details?",
     }
 
 
 def handle_rush_hour(user_message=""):
     data = load_chatbot_data()
     tp = data["time_patterns"]
-    total = data["stats"]["total_accidents"]
     hourly = tp["hourly"]
 
-    # Morning rush (7-9), evening rush (16-19)
     morning = sum(hourly.get(f"{h:02d}:00", {}).get("count", 0) for h in range(7, 10))
     evening = sum(hourly.get(f"{h:02d}:00", {}).get("count", 0) for h in range(16, 20))
 
     return {
         "type": "stats",
         "message": (
-            f"Rush hour safety analysis:\n\n"
-            f"Rush hour accidents: {tp['rush_hour_accidents']:,} ({tp['rush_hour_pct']}% of total)\n\n"
-            f"Morning rush (7-10 AM): {morning} accidents\n"
-            f"Evening rush (4-8 PM): {evening} accidents\n\n"
-            f"The evening rush is {'more' if evening > morning else 'less'} dangerous than morning, "
-            f"with {abs(evening - morning)} {'more' if evening > morning else 'fewer'} accidents.\n\n"
-            f"However, the single most dangerous hour is {tp['most_dangerous_hour']} — "
-            f"which falls {'within' if '07' <= tp['most_dangerous_hour'][:2] <= '09' or '16' <= tp['most_dangerous_hour'][:2] <= '19' else 'outside'} "
-            f"traditional rush hours."
+            f"⚠️ Rush hours cause {tp['rush_hour_pct']}% of all accidents.\n\n"
+            f"Evening rush (4-8 PM) is {'worse' if evening > morning else 'better'} than morning (7-10 AM) "
+            f"with {evening} vs {morning} accidents. "
+            f"If you can, travel between **10 AM - 3 PM** for the safest window."
         ),
         "data": [],
-        "followup": "Want to see the full 24-hour breakdown or weekend patterns?",
+        "followup": "Want weekend patterns too? 🕐",
     }
 
 
@@ -796,28 +685,16 @@ def handle_weekend_pattern(user_message=""):
     weekend_daily_avg = weekend_total / 2
     weekday_daily_avg = weekday_total / 5
 
-    lines = []
-    for day in ["Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday", "Sunday"]:
-        d = daily[day]
-        marker = " <<<" if day in ["Saturday", "Sunday"] else ""
-        lines.append(f"  {day:<12} {d['count']:>4} accidents ({d['percentage']}%){marker}")
-
     return {
         "type": "comparison",
         "message": (
-            f"Weekend vs Weekday comparison:\n\n"
-            f"Weekend total: {weekend_total} accidents ({tp['weekend_pct']}%)\n"
-            f"Weekday total: {weekday_total} accidents ({round(100 - tp['weekend_pct'], 1)}%)\n\n"
-            f"Daily average:\n"
-            f"  Weekend: {weekend_daily_avg:.0f} accidents/day\n"
-            f"  Weekday: {weekday_daily_avg:.0f} accidents/day\n\n"
-            f"Per-day breakdown:\n" + "\n".join(lines) +
-            f"\n\n{tp['most_dangerous_day']} is the most dangerous day overall. "
-            f"The weekend daily average is {'higher' if weekend_daily_avg > weekday_daily_avg else 'lower'} "
-            f"than weekday — {round(weekend_daily_avg / weekday_daily_avg, 2)}x the weekday rate."
+            f"**{tp['most_dangerous_day']}** is the most dangerous day overall.\n\n"
+            f"Weekend daily average is {round(weekend_daily_avg / weekday_daily_avg, 1)}× higher than weekdays "
+            f"({weekend_daily_avg:.0f} vs {weekday_daily_avg:.0f} accidents/day). "
+            f"Late-night drunk driving is a major factor. Be extra careful on weekend nights! 🕐"
         ),
         "data": [{"day": d, **daily[d]} for d in ["Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday", "Sunday"]],
-        "followup": "Want to see which zones are most dangerous on weekends specifically?",
+        "followup": "Want to see the riskiest weekend zones?",
     }
 
 
@@ -826,29 +703,18 @@ def handle_weekend_pattern(user_message=""):
 def handle_policy_recommendations(user_message=""):
     data = load_chatbot_data()
     recs = data["recommendations"]
-    stats = data["stats"]
 
-    lines = []
-    for r in recs:
-        lines.append(
-            f"#{r['priority']}. {r['title']}\n"
-            f"   Target: {r['target_cause']} | Zones: {r['zones_affected']} | "
-            f"Impact: {r['expected_impact']}\n"
-            f"   Cost: {r['cost_estimate']}\n"
-            f"   {r['description']}"
-        )
+    lines = [f"{r['priority']}. **{r['title']}** - {r['expected_impact']}" for r in recs[:3]]
 
     return {
         "type": "recommendation",
         "message": (
-            f"Based on analysis of {stats['total_accidents']:,} accidents across "
-            f"{stats['high_risk_zones']} high-risk zones, here are our top policy "
-            f"recommendations:\n\n" + "\n\n".join(lines) +
-            f"\n\nThese recommendations are derived from NLP classification of Thai accident "
-            f"reports combined with spatial risk modeling."
+            f"Top fixes for Bangkok road safety:\n" +
+            "\n".join(lines) +
+            f"\n\nAll backed by accident data analysis. 💡"
         ),
         "data": recs,
-        "followup": "Want details on camera deployment strategy, or the data behind a specific recommendation?",
+        "followup": "Want specifics on any recommendation?",
     }
 
 
@@ -857,30 +723,18 @@ def handle_camera_deployment(user_message=""):
     speeding = data["causes"]["speeding"]
     top_zones = speeding["top_zones"][:5]
 
-    lines = []
-    for i, z in enumerate(top_zones, 1):
-        lines.append(
-            f"{i}. {z['location']} (Zone {z['grid_id']}) — "
-            f"{z['cause_pct']}% speeding rate, {z['accidents']} total accidents"
-        )
+    lines = [f"• **{z['location']}** - {z['cause_count']} speeding accidents" for z in top_zones]
 
     return {
         "type": "recommendation",
         "message": (
-            f"Speed camera deployment strategy based on our analysis:\n\n"
-            f"Priority locations (highest speeding concentration):\n" +
+            f"Priority locations for speed cameras:\n" +
             "\n".join(lines) +
-            f"\n\nDeployment rationale:\n"
-            f"- Speeding causes {speeding['percentage']}% of all accidents\n"
-            f"- The top 5 speeding zones account for {sum(z['cause_count'] for z in top_zones)} "
-            f"speeding-related accidents\n"
-            f"- Estimated impact: 30-40% reduction in speed-related accidents per zone\n"
-            f"- Cost: approximately ฿2.5M per camera installation\n\n"
-            f"We currently have 7 YOLOv8 cameras as proof-of-concept. Scaling to these "
-            f"priority locations would provide real-time vehicle speed monitoring."
+            f"\n\nExpected impact: 30-40% reduction in speeding accidents per zone. "
+            f"We already have 7 cameras as proof-of-concept. 💡"
         ),
         "data": top_zones,
-        "followup": "Want to see the current camera network, or other policy recommendations?",
+        "followup": "Want to see other recommendations?",
     }
 
 
@@ -888,29 +742,18 @@ def handle_camera_deployment(user_message=""):
 
 def handle_how_it_works(user_message=""):
     data = load_chatbot_data()
-    importance = data["model_importance"]
 
     return {
         "type": "info",
         "message": (
-            f"RoadRisk Bangkok uses three AI techniques in one integrated system:\n\n"
-            f"1. Thai NLP (Track 1)\n"
-            f"   - Processes {data['stats']['total_accidents']:,} Thai accident reports\n"
-            f"   - pythainlp tokenization classifies causes (speeding, cutting in front, etc.)\n"
-            f"   - NLP features contribute {importance['nlp_text']}% to the prediction model\n\n"
-            f"2. XGBoost Risk Prediction (Core Engine)\n"
-            f"   - 44 features per 1km grid cell\n"
-            f"   - Trained on Jan-Sep 2024, validated on Oct-Dec 2024\n"
-            f"   - {data['stats']['model_accuracy']}% accuracy, {data['stats']['model_lift']}x better than random\n"
-            f"   - Top predictor: {importance['top_feature']}\n\n"
-            f"3. YOLOv8 Vehicle Detection (Track 3)\n"
-            f"   - 7 Bangkok cameras detect cars, motorcycles, trucks in real-time\n"
-            f"   - Vehicle composition feeds into XGBoost as live features\n"
-            f"   - Vehicle features contribute {importance['vehicle']}% to model importance\n\n"
-            f"Key insight: {importance['key_insight']}"
+            f"We combine 3 AI techniques:\n"
+            f"1. **Thai NLP** - reads accident reports to classify causes\n"
+            f"2. **XGBoost ML** - predicts risk scores for every 1km zone ({data['stats']['model_accuracy']}% accuracy)\n"
+            f"3. **YOLOv8 cameras** - detects vehicles in real-time at 7 Bangkok locations\n\n"
+            f"Together, they power our risk map and trip planner. ✅"
         ),
         "data": [],
-        "followup": "Want to know about the data source, or how the Trip Planner uses this model?",
+        "followup": "Want to know about our data source?",
     }
 
 
@@ -921,22 +764,13 @@ def handle_data_source(user_message=""):
     return {
         "type": "info",
         "message": (
-            f"Our data comes from the {stats['data_source']} (2024):\n\n"
-            f"- Total records: {stats['total_accidents']:,} Bangkok accidents\n"
-            f"- Coverage: {stats['date_range']}\n"
-            f"- Deaths: {stats['deaths']}\n"
-            f"- Serious injuries: {stats['serious_injuries']}\n"
-            f"- Minor injuries: {stats['minor_injuries']}\n"
-            f"- Grid zones monitored: {stats['total_zones']:,} (1km x 1km cells)\n"
-            f"- High-risk zones identified: {stats['high_risk_zones']}\n"
-            f"- Danger zones detected by model: {stats['danger_zones_detected']}\n\n"
-            f"The original dataset contains 23,952 records nationwide. We filtered to "
-            f"Bangkok and cleaned GPS coordinates, timestamps, and Thai text fields.\n\n"
-            f"NLP processing: Thai accident cause text was tokenized with pythainlp and "
-            f"classified into {len(data['causes'])} cause categories."
+            f"We analyzed **{stats['total_accidents']:,} Bangkok accidents** from {stats['data_source']} (2024), "
+            f"covering {stats['date_range']}.\n\n"
+            f"The data includes {stats['deaths']} deaths and {stats['serious_injuries']} serious injuries across "
+            f"{stats['total_zones']:,} monitored zones. All Thai text was processed with NLP to extract causes."
         ),
         "data": [],
-        "followup": "Want to learn how the model works, or see the cause breakdown?",
+        "followup": "Want to see how the model works? ✅",
     }
 
 
