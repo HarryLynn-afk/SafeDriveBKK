@@ -87,7 +87,7 @@ def get_groq_response(user_message, chatbot_data):
                     "content": full_prompt
                 }
             ],
-            model="llama-3.1-70b-versatile",
+            model="llama-3.3-70b-versatile",
             temperature=0.3,
             max_tokens=500,
             top_p=0.9
