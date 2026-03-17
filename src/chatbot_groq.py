@@ -2,11 +2,6 @@ import os
 from groq import Groq
 import json
 
-# Initialize Groq client
-client = Groq(
-    api_key=os.environ.get("GROQ_API_KEY")
-)
-
 SYSTEM_PROMPT = """You are a Bangkok road safety assistant powered by NLP analysis of Thai accident reports.
 
 Your knowledge base:
@@ -67,6 +62,15 @@ def get_groq_response(user_message, chatbot_data):
     Get AI response from Groq
     """
     try:
+        api_key = os.environ.get("GROQ_API_KEY")
+        if not api_key or api_key == "gsk_your_key_here":
+            return {
+                "type": "error",
+                "message": "Groq API key not configured. Please set GROQ_API_KEY in .env file.",
+                "error": "missing_api_key"
+            }
+
+        client = Groq(api_key=api_key)
         context = prepare_context(user_message, chatbot_data)
 
         full_prompt = (
@@ -96,8 +100,9 @@ def get_groq_response(user_message, chatbot_data):
         }
 
     except Exception as e:
+        print(f"[Groq Error] {type(e).__name__}: {e}")
         return {
             "type": "error",
-            "message": "I'm having trouble connecting right now. Could you rephrase your question or try one of the suggested questions below?",
+            "message": f"Groq API error: {type(e).__name__} - {e}",
             "error": str(e)
         }
