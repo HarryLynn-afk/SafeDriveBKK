@@ -18,8 +18,9 @@ let lastAlertTime = 0;
 let safeAlertFadeTimeout = null;
 const ALERT_COOLDOWN = 5000; // 5 seconds between alerts minimum
 const TRIP_PLANNER_JS_VERSION = "2026-02-19.1";
-const SIMULATION_STEP_KM = 1.0;   // km per tick (was 0.2 — 5× faster for demo)
-const SIMULATION_TICK_MS = 200;   // ms per tick (was 500 — smoother & faster)
+// Animation speed: adaptive so all routes finish in ~10 seconds
+const SIMULATION_TARGET_SECONDS = 10;
+const SIMULATION_TICK_MS = 100;
 const DEMO_ROUTE_NAMES = {
     "Ratchada": "ratchada",
     "Din Daeng": "din_daeng",
@@ -1364,13 +1365,17 @@ function startNavigationSimulation() {
     showNavigationAlert("safe", "✓", "Ready to Navigate", "Drive safely");
     // console.log(`[TripPlanner ${TRIP_PLANNER_JS_VERSION}] simulation active: ${SIMULATION_STEP_KM.toFixed(2)} km per ${SIMULATION_TICK_MS}ms`);
 
+    // Adaptive step: route finishes in ~SIMULATION_TARGET_SECONDS regardless of length
+    const ticksNeeded = (SIMULATION_TARGET_SECONDS * 1000) / SIMULATION_TICK_MS;
+    const simStepKm = Math.max(0.05, totalDistance / ticksNeeded);
+
     // Start simulation interval
     if (tripNavigationInterval) {
         clearInterval(tripNavigationInterval);
     }
     tripNavigationInterval = setInterval(() => {
         tripPreviousDistance = tripCurrentDistance;
-        tripCurrentDistance = Math.min(totalDistance, tripCurrentDistance + SIMULATION_STEP_KM);
+        tripCurrentDistance = Math.min(totalDistance, tripCurrentDistance + simStepKm);
 
         // Update progress
         updateNavigationUI(totalDistance, waypoints);
