@@ -401,18 +401,18 @@ async function calculateRoute(startLat, startLon, endLat, endLon, destName) {
         updateStatus("XGBoost analyzing accident risk patterns...");
         document.getElementById("routes-analyzed").textContent =
             data.alternatives_analyzed || 5;
-        await sleep(700);
+        await sleep(200);
 
         updateAnalysisStep(2, "complete");
 
         // ── Step 3: route comparison ──────────────────────────────────────
         updateAnalysisStep(3, "active");
         updateStatus("Comparing routes for optimal safety...");
-        await sleep(450);
+        await sleep(150);
 
         updateAnalysisStep(3, "complete");
         updateStatus("✓ Analysis complete!");
-        await sleep(220);
+        await sleep(100);
 
         hideAIAnalyzing();
         displayMultipleRoutes(data);
