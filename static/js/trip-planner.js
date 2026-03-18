@@ -77,9 +77,7 @@ window.initGooglePlaces = function () {
         startInput.value = name;
         window.startLat = lat;
         window.startLon = lon;
-        if (window.endLat && window.endLon) {
-            calculateRoute(lat, lon, window.endLat, window.endLon, document.getElementById("destination").value);
-        }
+        updateFindSaferRouteButton();
     });
 
     destAC.addListener("place_changed", function () {
@@ -91,12 +89,7 @@ window.initGooglePlaces = function () {
         destInput.value = name;
         window.endLat = lat;
         window.endLon = lon;
-        if (!window.startLat || !window.startLon) {
-            alert("Please set a start location first (search or use GPS).");
-            startInput.focus();
-            return;
-        }
-        calculateRoute(window.startLat, window.startLon, lat, lon, name);
+        updateFindSaferRouteButton();
     });
 
     // Disable the custom oninput search since Google handles it
@@ -218,12 +211,7 @@ function selectStartLocation(name, lat, lon) {
     hideElement("start-suggestions-dropdown");
     window.startLat = lat;
     window.startLon = lon;
-
-    // If destination already selected, recalculate route
-    if (window.endLat && window.endLon) {
-        const destInput = document.getElementById("destination");
-        calculateRoute(lat, lon, window.endLat, window.endLon, destInput.value);
-    }
+    updateFindSaferRouteButton();
 }
 
 async function searchDestinations(query) {
@@ -246,18 +234,7 @@ function selectDestination(name, lat, lon) {
 
     window.endLat = lat;
     window.endLon = lon;
-
-    // Get start location — use user-selected or prompt them
-    const startLat = window.startLat;
-    const startLon = window.startLon;
-
-    if (!startLat || !startLon) {
-        alert("Please set a start location first (search or use GPS).");
-        document.getElementById("start-location").focus();
-        return;
-    }
-
-    calculateRoute(startLat, startLon, lat, lon, name);
+    updateFindSaferRouteButton();
 }
 
 // Close suggestions when clicking outside (for Nominatim fallback)
@@ -285,6 +262,7 @@ function detectMyLocation() {
         startInput.value = DEFAULT_START.name;
         window.startLat = DEFAULT_START.lat;
         window.startLon = DEFAULT_START.lon;
+        updateFindSaferRouteButton();
         alert("Geolocation is not supported by your browser. Using default start location.");
         return;
     }
@@ -319,6 +297,7 @@ function detectMyLocation() {
                     }
                     window.startLat = lat;
                     window.startLon = lon;
+                    updateFindSaferRouteButton();
                 });
             } else {
                 fetch(`https://nominatim.openstreetmap.org/reverse?lat=${lat}&lon=${lon}&format=json`)
@@ -328,11 +307,13 @@ function detectMyLocation() {
                         startInput.value = placeName || "Current Location";
                         window.startLat = lat;
                         window.startLon = lon;
+                        updateFindSaferRouteButton();
                     })
                     .catch(() => {
                         startInput.value = "Current Location";
                         window.startLat = lat;
                         window.startLon = lon;
+                        updateFindSaferRouteButton();
                     });
             }
         },
@@ -359,14 +340,42 @@ function detectMyLocation() {
             window.startLat = DEFAULT_START.lat;
             window.startLon = DEFAULT_START.lon;
             startInput.placeholder = `GPS failed: ${reason}. Using default.`;
+            updateFindSaferRouteButton();
         },
         { enableHighAccuracy: true, timeout: 10000, maximumAge: 60000 }
     );
 }
 
+// ===== FIND SAFER ROUTE BUTTON =====
+function updateFindSaferRouteButton() {
+    const btn = document.getElementById("findSaferRouteBtn");
+    if (!btn) return;
+    const hasBoth = !!(window.startLat && window.startLon && window.endLat && window.endLon);
+    btn.disabled = !hasBoth;
+}
+
+function onFindSaferRouteClick() {
+    if (!window.startLat || !window.startLon) {
+        alert("Please set a start location first (search or use GPS).");
+        document.getElementById("start-location").focus();
+        return;
+    }
+    if (!window.endLat || !window.endLon) {
+        alert("Please select a destination first.");
+        document.getElementById("destination").focus();
+        return;
+    }
+    const destName = document.getElementById("destination").value;
+    calculateRoute(window.startLat, window.startLon, window.endLat, window.endLon, destName);
+}
+
 // ===== ROUTE CALCULATION =====
 async function calculateRoute(startLat, startLon, endLat, endLon, destName) {
-    // console.log("Comparing routes...", { startLat, startLon, endLat, endLon });
+    const findBtn = document.getElementById("findSaferRouteBtn");
+    if (findBtn) {
+        findBtn.disabled = true;
+        findBtn.textContent = "Analyzing Routes...";
+    }
 
     // Hide any stale results and show the AI overlay
     hideElement("route-preview");
@@ -431,6 +440,11 @@ async function calculateRoute(startLat, startLon, endLat, endLon, destName) {
             + "• Check internet connection\n"
             + "• Use pre-loaded example routes"
         );
+    } finally {
+        if (findBtn) {
+            findBtn.textContent = "Find Safer Route";
+            updateFindSaferRouteButton();
+        }
     }
 }
 
@@ -1068,21 +1082,11 @@ async function useDemoRoute(demoRoute, destName, startLat, startLon) {
     }
 }
 
-async function selectQuickDestination(name, lat, lon) {
+function selectQuickDestination(name, lat, lon) {
     document.getElementById("destination").value = name;
     window.endLat = lat;
     window.endLon = lon;
-
-    // Require start location
-    if (!window.startLat || !window.startLon) {
-        alert("Please set a start location first (search or use GPS).");
-        document.getElementById("start-location").focus();
-        return;
-    }
-
-    // Always go through the multi-route compare-routes flow so all chips
-    // show the Waze-style route selection UI (not the old single-route card).
-    await calculateRoute(window.startLat, window.startLon, lat, lon, name);
+    updateFindSaferRouteButton();
 }
 
 function haversineKm(lat1, lon1, lat2, lon2) {
