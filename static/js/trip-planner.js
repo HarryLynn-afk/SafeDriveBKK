@@ -18,8 +18,8 @@ let lastAlertTime = 0;
 let safeAlertFadeTimeout = null;
 const ALERT_COOLDOWN = 5000; // 5 seconds between alerts minimum
 const TRIP_PLANNER_JS_VERSION = "2026-02-19.1";
-const SIMULATION_STEP_KM = 0.2;
-const SIMULATION_TICK_MS = 500;
+const SIMULATION_STEP_KM = 1.0;   // km per tick (was 0.2 — 5× faster for demo)
+const SIMULATION_TICK_MS = 200;   // ms per tick (was 500 — smoother & faster)
 const DEMO_ROUTE_NAMES = {
     "Ratchada": "ratchada",
     "Din Daeng": "din_daeng",
