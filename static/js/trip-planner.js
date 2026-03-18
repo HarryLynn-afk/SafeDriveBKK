@@ -15,6 +15,7 @@ let tripWaypointCumulativeKm = [];
 let lastAlertSegmentIndex = -1;
 let spokenAlerts = new Set();
 let lastAlertTime = 0;
+let safeAlertFadeTimeout = null;
 const ALERT_COOLDOWN = 5000; // 5 seconds between alerts minimum
 const TRIP_PLANNER_JS_VERSION = "2026-02-19.1";
 const SIMULATION_STEP_KM = 0.2;
@@ -278,45 +279,88 @@ document.addEventListener("click", (event) => {
 // ===== GPS LOCATION DETECTION =====
 function detectMyLocation() {
     const startInput = document.getElementById("start-location");
+    const gpsBtn = document.querySelector(".gps-button");
 
     if (!navigator.geolocation) {
-        // Geolocation not available — use default start
         startInput.value = DEFAULT_START.name;
         window.startLat = DEFAULT_START.lat;
         window.startLon = DEFAULT_START.lon;
+        alert("Geolocation is not supported by your browser. Using default start location.");
         return;
     }
 
+    // Show loading state
     startInput.value = "Detecting location...";
+    if (gpsBtn) {
+        gpsBtn.textContent = "⏳";
+        gpsBtn.disabled = true;
+    }
 
     navigator.geolocation.getCurrentPosition(
         (position) => {
             const lat = position.coords.latitude;
             const lon = position.coords.longitude;
 
-            // Reverse geocode to get place name
-            fetch(`https://nominatim.openstreetmap.org/reverse?lat=${lat}&lon=${lon}&format=json`)
-                .then((response) => response.json())
-                .then((data) => {
-                    const placeName = data.display_name ? data.display_name.split(",")[0] : "";
-                    startInput.value = placeName || "Current Location";
+            // Restore button
+            if (gpsBtn) {
+                gpsBtn.textContent = "✅";
+                gpsBtn.disabled = false;
+                setTimeout(() => { gpsBtn.textContent = "📍"; }, 2000);
+            }
 
-                    // Store coordinates
-                    window.startLat = lat;
-                    window.startLon = lon;
-                })
-                .catch(() => {
-                    startInput.value = `${lat.toFixed(4)}, ${lon.toFixed(4)}`;
+            // Reverse geocode to get place name (try Google first, then Nominatim)
+            if (typeof google !== "undefined" && google.maps && google.maps.Geocoder) {
+                const geocoder = new google.maps.Geocoder();
+                geocoder.geocode({ location: { lat, lng: lon } }, (results, status) => {
+                    if (status === "OK" && results[0]) {
+                        startInput.value = results[0].formatted_address.split(",")[0] || "Current Location";
+                    } else {
+                        startInput.value = "Current Location";
+                    }
                     window.startLat = lat;
                     window.startLon = lon;
                 });
+            } else {
+                fetch(`https://nominatim.openstreetmap.org/reverse?lat=${lat}&lon=${lon}&format=json`)
+                    .then((response) => response.json())
+                    .then((data) => {
+                        const placeName = data.display_name ? data.display_name.split(",")[0] : "";
+                        startInput.value = placeName || "Current Location";
+                        window.startLat = lat;
+                        window.startLon = lon;
+                    })
+                    .catch(() => {
+                        startInput.value = "Current Location";
+                        window.startLat = lat;
+                        window.startLon = lon;
+                    });
+            }
         },
         (error) => {
-            // GPS failed (common on HTTP) — use default start
+            // Restore button
+            if (gpsBtn) {
+                gpsBtn.textContent = "📍";
+                gpsBtn.disabled = false;
+            }
+
+            // Tell user what happened and use default
+            let reason = "Unknown error";
+            if (error.code === 1) reason = "Location permission denied";
+            else if (error.code === 2) reason = "Location unavailable";
+            else if (error.code === 3) reason = "Location request timed out";
+
+            // HTTPS is required for geolocation in most browsers
+            if (window.location.protocol === "http:" && window.location.hostname !== "localhost") {
+                reason = "GPS requires HTTPS connection";
+            }
+
+            console.warn("GPS detection failed:", reason);
             startInput.value = DEFAULT_START.name;
             window.startLat = DEFAULT_START.lat;
             window.startLon = DEFAULT_START.lon;
-        }
+            startInput.placeholder = `GPS failed: ${reason}. Using default.`;
+        },
+        { enableHighAccuracy: true, timeout: 10000, maximumAge: 60000 }
     );
 }
 
@@ -1351,13 +1395,13 @@ function checkNavigationAlerts() {
         title = "🔴 HIGH RISK ZONE";
         subtitle = `Extra caution | Risk: ${currentSegment.risk_score}/100`;
 
-        // Voice alert once per segment with cooldown
+        // Voice alert once per segment with cooldown (deferred to avoid blocking animation)
         const now = Date.now();
         const segmentId = `segment-${currentSegment.start_km}`;
         if (!spokenAlerts.has(segmentId) && now - lastAlertTime >= ALERT_COOLDOWN) {
-            speakAlert("Warning: High risk zone. Drive carefully.");
             spokenAlerts.add(segmentId);
             lastAlertTime = now;
+            setTimeout(() => speakAlert("Warning: High risk zone. Drive carefully."), 0);
         }
     } else if (severity === "warning") {
         icon = "⚠️";
@@ -1375,9 +1419,16 @@ function checkNavigationAlerts() {
     const navScreen = document.getElementById("navigation-fullscreen");
     navScreen.className = "navigation-fullscreen active " + severity;
 
+    // Clear any pending safe-zone fadeout so it doesn't hide a danger/warning alert
+    if (safeAlertFadeTimeout) {
+        clearTimeout(safeAlertFadeTimeout);
+        safeAlertFadeTimeout = null;
+    }
+
     if (severity === "safe") {
-        setTimeout(() => {
+        safeAlertFadeTimeout = setTimeout(() => {
             fadeOutCurrentAlert();
+            safeAlertFadeTimeout = null;
         }, 4000);
     }
 }
@@ -1412,15 +1463,23 @@ function fadeOutCurrentAlert() {
 function showNavigationAlert(severity, icon, title, subtitle) {
     const alertBox = document.getElementById("nav-alert-box");
 
+    // Reset any leftover opacity from fadeOutCurrentAlert
+    alertBox.style.opacity = "1";
+    alertBox.style.transition = "";
+
     alertBox.className = "nav-alert-box " + severity;
     document.getElementById("nav-alert-icon").textContent = icon;
     document.getElementById("nav-alert-title").textContent = title;
     document.getElementById("nav-alert-subtitle").textContent = subtitle;
 
-    // Pulse animation
+    // Trigger entrance animation; for danger zones, also run the continuous dangerPulse
     alertBox.style.animation = "none";
     setTimeout(() => {
-        alertBox.style.animation = "slideUp 0.4s ease";
+        if (severity === "danger") {
+            alertBox.style.animation = "slideUp 0.4s ease, dangerPulse 2s ease infinite";
+        } else {
+            alertBox.style.animation = "slideUp 0.4s ease";
+        }
     }, 10);
 }
 
@@ -1450,6 +1509,10 @@ function exitNavigation() {
     tripWaypointCumulativeKm = [];
     lastAlertSegmentIndex = -1;
     spokenAlerts.clear();
+    if (safeAlertFadeTimeout) {
+        clearTimeout(safeAlertFadeTimeout);
+        safeAlertFadeTimeout = null;
+    }
 
     // Remove moving marker
     if (tripMovingMarker && tripNavigationMap) {
