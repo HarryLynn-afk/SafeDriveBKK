@@ -127,12 +127,19 @@ def _load_bangkok_accidents():
     return pd.read_csv(BANGKOK_ACCIDENTS_PATH, encoding="utf-8-sig")
 
 
+_grid_stats_cache = None
+
+
 def _load_grid_stats():
+    global _grid_stats_cache
+    if _grid_stats_cache is not None:
+        return _grid_stats_cache
     _require_file(GRID_STATS_PATH)
     df = pd.read_csv(GRID_STATS_PATH, encoding="utf-8-sig")
     if "grid_id" not in df.columns:
         raise ValueError("Invalid grid stats file: missing 'grid_id' column")
-    return _add_grid_bounds(df)
+    _grid_stats_cache = _add_grid_bounds(df)
+    return _grid_stats_cache
 
 
 def _add_grid_bounds(grid_df):
@@ -250,7 +257,7 @@ def get_osrm_route(start_lat, start_lon, end_lat, end_lon):
     )
 
     try:
-        response = requests.get(url, timeout=10)
+        response = requests.get(url, timeout=5)
         data = response.json()
 
         if data.get("code") == "Ok" and len(data.get("routes", [])) > 0:
@@ -291,7 +298,7 @@ def get_osrm_route_from_waypoints(waypoints):
         response = requests.get(
             url,
             params={"overview": "full", "geometries": "geojson", "steps": "true"},
-            timeout=10,
+            timeout=5,
         )
         data = response.json()
 
@@ -318,7 +325,7 @@ def get_osrm_alternatives(start_lat, start_lon, end_lat, end_lon, num_alternativ
     )
 
     try:
-        response = requests.get(url, timeout=10)
+        response = requests.get(url, timeout=5)
         data = response.json()
 
         if data.get("code") == "Ok":
@@ -382,10 +389,11 @@ def generate_fast_route(start_lat, start_lon, end_lat, end_lon):
     ]
 
 
-def generate_safe_route(start_lat, start_lon, end_lat, end_lon, grid_df):
+def generate_safe_route(start_lat, start_lon, end_lat, end_lon, grid_df, fast_waypoints=None):
     """Generate safe route - guaranteed to be safer or equal to fast route."""
     find_grid_for_point = _find_grid_for_point
-    fast_waypoints = generate_fast_route(start_lat, start_lon, end_lat, end_lon)
+    if fast_waypoints is None:
+        fast_waypoints = generate_fast_route(start_lat, start_lon, end_lat, end_lon)
     fast_risk = calculate_route_risk_density_aware(fast_waypoints, grid_df)
     fast_risk_score = int(fast_risk["risk_score"])
 
@@ -425,21 +433,18 @@ def generate_safe_route(start_lat, start_lon, end_lat, end_lon, grid_df):
             continue
         candidate_midpoints.append((mid_lat, mid_lon))
 
-    # Fetch all detour OSRM legs in parallel
-    def _fetch_detour(mid_lat, mid_lon):
-        r1 = get_osrm_route(start_lat, start_lon, mid_lat, mid_lon)
-        r2 = get_osrm_route(mid_lat, mid_lon, end_lat, end_lon)
-        return r1, r2
-
+    # Fetch all detour OSRM legs in parallel (both legs of each detour at once)
     if candidate_midpoints:
-        with ThreadPoolExecutor(max_workers=len(candidate_midpoints)) as pool:
-            detour_futures = {
-                pool.submit(_fetch_detour, mlat, mlon): (mlat, mlon)
-                for mlat, mlon in candidate_midpoints
-            }
+        with ThreadPoolExecutor(max_workers=len(candidate_midpoints) * 2) as pool:
+            # Submit all individual OSRM calls at once
+            leg_futures = {}
+            for mlat, mlon in candidate_midpoints:
+                f1 = pool.submit(get_osrm_route, start_lat, start_lon, mlat, mlon)
+                f2 = pool.submit(get_osrm_route, mlat, mlon, end_lat, end_lon)
+                leg_futures[(mlat, mlon)] = (f1, f2)
 
-            for future in as_completed(detour_futures):
-                route1, route2 = future.result()
+            for (mlat, mlon), (f1, f2) in leg_futures.items():
+                route1, route2 = f1.result(), f2.result()
                 if route1 and route2:
                     combined = route1["waypoints"][:-1] + route2["waypoints"]
                     sampled = combined[:: max(1, len(combined) // 25)]
@@ -1155,9 +1160,9 @@ def compare_routes():
 
         grid_df = _load_grid_stats()
 
-        # --- Phase 1: generate both routes (safe depends on fast) ---
+        # --- Phase 1: generate both routes (safe reuses fast waypoints) ---
         fast_waypoints = generate_fast_route(start_lat, start_lon, end_lat, end_lon)
-        safe_waypoints = generate_safe_route(start_lat, start_lon, end_lat, end_lon, grid_df)
+        safe_waypoints = generate_safe_route(start_lat, start_lon, end_lat, end_lon, grid_df, fast_waypoints=fast_waypoints)
 
         # --- Phase 2: evaluate routes + fetch travel times in parallel ---
         safe_mid_lat, safe_mid_lon = find_safest_midpoint(start_lat, start_lon, end_lat, end_lon, grid_df)
