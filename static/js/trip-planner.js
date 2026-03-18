@@ -13,6 +13,7 @@ let tripMovingMarker = null;
 let tripPreviousDistance = 0;
 let tripWaypointCumulativeKm = [];
 let lastAlertSegmentIndex = -1;
+let lastAlertSeverity = null;  // track risk level to only alert on changes
 let spokenAlerts = new Set();
 let lastAlertTime = 0;
 let safeAlertFadeTimeout = null;
@@ -1329,6 +1330,7 @@ function startNavigationSimulation() {
     spokenAlerts.clear();
     lastAlertTime = 0;
     lastAlertSegmentIndex = -1;
+    lastAlertSeverity = null;
     tripPreviousDistance = 0;
 
     // Reset state
@@ -1435,18 +1437,24 @@ function checkNavigationAlerts() {
     if (!tripPlannerRouteData || !tripPlannerRouteData.segments) return;
 
     const segmentIndex = findSegmentIndexForDistance(tripCurrentDistance);
-    if (segmentIndex < 0) {
-        return;
-    }
+    if (segmentIndex < 0) return;
 
-    // Only show alert on segment transition
-    if (segmentIndex === lastAlertSegmentIndex) {
-        return;
-    }
+    // Skip if still in the same segment
+    if (segmentIndex === lastAlertSegmentIndex) return;
+    lastAlertSegmentIndex = segmentIndex;
 
     const currentSegment = tripPlannerRouteData.segments[segmentIndex];
-    const segmentColor = String(currentSegment.color || "").toLowerCase().trim();
     const severity = currentSegment.ui_severity || getSegmentSeverity(currentSegment);
+
+    // Only alert when risk LEVEL changes (not on every zone entry)
+    if (severity === lastAlertSeverity) return;
+
+    const prevSeverity = lastAlertSeverity;
+    lastAlertSeverity = severity;
+
+    // Update background colour for current severity
+    const navScreen = document.getElementById("navigation-fullscreen");
+    navScreen.className = "navigation-fullscreen active " + severity;
 
     let icon;
     let title;
@@ -1454,38 +1462,34 @@ function checkNavigationAlerts() {
 
     if (severity === "danger") {
         icon = "🔴";
-        title = "🔴 HIGH RISK ZONE";
-        subtitle = `Extra caution | Risk: ${currentSegment.risk_score}/100`;
+        title = "🔴 ENTERING HIGH RISK ZONE";
+        subtitle = `Extra caution advised | Risk: ${currentSegment.risk_score}/100`;
 
-        // Voice alert once per segment with cooldown (deferred to avoid blocking animation)
+        // Voice alert with cooldown
         const now = Date.now();
-        const segmentId = `segment-${currentSegment.start_km}`;
-        if (!spokenAlerts.has(segmentId) && now - lastAlertTime >= ALERT_COOLDOWN) {
-            spokenAlerts.add(segmentId);
+        if (now - lastAlertTime >= ALERT_COOLDOWN) {
             lastAlertTime = now;
-            setTimeout(() => speakAlert("Warning: High risk zone. Drive carefully."), 0);
+            setTimeout(() => speakAlert("Warning: Entering high risk zone. Drive carefully."), 0);
         }
     } else if (severity === "warning") {
         icon = "⚠️";
-        title = "⚠️ MEDIUM RISK AREA";
+        title = prevSeverity === "danger"
+            ? "⚠️ RISK DECREASING"
+            : "⚠️ ENTERING MODERATE RISK AREA";
         subtitle = `Stay alert | Risk: ${currentSegment.risk_score}/100`;
     } else {
         icon = "✓";
-        title = "✓ SAFE ZONE";
+        title = prevSeverity ? "✅ ENTERING SAFE ZONE" : "✓ SAFE ZONE";
         subtitle = "Low risk area - maintain safe driving";
     }
 
     showNavigationAlert(severity, icon, title, subtitle);
-    lastAlertSegmentIndex = segmentIndex;
 
     // Pause animation on danger/warning so judges can read the alert
     if ((severity === "danger" || severity === "warning") && ALERT_PAUSE_MS > 0) {
         simulationPaused = true;
         setTimeout(() => { simulationPaused = false; }, ALERT_PAUSE_MS);
     }
-
-    const navScreen = document.getElementById("navigation-fullscreen");
-    navScreen.className = "navigation-fullscreen active " + severity;
 
     // Clear any pending safe-zone fadeout so it doesn't hide a danger/warning alert
     if (safeAlertFadeTimeout) {
@@ -1577,6 +1581,7 @@ function exitNavigation() {
     tripPreviousDistance = 0;
     tripWaypointCumulativeKm = [];
     lastAlertSegmentIndex = -1;
+    lastAlertSeverity = null;
     spokenAlerts.clear();
     if (safeAlertFadeTimeout) {
         clearTimeout(safeAlertFadeTimeout);
