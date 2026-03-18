@@ -1102,8 +1102,6 @@ function selectDemoRoute(startName, startLat, startLon, endName, endLat, endLon)
     window.endLat = endLat;
     window.endLon = endLon;
     updateFindSaferRouteButton();
-    // Auto-trigger route comparison
-    onFindSaferRouteClick();
 }
 
 function haversineKm(lat1, lon1, lat2, lon2) {
