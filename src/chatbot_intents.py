@@ -774,6 +774,157 @@ def handle_data_source(user_message=""):
 
 
 # ---------------------------------------------------------------------------
+# ML cause detection for English queries
+# ---------------------------------------------------------------------------
+
+# ML model cause names → chatbot_data.json cause keys
+# None means the cause exists as a special case handled separately
+_ML_CAUSE_DATA_MAP = {
+    "speeding":          "speeding",
+    "drunk_driving":     None,   # not a chatbot_data cause key; handled specially
+    "drowsy_driving":    "drowsy_driving",
+    "equipment_failure": "tire_blowout___worn_tires",
+    "traffic_violation": "running_red_light___traffic_sign_violation",
+    "cutting_in_front":  "cutting_in_front",
+}
+
+# English keyword sets per cause
+_CAUSE_KEYWORDS = {
+    "speeding": [
+        "speed", "speeding", "overspeeding", "over-speed", "over speed",
+        "driving fast", "fast driving", "velocity", "accelerat",
+    ],
+    "drunk_driving": [
+        "drunk", "alcohol", "dui", "dwi", "drink driv", "drinking and driv",
+        "intoxicat", "booze", "drink and drive", "impaired driv",
+    ],
+    "drowsy_driving": [
+        "drowsy", "sleepy", "fatigue", "tired", "drowsiness", "fall asleep",
+        "microsleep", "asleep at the wheel", "sleep depri", "nodding off",
+    ],
+    "equipment_failure": [
+        "equipment failure", "brake fail", "tire blowout", "tyre blowout",
+        "mechanical failure", "vehicle fault", "car fault", "engine fail",
+        "blowout", "worn tire", "worn tyre", "bald tire",
+    ],
+    "traffic_violation": [
+        "red light", "traffic violation", "traffic signal", "signal violation",
+        "ran a light", "ran red", "run red", "traffic sign violation",
+        "wrong side", "illegal turn",
+    ],
+    "cutting_in_front": [
+        "cut in front", "cutting in front", "cut off", "cutting off",
+        "sudden lane change", "aggressive lane", "merging dangerously",
+    ],
+}
+
+
+def detect_cause_from_question(user_message: str):
+    """
+    Detect accident cause from an English user query using keyword matching,
+    with ML classifier fallback for ambiguous or Thai-language queries.
+
+    Returns:
+        (cause_key, confidence) tuple.
+        cause_key is a chatbot_data["causes"] key or "drunk_driving" for the special case.
+        confidence is 0.0–1.0. Returns (None, 0.0) when nothing is detected.
+    """
+    text = user_message.lower().strip()
+    scores = {}
+
+    for cause, keywords in _CAUSE_KEYWORDS.items():
+        matches = sum(1 for kw in keywords if kw in text)
+        if matches:
+            # A single strong keyword is already a clear signal (≥0.65)
+            scores[cause] = min(0.65 + (matches - 1) * 0.2, 1.0)
+
+    if not scores:
+        # Fallback: try the Thai ML classifier (may catch transliterated/Thai text)
+        try:
+            from nlp_analysis import get_cause_classifier
+            classifier = get_cause_classifier()
+            result = classifier.classify(user_message, confidence_threshold=0.5)
+            if result and result.get("cause") and result.get("confidence", 0) > 0.6:
+                ml_cause = result["cause"]
+                data_key = _ML_CAUSE_DATA_MAP.get(ml_cause)
+                return (data_key if data_key else ml_cause), result["confidence"]
+        except Exception:
+            pass
+        return None, 0.0
+
+    best_cause = max(scores, key=scores.__getitem__)
+    confidence = scores[best_cause]
+    if confidence < 0.6:
+        return None, 0.0
+
+    data_key = _ML_CAUSE_DATA_MAP.get(best_cause)
+    return (data_key if data_key else best_cause), confidence
+
+
+def handle_ml_cause_response(cause_key: str, confidence: float, user_message: str = ""):
+    """
+    Build a cause-specific statistics response for ML-detected causes.
+
+    Returns a response dict (same shape as scripted handlers), or None if
+    chatbot_data has no entry for this cause (signal to fall through to AI).
+    """
+    data = load_chatbot_data()
+    causes = data["causes"]
+
+    # Special case: drunk_driving isn't a chatbot_data cause key
+    if cause_key == "drunk_driving":
+        tp = data["time_patterns"]
+        return {
+            "type": "stats",
+            "message": (
+                "Drunk driving is significantly underreported in official Bangkok data, "
+                "but the patterns are clear. **Saturday** is the deadliest day "
+                f"({tp['most_dangerous_day_count']} accidents) and late-night hours (10 PM – 3 AM) "
+                "show the highest risk.\n\n"
+                "Best advice: avoid driving on Friday/Saturday nights if possible."
+            ),
+            "data": [],
+            "followup": "Want to see weekend accident patterns? 🕐",
+            "source": "ml_detected",
+            "detected_cause": cause_key,
+            "confidence": round(confidence, 2),
+        }
+
+    cause_data = causes.get(cause_key)
+    if not cause_data:
+        return None  # No data — let Groq AI handle it
+
+    name = cause_data["english_name"]
+    pct = cause_data["percentage"]
+    count = cause_data["count"]
+    top_zones = cause_data.get("top_zones", [])[:3]
+
+    zone_text = ""
+    if top_zones:
+        zone_text = f"\n\nTop zones:\n{_fmt_zone_list(top_zones, 3)}"
+
+    if cause_key == "speeding":
+        advice = "Speed cameras and stricter enforcement could reduce these numbers by 30–40%."
+    elif cause_key == "cutting_in_front":
+        advice = "Zones with high cutting-in-front rates are especially risky — keep safe following distance."
+    else:
+        advice = "Stay alert and drive defensively in affected zones."
+
+    return {
+        "type": "stats",
+        "message": (
+            f"**{name}** accounts for **{pct}%** of all Bangkok accidents "
+            f"({count:,} incidents).{zone_text}\n\n{advice}"
+        ),
+        "data": top_zones,
+        "followup": f"Want to see the worst zones for {name.lower()}? ⚠️",
+        "source": "ml_detected",
+        "detected_cause": cause_key,
+        "confidence": round(confidence, 2),
+    }
+
+
+# ---------------------------------------------------------------------------
 # Handler dispatch table
 # ---------------------------------------------------------------------------
 

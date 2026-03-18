@@ -22,7 +22,12 @@ import googlemaps
 from googlemaps.convert import decode_polyline
 
 from ml_model import RiskPredictor
-from chatbot_intents import detect_intent, get_scripted_response
+from chatbot_intents import (
+    detect_intent,
+    get_scripted_response,
+    detect_cause_from_question,
+    handle_ml_cause_response,
+)
 from chatbot_groq import get_groq_response
 
 BASE_DIR = Path(__file__).resolve().parent.parent
@@ -1828,7 +1833,7 @@ def chatbot():
         if not user_message:
             return jsonify({"success": False, "error": "Empty message"}), 400
 
-        # Step 1: Try intent detection (scripted)
+        # Step 1: Try intent detection (scripted patterns)
         intent = detect_intent(user_message)
 
         if intent:
@@ -1836,8 +1841,19 @@ def chatbot():
             response["source"] = "scripted"
             response["intent"] = intent
         else:
-            # Step 2: AI response (flexible, creative)
-            response = get_groq_response(user_message, CHATBOT_DATA)
+            # Step 2: ML cause detection — catch cause-specific questions the
+            # scripted patterns miss (e.g. "Tell me about drowsy driving",
+            # "Is drunk driving a problem?", "Equipment failure stats?")
+            cause_key, confidence = detect_cause_from_question(user_message)
+            ml_response = None
+            if cause_key and confidence >= 0.6:
+                ml_response = handle_ml_cause_response(cause_key, confidence, user_message)
+
+            if ml_response:
+                response = ml_response
+            else:
+                # Step 3: AI response (flexible, open-ended)
+                response = get_groq_response(user_message, CHATBOT_DATA)
 
         return jsonify({"success": True, "response": response})
 
