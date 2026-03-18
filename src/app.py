@@ -377,7 +377,10 @@ def generate_fast_route(start_lat, start_lon, end_lat, end_lon):
 
     if osrm_route:
         waypoints = osrm_route["waypoints"]
-        sampled = waypoints[:: max(1, len(waypoints) // 20)]
+        sampled = waypoints[:: max(1, len(waypoints) // 100)]
+        # Ensure last point is included
+        if sampled[-1] != waypoints[-1]:
+            sampled.append(waypoints[-1])
         return sampled
 
     return [
@@ -405,7 +408,9 @@ def generate_safe_route(start_lat, start_lon, end_lat, end_lon, grid_df, fast_wa
 
         for i, alt in enumerate(alternatives):
             waypoints = alt["waypoints"]
-            sampled = waypoints[:: max(1, len(waypoints) // 25)]
+            sampled = waypoints[:: max(1, len(waypoints) // 100)]
+            if sampled[-1] != waypoints[-1]:
+                sampled.append(waypoints[-1])
             risk_result = calculate_route_risk_density_aware(sampled, grid_df)
             risk_score = int(risk_result["risk_score"])
 
@@ -447,7 +452,9 @@ def generate_safe_route(start_lat, start_lon, end_lat, end_lon, grid_df, fast_wa
                 route1, route2 = f1.result(), f2.result()
                 if route1 and route2:
                     combined = route1["waypoints"][:-1] + route2["waypoints"]
-                    sampled = combined[:: max(1, len(combined) // 25)]
+                    sampled = combined[:: max(1, len(combined) // 100)]
+                    if sampled[-1] != combined[-1]:
+                        sampled.append(combined[-1])
                     risk_result = calculate_route_risk_density_aware(sampled, grid_df)
                     risk_score = int(risk_result["risk_score"])
 
