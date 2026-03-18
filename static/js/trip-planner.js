@@ -31,12 +31,17 @@ let demoRoutesCache = null;
 // Pre-defined backup destinations
 const BACKUP_DESTINATIONS = [
     { name: "Siam Paragon", lat: 13.7467, lon: 100.5348 },
-    { name: "Ratchada", lat: 13.73, lon: 100.72 },
-    { name: "Din Daeng", lat: 13.73, lon: 100.74 },
-    { name: "Asok", lat: 13.74, lon: 100.56 },
-    { name: "Huai Khwang", lat: 13.76, lon: 100.75 },
+    { name: "Grand Palace", lat: 13.7500, lon: 100.4914 },
+    { name: "Thong Lo", lat: 13.7244, lon: 100.5787 },
+    { name: "Pinklao", lat: 13.7769, lon: 100.4735 },
+    { name: "Bearing", lat: 13.6680, lon: 100.6048 },
+    { name: "Minburi", lat: 13.7918, lon: 100.7316 },
+    { name: "Silom", lat: 13.7260, lon: 100.5233 },
+    { name: "Chatuchak", lat: 13.7999, lon: 100.5537 },
     { name: "MBK Center", lat: 13.7447, lon: 100.5299 },
-    { name: "Ari", lat: 13.7795, lon: 100.5362 }
+    { name: "Ari", lat: 13.7795, lon: 100.5362 },
+    { name: "Asok", lat: 13.7380, lon: 100.5600 },
+    { name: "Ratchada", lat: 13.73, lon: 100.72 }
 ];
 
 // ===== ADDRESS AUTOCOMPLETE =====
@@ -1087,6 +1092,18 @@ function selectQuickDestination(name, lat, lon) {
     window.endLat = lat;
     window.endLon = lon;
     updateFindSaferRouteButton();
+}
+
+function selectDemoRoute(startName, startLat, startLon, endName, endLat, endLon) {
+    document.getElementById("start-location").value = startName;
+    window.startLat = startLat;
+    window.startLon = startLon;
+    document.getElementById("destination").value = endName;
+    window.endLat = endLat;
+    window.endLon = endLon;
+    updateFindSaferRouteButton();
+    // Auto-trigger route comparison
+    onFindSaferRouteClick();
 }
 
 function haversineKm(lat1, lon1, lat2, lon2) {
