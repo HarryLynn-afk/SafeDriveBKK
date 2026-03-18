@@ -3,12 +3,16 @@ NLP Analysis Module for Bangkok Road Risk.
 
 Processes Thai accident text columns, shows how text features feed into XGBoost,
 and generates actionable per-zone policy recommendations.
+
+Includes ML-based text classification (TF-IDF + Logistic Regression) trained on
+2,466 Thai accident reports, replacing dictionary keyword matching.
 """
 
 import json
 import logging
 from pathlib import Path
 
+import joblib
 import pandas as pd
 
 LOGGER = logging.getLogger(__name__)
@@ -22,12 +26,14 @@ ACCIDENTS_PATH = DATA_DIR / "bangkok_accidents_clean.csv"
 ML_FEATURES_PATH = DATA_DIR / "ml_features.csv"
 FEATURE_IMPORTANCE_PATH = MODELS_DIR / "xgb_feature_importance.csv"
 NLP_CACHE_PATH = STATIC_DIR / "nlp_cache.json"
+NLP_METRICS_PATH = DATA_DIR / "nlp_metrics.json"
 
 # Thai column names
 COL_CAUSE = "มูลเหตุสันนิษฐาน"
 COL_TYPE = "ลักษณะการเกิดเหตุ"
 COL_WEATHER = "สภาพอากาศ"
 COL_LOCATION = "บริเวณที่เกิดเหตุ"
+COL_VEHICLE = "รถคันที่1"
 
 # Cause categories -> English + XGBoost feature name
 CAUSE_TRANSLATIONS = {
@@ -85,6 +91,136 @@ WEATHER_RECOMMENDATIONS = {
     "high_rain": "Improve drainage and install anti-skid road surface",
 }
 
+# Cause group English names (must match train_text_classifier.py)
+def thai_tokenizer(text):
+    """Tokenize Thai text using pythainlp newmm engine.
+
+    Defined here so joblib can resolve it when loading the TF-IDF vectorizer.
+    """
+    from pythainlp.tokenize import word_tokenize
+
+    tokens = word_tokenize(str(text), engine="newmm")
+    return [t for t in tokens if len(t.strip()) > 1]
+
+
+CAUSE_GROUP_ENGLISH = {
+    "speeding": "Speeding",
+    "cutting_in_front": "Cutting in front",
+    "drowsy_driving": "Drowsy driving",
+    "equipment_failure": "Equipment failure",
+    "traffic_violation": "Traffic violation",
+    "other": "Other causes",
+}
+
+
+class CauseClassifier:
+    """ML-based Thai text classifier for accident cause prediction.
+
+    Uses TF-IDF + Logistic Regression trained on 2,466 Thai accident reports.
+    Falls back to dictionary matching if model files are unavailable.
+    """
+
+    def __init__(self):
+        self.classifier = None
+        self.vectorizer = None
+        self.available = False
+        self.metrics = {}
+        self._load()
+
+    def _load(self):
+        clf_path = MODELS_DIR / "cause_classifier.pkl"
+        vec_path = MODELS_DIR / "tfidf_vectorizer.pkl"
+        try:
+            self.classifier = joblib.load(clf_path)
+            self.vectorizer = joblib.load(vec_path)
+            self.available = True
+            LOGGER.info("ML cause classifier loaded from %s", clf_path)
+        except Exception as exc:
+            LOGGER.warning("ML classifier not available (%s), using dictionary fallback", exc)
+
+        try:
+            if NLP_METRICS_PATH.exists():
+                with open(NLP_METRICS_PATH, encoding="utf-8") as f:
+                    self.metrics = json.load(f)
+        except (json.JSONDecodeError, OSError):
+            pass
+
+    def classify(self, text, confidence_threshold=0.5):
+        """Classify Thai text into a cause category.
+
+        Returns dict with cause, confidence, method, and english_name.
+        """
+        if not text or not str(text).strip():
+            return {
+                "cause": "other",
+                "english_name": "Other causes",
+                "confidence": 0.0,
+                "method": "empty_input",
+            }
+
+        if self.available:
+            try:
+                tfidf = self.vectorizer.transform([str(text)])
+                prediction = self.classifier.predict(tfidf)[0]
+                probas = self.classifier.predict_proba(tfidf)[0]
+                confidence = float(max(probas))
+
+                if confidence >= confidence_threshold:
+                    return {
+                        "cause": prediction,
+                        "english_name": CAUSE_GROUP_ENGLISH.get(prediction, prediction),
+                        "confidence": round(confidence, 4),
+                        "method": "ml_classifier",
+                        "all_probabilities": {
+                            cls: round(float(p), 4)
+                            for cls, p in zip(self.classifier.classes_, probas)
+                        },
+                    }
+            except Exception as exc:
+                LOGGER.warning("ML classify error: %s", exc)
+
+        # Dictionary fallback
+        return self._dictionary_classify(text)
+
+    @staticmethod
+    def _dictionary_classify(text):
+        """Fallback dictionary-based classification."""
+        text = str(text)
+        for thai, info in CAUSE_TRANSLATIONS.items():
+            if thai in text:
+                return {
+                    "cause": thai,
+                    "english_name": info["english"],
+                    "confidence": 1.0,
+                    "method": "dictionary_fallback",
+                }
+        return {
+            "cause": "other",
+            "english_name": "Other causes",
+            "confidence": 0.0,
+            "method": "dictionary_fallback",
+        }
+
+    def classify_batch(self, texts):
+        """Classify multiple Thai texts at once."""
+        return [self.classify(t) for t in texts]
+
+    def get_metrics(self):
+        """Return stored training metrics."""
+        return self.metrics
+
+
+# Module-level singleton (loaded once on import)
+_cause_classifier = None
+
+
+def get_cause_classifier():
+    """Get or create the singleton CauseClassifier instance."""
+    global _cause_classifier
+    if _cause_classifier is None:
+        _cause_classifier = CauseClassifier()
+    return _cause_classifier
+
 
 class NLPAnalyzer:
     """Analyzes Thai accident text and maps to XGBoost features."""
@@ -103,12 +239,16 @@ class NLPAnalyzer:
         )
 
     def get_text_feature_pipeline_demo(self):
-        """Show 3-5 sample records flowing through the NLP -> XGBoost pipeline."""
+        """Show 3-5 sample records flowing through the NLP -> XGBoost pipeline.
+
+        Now includes ML classifier prediction alongside the dictionary mapping.
+        """
         try:
             from pythainlp.tokenize import word_tokenize
         except ImportError:
             word_tokenize = lambda t, **kw: list(t)
 
+        classifier = get_cause_classifier()
         samples = []
         seen_causes = set()
 
@@ -120,6 +260,17 @@ class NLPAnalyzer:
                 seen_causes.add(cause)
                 info = CAUSE_TRANSLATIONS[cause]
                 tokens = word_tokenize(cause, engine="newmm")
+
+                # Build full report text for ML classification
+                report_parts = []
+                for col in [COL_CAUSE, COL_LOCATION, COL_TYPE, COL_WEATHER, COL_VEHICLE]:
+                    val = row.get(col, "")
+                    if pd.notna(val) and str(val).strip():
+                        report_parts.append(str(val).strip())
+                report_text = " ".join(report_parts)
+
+                ml_result = classifier.classify(report_text)
+
                 samples.append(
                     {
                         "raw_thai": cause,
@@ -129,12 +280,19 @@ class NLPAnalyzer:
                         "feature_importance": round(
                             self._importance_dict.get(info["feature"], 0) * 100, 3
                         ),
+                        "ml_prediction": ml_result.get("cause", ""),
+                        "ml_confidence": ml_result.get("confidence", 0),
+                        "ml_method": ml_result.get("method", ""),
                     }
                 )
             if len(samples) >= 5:
                 break
 
-        return {"pipeline_examples": samples, "total_features_in_model": 44}
+        return {
+            "pipeline_examples": samples,
+            "total_features_in_model": 44,
+            "ml_classifier_available": classifier.available,
+        }
 
     def get_cause_frequency_analysis(self):
         """Cause breakdown matching feature_engineering.py categorization."""
@@ -505,6 +663,11 @@ class NLPAnalyzer:
 
         return zones
 
+    def get_ml_classifier_metrics(self):
+        """Return ML text classifier metrics for display."""
+        classifier = get_cause_classifier()
+        return classifier.get_metrics()
+
     def generate_cache(self):
         """Generate and save all NLP analysis results to cache file."""
         LOGGER.info("Generating NLP cache...")
@@ -518,6 +681,7 @@ class NLPAnalyzer:
             "word_cloud": self.get_word_cloud_data(),
             "accident_samples": self.get_accident_samples(30),
             "map_data": self.get_map_data(200),
+            "ml_classifier_metrics": self.get_ml_classifier_metrics(),
         }
 
         STATIC_DIR.mkdir(parents=True, exist_ok=True)

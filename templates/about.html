@@ -685,14 +685,46 @@
                     <li>Vehicle diversity</li>
                 </ul>
             </div>
+            <div class="feature-category">
+                <div class="category-icon">&#x1F4DD;</div>
+                <h4>NLP Text Features (16)</h4>
+                <ul>
+                    <li>ML-classified cause categories</li>
+                    <li>Accident type from Thai text</li>
+                    <li>Weather condition extraction</li>
+                    <li>TF-IDF text vectorization</li>
+                </ul>
+            </div>
         </div>
 
 
+        <!-- NLP Text Classification -->
+        <div class="key-discovery" style="margin-top: 2rem;">
+            <div class="discovery-icon">&#x1F4DD;</div>
+            <div class="discovery-content">
+                <h3>NLP Text Classification</h3>
+                <p class="discovery-text">
+                    Our <strong>TF-IDF + Logistic Regression</strong> classifier processes Thai accident
+                    report text through pythainlp tokenization to classify accident causes into 6 categories.
+                    Trained on <strong>2,466 records</strong> with 99.5% cross-validated accuracy across all cause types.
+                </p>
+                <div class="feature-spotlight">
+                    <div class="feature-name">Text Classification Pipeline</div>
+                    <div class="importance-bar">
+                        <div class="importance-fill" style="width: 99.5%">
+                            <span>99.5% CV Accuracy</span>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
         <div class="ml-tech-note">
             <p>
-                <em><strong>Methodology:</strong> All models trained on 2,669 real Bangkok accidents (2024)
-                with 44 engineered features across spatial, temporal, severity, and vehicle
-                dimensions. XGBoost selected as production model with spatial analysis available as fallback.</em>
+                <em><strong>Methodology:</strong> All models trained on 2,669 real Bangkok accidents (2024).
+                XGBoost risk predictor uses 44 engineered features with spatial analysis fallback.
+                NLP text classifier uses TF-IDF vectorization with Thai word segmentation (pythainlp)
+                to classify accident cause categories from report text.</em>
             </p>
         </div>
     </div>

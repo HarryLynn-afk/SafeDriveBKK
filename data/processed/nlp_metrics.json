@@ -1,0 +1,273 @@
+{
+  "model_type": "TF-IDF + Logistic Regression",
+  "description": "Thai text classifier trained on 2,466 accident reports. Uses pythainlp tokenization and TF-IDF vectorization to classify accident cause categories from Thai report text.",
+  "tokenizer": "pythainlp newmm (Thai word segmentation)",
+  "accuracy": 1.0,
+  "precision": 1.0,
+  "recall": 1.0,
+  "f1_score": 1.0,
+  "cv_accuracy_mean": 0.9947,
+  "cv_accuracy_std": 0.003,
+  "training_samples": 1972,
+  "test_samples": 494,
+  "total_samples": 2466,
+  "vocabulary_size": 288,
+  "num_classes": 6,
+  "classes": [
+    "cutting_in_front",
+    "drowsy_driving",
+    "equipment_failure",
+    "other",
+    "speeding",
+    "traffic_violation"
+  ],
+  "class_english": {
+    "speeding": "Speeding",
+    "cutting_in_front": "Cutting in front",
+    "drowsy_driving": "Drowsy driving",
+    "equipment_failure": "Equipment failure",
+    "traffic_violation": "Traffic violation",
+    "other": "Other causes"
+  },
+  "per_class_metrics": {
+    "cutting_in_front": {
+      "english_name": "Cutting in front",
+      "precision": 1.0,
+      "recall": 1.0,
+      "f1_score": 1.0,
+      "support": 25,
+      "top_features": [
+        {
+          "token": "คน รถ",
+          "weight": 1.91
+        },
+        {
+          "token": "คน",
+          "weight": 1.91
+        },
+        {
+          "token": "รถ สัตว์",
+          "weight": 1.91
+        },
+        {
+          "token": "ตัดหน้า กระชั้นชิด",
+          "weight": 1.91
+        },
+        {
+          "token": "สัตว์ ตัดหน้า",
+          "weight": 1.91
+        }
+      ]
+    },
+    "drowsy_driving": {
+      "english_name": "Drowsy driving",
+      "precision": 1.0,
+      "recall": 1.0,
+      "f1_score": 1.0,
+      "support": 9,
+      "top_features": [
+        {
+          "token": "หลับใน",
+          "weight": 3.993
+        },
+        {
+          "token": "หลับใน ทางตรง",
+          "weight": 2.876
+        },
+        {
+          "token": "หลับใน ทางโค้ง",
+          "weight": 0.692
+        },
+        {
+          "token": "หลับใน พลิกคว่ำ",
+          "weight": 0.49
+        },
+        {
+          "token": "ทางตรง แจ่มใส",
+          "weight": 0.44
+        }
+      ]
+    },
+    "equipment_failure": {
+      "english_name": "Equipment failure",
+      "precision": 1.0,
+      "recall": 1.0,
+      "f1_score": 1.0,
+      "support": 14,
+      "top_features": [
+        {
+          "token": "เสื่อมสภาพ",
+          "weight": 1.784
+        },
+        {
+          "token": "ยาง",
+          "weight": 1.784
+        },
+        {
+          "token": "ยางแตก",
+          "weight": 1.784
+        },
+        {
+          "token": "ยาง เสื่อมสภาพ",
+          "weight": 1.784
+        },
+        {
+          "token": "เสื่อมสภาพ ยางแตก",
+          "weight": 1.784
+        }
+      ]
+    },
+    "other": {
+      "english_name": "Other causes",
+      "precision": 1.0,
+      "recall": 1.0,
+      "f1_score": 1.0,
+      "support": 12,
+      "top_features": [
+        {
+          "token": "ถนน ลื่น",
+          "weight": 1.441
+        },
+        {
+          "token": "ลื่น",
+          "weight": 1.441
+        },
+        {
+          "token": "โรคประจำตัว ทางตรง",
+          "weight": 1.135
+        },
+        {
+          "token": "โรคประจำตัว",
+          "weight": 1.135
+        },
+        {
+          "token": "ลื่น ทางตรง",
+          "weight": 1.13
+        }
+      ]
+    },
+    "speeding": {
+      "english_name": "Speeding",
+      "precision": 1.0,
+      "recall": 1.0,
+      "f1_score": 1.0,
+      "support": 422,
+      "top_features": [
+        {
+          "token": "ขับรถ เร็ว",
+          "weight": 2.738
+        },
+        {
+          "token": "เร็ว",
+          "weight": 2.738
+        },
+        {
+          "token": "เร็ว เกิน",
+          "weight": 2.738
+        },
+        {
+          "token": "กำหนด",
+          "weight": 2.738
+        },
+        {
+          "token": "อัตรา กำหนด",
+          "weight": 2.738
+        }
+      ]
+    },
+    "traffic_violation": {
+      "english_name": "Traffic violation",
+      "precision": 1.0,
+      "recall": 1.0,
+      "f1_score": 1.0,
+      "support": 12,
+      "top_features": [
+        {
+          "token": "เครื่องหมายจราจร",
+          "weight": 1.061
+        },
+        {
+          "token": "สัญญาณไฟ",
+          "weight": 1.061
+        },
+        {
+          "token": "ฝ่าฝืน",
+          "weight": 1.061
+        },
+        {
+          "token": "ฝ่าฝืน สัญญาณไฟ",
+          "weight": 1.061
+        },
+        {
+          "token": "สัญญาณไฟ เครื่องหมายจราจร",
+          "weight": 1.061
+        }
+      ]
+    }
+  },
+  "confusion_matrix": [
+    [
+      25,
+      0,
+      0,
+      0,
+      0,
+      0
+    ],
+    [
+      0,
+      9,
+      0,
+      0,
+      0,
+      0
+    ],
+    [
+      0,
+      0,
+      14,
+      0,
+      0,
+      0
+    ],
+    [
+      0,
+      0,
+      0,
+      12,
+      0,
+      0
+    ],
+    [
+      0,
+      0,
+      0,
+      0,
+      422,
+      0
+    ],
+    [
+      0,
+      0,
+      0,
+      0,
+      0,
+      12
+    ]
+  ],
+  "input_columns": [
+    "มูลเหตุสันนิษฐาน",
+    "บริเวณที่เกิดเหตุ",
+    "ลักษณะการเกิดเหตุ",
+    "สภาพอากาศ",
+    "รถคันที่1"
+  ],
+  "class_distribution": {
+    "speeding": 2104,
+    "cutting_in_front": 126,
+    "equipment_failure": 70,
+    "other": 62,
+    "traffic_violation": 61,
+    "drowsy_driving": 43
+  }
+}

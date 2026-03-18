@@ -4,153 +4,82 @@
       {
         "raw_thai": "ขับรถเร็วเกินอัตรากำหนด",
         "tokens": [
-          "ข",
-          "ั",
-          "บ",
-          "ร",
-          "ถ",
-          "เ",
-          "ร",
-          "็",
-          "ว",
-          "เ",
-          "ก",
-          "ิ",
-          "น",
-          "อ",
-          "ั",
-          "ต",
-          "ร",
-          "า",
-          "ก",
-          "ำ",
-          "ห",
-          "น",
-          "ด"
+          "ขับรถ",
+          "เร็ว",
+          "เกิน",
+          "อัตรา",
+          "กำหนด"
         ],
         "category_english": "Speeding",
         "xgboost_feature": "cause_ขับรถเร็วเกินอัตรากำหนด",
-        "feature_importance": 0.071
+        "feature_importance": 0.0,
+        "ml_prediction": "speeding",
+        "ml_confidence": 0.9945,
+        "ml_method": "ml_classifier"
       },
       {
         "raw_thai": "คน/รถ/สัตว์ตัดหน้ากระชั้นชิด",
         "tokens": [
-          "ค",
-          "น",
+          "คน",
           "/",
-          "ร",
-          "ถ",
+          "รถ",
           "/",
-          "ส",
-          "ั",
-          "ต",
-          "ว",
-          "์",
-          "ต",
-          "ั",
-          "ด",
-          "ห",
-          "น",
-          "้",
-          "า",
-          "ก",
-          "ร",
-          "ะ",
-          "ช",
-          "ั",
-          "้",
-          "น",
-          "ช",
-          "ิ",
-          "ด"
+          "สัตว์",
+          "ตัดหน้า",
+          "กระชั้นชิด"
         ],
         "category_english": "Cutting in front",
         "xgboost_feature": "cause_คน/รถ/สัตว์ตัดหน้ากระชั้นชิด",
-        "feature_importance": 0.174
+        "feature_importance": 0.0,
+        "ml_prediction": "cutting_in_front",
+        "ml_confidence": 0.9477,
+        "ml_method": "ml_classifier"
       },
       {
         "raw_thai": "หลับใน",
         "tokens": [
-          "ห",
-          "ล",
-          "ั",
-          "บ",
-          "ใ",
-          "น"
+          "หลับใน"
         ],
         "category_english": "Drowsy driving",
         "xgboost_feature": "cause_หลับใน",
-        "feature_importance": 0.0
+        "feature_importance": 0.0,
+        "ml_prediction": "drowsy_driving",
+        "ml_confidence": 0.7292,
+        "ml_method": "ml_classifier"
       },
       {
         "raw_thai": "ยางเสื่อมสภาพ/ยางแตก",
         "tokens": [
-          "ย",
-          "า",
-          "ง",
-          "เ",
-          "ส",
-          "ื",
-          "่",
-          "อ",
-          "ม",
-          "ส",
-          "ภ",
-          "า",
-          "พ",
+          "ยาง",
+          "เสื่อมสภาพ",
           "/",
-          "ย",
-          "า",
-          "ง",
-          "แ",
-          "ต",
-          "ก"
+          "ยางแตก"
         ],
         "category_english": "Tire blowout / worn tires",
         "xgboost_feature": "cause_ยางเสื่อมสภาพ/ยางแตก",
-        "feature_importance": 0.0
+        "feature_importance": 0.0,
+        "ml_prediction": "equipment_failure",
+        "ml_confidence": 0.8789,
+        "ml_method": "ml_classifier"
       },
       {
         "raw_thai": "ฝ่าฝืนสัญญาณไฟ/เครื่องหมายจราจร",
         "tokens": [
-          "ฝ",
-          "่",
-          "า",
-          "ฝ",
-          "ื",
-          "น",
-          "ส",
-          "ั",
-          "ญ",
-          "ญ",
-          "า",
-          "ณ",
-          "ไ",
-          "ฟ",
+          "ฝ่าฝืน",
+          "สัญญาณไฟ",
           "/",
-          "เ",
-          "ค",
-          "ร",
-          "ื",
-          "่",
-          "อ",
-          "ง",
-          "ห",
-          "ม",
-          "า",
-          "ย",
-          "จ",
-          "ร",
-          "า",
-          "จ",
-          "ร"
+          "เครื่องหมายจราจร"
         ],
         "category_english": "Running red light / traffic sign violation",
         "xgboost_feature": "cause_ฝ่าฝืนสัญญาณไฟ/เครื่องหมายจราจร",
-        "feature_importance": 0.0
+        "feature_importance": 0.0,
+        "ml_prediction": "traffic_violation",
+        "ml_confidence": 0.7503,
+        "ml_method": "ml_classifier"
       }
     ],
-    "total_features_in_model": 44
+    "total_features_in_model": 44,
+    "ml_classifier_available": true
   },
   "cause_analysis": {
     "categories": [
@@ -160,7 +89,7 @@
         "count": 2104,
         "percentage": 78.8,
         "xgboost_feature": "cause_ขับรถเร็วเกินอัตรากำหนด",
-        "feature_importance": 0.071
+        "feature_importance": 0.0
       },
       {
         "thai_name": "คน/รถ/สัตว์ตัดหน้ากระชั้นชิด",
@@ -168,7 +97,7 @@
         "count": 126,
         "percentage": 4.7,
         "xgboost_feature": "cause_คน/รถ/สัตว์ตัดหน้ากระชั้นชิด",
-        "feature_importance": 0.174
+        "feature_importance": 0.0
       },
       {
         "thai_name": "ยางเสื่อมสภาพ/ยางแตก",
@@ -213,7 +142,7 @@
         "count": 1908,
         "percentage": 71.5,
         "xgboost_feature": "type_ชนท้าย",
-        "feature_importance": 1.757
+        "feature_importance": 0.0
       },
       {
         "thai_name": "พลิกคว่ำ/ตกถนนในทางตรง",
@@ -245,7 +174,7 @@
         "count": 26,
         "percentage": 1.0,
         "xgboost_feature": "type_ชนด้านข้าง",
-        "feature_importance": 1.817
+        "feature_importance": 0.0
       },
       {
         "thai_name": "ชนคนเดินเท้า",
@@ -260,114 +189,81 @@
   },
   "feature_importance": {
     "severity": {
-      "importance_pct": 53.7,
+      "importance_pct": 1.62,
       "feature_count": 3,
       "features": [
         {
-          "name": "severity_mean",
-          "importance": 53.624
-        },
-        {
           "name": "severity_total",
-          "importance": 0.073
+          "importance": 1.617
         }
       ]
     },
     "spatial": {
-      "importance_pct": 20.66,
+      "importance_pct": 48.98,
       "feature_count": 13,
       "features": [
         {
           "name": "grid_density",
-          "importance": 19.613
+          "importance": 46.239
         },
         {
           "name": "accidents_n",
-          "importance": 0.027
+          "importance": 0.093
         },
         {
-          "name": "accidents_s",
-          "importance": 0.018
+          "name": "accidents_nw",
+          "importance": 0.453
         },
         {
-          "name": "accidents_e",
-          "importance": 0.021
-        },
-        {
-          "name": "accidents_sw",
-          "importance": 0.143
+          "name": "accidents_neighbors_mean",
+          "importance": 0.131
         },
         {
           "name": "accidents_neighbors_max",
-          "importance": 0.834
+          "importance": 2.059
         }
       ]
     },
     "temporal": {
-      "importance_pct": 11.83,
+      "importance_pct": 43.61,
       "feature_count": 5,
       "features": [
         {
-          "name": "rush_hour_pct",
-          "importance": 2.079
+          "name": "weekend_pct",
+          "importance": 0.128
         },
         {
           "name": "month_spread",
-          "importance": 9.755
+          "importance": 43.487
         }
       ]
     },
     "vehicle": {
-      "importance_pct": 9.99,
+      "importance_pct": 5.79,
       "feature_count": 9,
       "features": [
         {
           "name": "motorcycle_count",
-          "importance": 0.335
+          "importance": 0.387
         },
         {
           "name": "car_count",
-          "importance": 0.327
+          "importance": 1.549
         },
         {
           "name": "pickup_count",
-          "importance": 7.39
+          "importance": 3.411
         },
         {
-          "name": "heavy_truck_count",
-          "importance": 0.048
-        },
-        {
-          "name": "motorcycle_pct",
-          "importance": 0.161
-        },
-        {
-          "name": "pickup_pct",
-          "importance": 1.732
+          "name": "car_pct",
+          "importance": 0.446
         }
       ]
     },
     "nlp_text": {
-      "importance_pct": 3.82,
+      "importance_pct": 0.0,
       "feature_count": 14,
-      "features": [
-        {
-          "name": "type_ชนด้านข้าง",
-          "importance": 1.817
-        },
-        {
-          "name": "type_ชนท้าย",
-          "importance": 1.757
-        },
-        {
-          "name": "cause_คน/รถ/สัตว์ตัดหน้ากระชั้นชิด",
-          "importance": 0.174
-        },
-        {
-          "name": "cause_ขับรถเร็วเกินอัตรากำหนด",
-          "importance": 0.071
-        }
-      ]
+      "features": []
     }
   },
   "recommendations": [
@@ -525,151 +421,203 @@
   "word_cloud": {
     "words": [
       {
-        "text": "ขับรถเร็วเกินอัตรากำหนด",
-        "frequency": 2104
-      },
-      {
-        "text": "ชนท้าย",
-        "frequency": 1908
-      },
-      {
-        "text": "พลิกคว่ำ/ตกถนนในทางตรง",
-        "frequency": 453
-      },
-      {
-        "text": "คน/รถ/สัตว์ตัดหน้ากระชั้นชิด",
-        "frequency": 126
-      },
-      {
-        "text": "ชนสิ่งกีดขวาง (บนผิวจราจร)",
-        "frequency": 123
-      },
-      {
-        "text": "อื่นๆ",
-        "frequency": 88
-      },
-      {
-        "text": "ยางเสื่อมสภาพ/ยางแตก",
-        "frequency": 51
-      },
-      {
-        "text": "หลับใน",
-        "frequency": 43
-      },
-      {
-        "text": "ชนด้านข้าง",
-        "frequency": 26
-      },
-      {
-        "text": "ฝ่าฝืนสัญญาณไฟ/เครื่องหมายจราจร",
-        "frequency": 22
-      },
-      {
-        "text": "ถนนลื่น",
-        "frequency": 17
-      },
-      {
-        "text": "ไม่ยอมให้รถที่มีสิทธิ์ไปก่อน",
-        "frequency": 16
-      },
-      {
-        "text": "ชนคนเดินเท้า",
-        "frequency": 16
-      },
-      {
-        "text": "ไม่คุ้นเคยเส้นทาง/ขับรถไม่ชำนาญ",
-        "frequency": 12
-      },
-      {
-        "text": "อุปกรณ์ยานพาหนะบกพร่อง",
-        "frequency": 11
-      },
-      {
-        "text": "พลิกคว่ำ/ตกถนนในทางโค้ง",
-        "frequency": 10
-      },
-      {
-        "text": "ระบบห้ามล้อขัดข้อง/ระบบเบรกชำรุด",
-        "frequency": 8
-      },
-      {
-        "text": "ไม่ให้สัญญาณชะลอ/เลี้ยว",
+        "text": "ชน",
         "frequency": 7
       },
       {
-        "text": "เมาสุรา",
-        "frequency": 6
-      },
-      {
-        "text": "ขับรถย้อนศร",
+        "text": "ขับรถ",
         "frequency": 5
       },
       {
-        "text": "ใช้โทรศัพท์เคลื่อนที่ขณะขับรถ",
+        "text": "ถนน",
         "frequency": 5
       },
       {
-        "text": "โรคประจำตัว",
+        "text": "ลาดชัน",
         "frequency": 5
       },
       {
-        "text": "ความประมาท/เร่งรีบ (วิ่งตัดหน้า)",
+        "text": "ทางโค้ง",
         "frequency": 5
       },
       {
-        "text": "มีกองวัสดุ/สิ่งกีดขวาง",
+        "text": "ทางตรง",
         "frequency": 4
       },
       {
-        "text": "เปลี่ยนช่องทางกะทันหัน",
-        "frequency": 4
-      },
-      {
-        "text": "ไม่ให้สัญญาณเข้าจอด/ออกจากที่จอด",
+        "text": "รถ",
         "frequency": 3
       },
       {
-        "text": "สูญเสียการควบคุม",
-        "frequency": 3
-      },
-      {
-        "text": "ขับรถตามกระชั้นชิด",
+        "text": "อัตรา",
         "frequency": 2
       },
       {
-        "text": "แซงรถอย่างผิดกฎหมาย",
+        "text": "ตัดหน้า",
         "frequency": 2
       },
       {
-        "text": "เลี้ยว/ถอยชน",
+        "text": "กระชั้นชิด",
         "frequency": 2
       },
       {
-        "text": "ชนในทิศทางตรงกันข้าม (ไม่ใช่การแซง)",
+        "text": "สิ่งกีดขวาง",
         "frequency": 2
       },
       {
-        "text": "ทำงานบนถนน",
+        "text": "ระบบ",
+        "frequency": 2
+      },
+      {
+        "text": "ชำรุด",
+        "frequency": 2
+      },
+      {
+        "text": "ให้สัญญาณ",
+        "frequency": 2
+      },
+      {
+        "text": "เลี้ยว",
+        "frequency": 2
+      },
+      {
+        "text": "จอด",
+        "frequency": 2
+      },
+      {
+        "text": "แซง",
+        "frequency": 2
+      },
+      {
+        "text": "สามแยก",
+        "frequency": 2
+      },
+      {
+        "text": "ทางแยก",
+        "frequency": 2
+      },
+      {
+        "text": "พลิกคว่ำ",
+        "frequency": 2
+      },
+      {
+        "text": "ตก",
+        "frequency": 2
+      },
+      {
+        "text": "ความประมาท",
         "frequency": 1
       },
       {
-        "text": "แสงสว่างไม่เพียงพอ",
+        "text": "เร่งรีบ",
         "frequency": 1
       },
       {
-        "text": "อาการป่วย หรือการไร้ความสามารถทางประสาทหรือร่างกาย",
+        "text": "วิ่ง",
         "frequency": 1
       },
       {
-        "text": "บรรทุกเกินอัตรา",
+        "text": "คน",
         "frequency": 1
       },
       {
-        "text": "ถนนชำรุด",
+        "text": "สัตว์",
         "frequency": 1
       },
       {
-        "text": "ชนเป็นมุมบริเวณทางแยก",
+        "text": "บรรทุก",
+        "frequency": 1
+      },
+      {
+        "text": "หลับใน",
+        "frequency": 1
+      },
+      {
+        "text": "กอง",
+        "frequency": 1
+      },
+      {
+        "text": "วัสดุ",
+        "frequency": 1
+      },
+      {
+        "text": "ยาง",
+        "frequency": 1
+      },
+      {
+        "text": "เสื่อมสภาพ",
+        "frequency": 1
+      },
+      {
+        "text": "ยางแตก",
+        "frequency": 1
+      },
+      {
+        "text": "คุ้นเคย",
+        "frequency": 1
+      },
+      {
+        "text": "เส้นทาง",
+        "frequency": 1
+      },
+      {
+        "text": "ชำนาญ",
+        "frequency": 1
+      },
+      {
+        "text": "ช่องทาง",
+        "frequency": 1
+      },
+      {
+        "text": "กะทันหัน",
+        "frequency": 1
+      },
+      {
+        "text": "ย้อนศร",
+        "frequency": 1
+      },
+      {
+        "text": "ฝ่าฝืน",
+        "frequency": 1
+      },
+      {
+        "text": "สัญญาณไฟ",
+        "frequency": 1
+      },
+      {
+        "text": "เครื่องหมายจราจร",
+        "frequency": 1
+      },
+      {
+        "text": "แสงสว่าง",
+        "frequency": 1
+      },
+      {
+        "text": "ทำงาน",
+        "frequency": 1
+      },
+      {
+        "text": "อุปกรณ์",
+        "frequency": 1
+      },
+      {
+        "text": "ยานพาหนะ",
+        "frequency": 1
+      },
+      {
+        "text": "บกพร่อง",
+        "frequency": 1
+      },
+      {
+        "text": "ห้ามล้อ",
+        "frequency": 1
+      },
+      {
+        "text": "ขัดข้อง",
+        "frequency": 1
+      },
+      {
+        "text": "เบรก",
         "frequency": 1
       }
     ]
@@ -679,139 +627,202 @@
       "accident_id": 0,
       "raw_thai": "ขับรถเร็วเกินอัตรากำหนด",
       "tokens": [
-        "ขับรถเร็วเกินอัตรากำหนด"
+        "ขับรถ",
+        "เร็ว",
+        "เกิน",
+        "อัตรา",
+        "กำหนด"
       ],
       "category_english": "Speeding",
       "xgboost_feature": "cause_ขับรถเร็วเกินอัตรากำหนด",
-      "feature_importance": 0.071,
+      "feature_importance": 0.0,
       "location": "ทางตรง+ไม่มีความลาดชัน"
     },
     {
       "accident_id": 1,
       "raw_thai": "ขับรถเร็วเกินอัตรากำหนด",
       "tokens": [
-        "ขับรถเร็วเกินอัตรากำหนด"
+        "ขับรถ",
+        "เร็ว",
+        "เกิน",
+        "อัตรา",
+        "กำหนด"
       ],
       "category_english": "Speeding",
       "xgboost_feature": "cause_ขับรถเร็วเกินอัตรากำหนด",
-      "feature_importance": 0.071,
+      "feature_importance": 0.0,
       "location": "ทางตรง+ไม่มีความลาดชัน"
     },
     {
       "accident_id": 2,
       "raw_thai": "ขับรถเร็วเกินอัตรากำหนด",
       "tokens": [
-        "ขับรถเร็วเกินอัตรากำหนด"
+        "ขับรถ",
+        "เร็ว",
+        "เกิน",
+        "อัตรา",
+        "กำหนด"
       ],
       "category_english": "Speeding",
       "xgboost_feature": "cause_ขับรถเร็วเกินอัตรากำหนด",
-      "feature_importance": 0.071,
+      "feature_importance": 0.0,
       "location": "ทางตรง+ไม่มีความลาดชัน"
     },
     {
       "accident_id": 3,
       "raw_thai": "ขับรถเร็วเกินอัตรากำหนด",
       "tokens": [
-        "ขับรถเร็วเกินอัตรากำหนด"
+        "ขับรถ",
+        "เร็ว",
+        "เกิน",
+        "อัตรา",
+        "กำหนด"
       ],
       "category_english": "Speeding",
       "xgboost_feature": "cause_ขับรถเร็วเกินอัตรากำหนด",
-      "feature_importance": 0.071,
+      "feature_importance": 0.0,
       "location": "ทางตรง+ไม่มีความลาดชัน"
     },
     {
       "accident_id": 5,
       "raw_thai": "ขับรถเร็วเกินอัตรากำหนด",
       "tokens": [
-        "ขับรถเร็วเกินอัตรากำหนด"
+        "ขับรถ",
+        "เร็ว",
+        "เกิน",
+        "อัตรา",
+        "กำหนด"
       ],
       "category_english": "Speeding",
       "xgboost_feature": "cause_ขับรถเร็วเกินอัตรากำหนด",
-      "feature_importance": 0.071,
+      "feature_importance": 0.0,
       "location": "ทางตรง+ไม่มีความลาดชัน"
     },
     {
       "accident_id": 6,
       "raw_thai": "ขับรถเร็วเกินอัตรากำหนด",
       "tokens": [
-        "ขับรถเร็วเกินอัตรากำหนด"
+        "ขับรถ",
+        "เร็ว",
+        "เกิน",
+        "อัตรา",
+        "กำหนด"
       ],
       "category_english": "Speeding",
       "xgboost_feature": "cause_ขับรถเร็วเกินอัตรากำหนด",
-      "feature_importance": 0.071,
+      "feature_importance": 0.0,
       "location": "Unknown"
     },
     {
       "accident_id": 15,
       "raw_thai": "คน/รถ/สัตว์ตัดหน้ากระชั้นชิด",
       "tokens": [
-        "คน/รถ/สัตว์ตัดหน้ากระชั้นชิด"
+        "คน",
+        "/",
+        "รถ",
+        "/",
+        "สัตว์",
+        "ตัดหน้า",
+        "กระชั้นชิด"
       ],
       "category_english": "Cutting in front",
       "xgboost_feature": "cause_คน/รถ/สัตว์ตัดหน้ากระชั้นชิด",
-      "feature_importance": 0.174,
+      "feature_importance": 0.0,
       "location": "ทางตรง+ไม่มีความลาดชัน"
     },
     {
       "accident_id": 16,
       "raw_thai": "คน/รถ/สัตว์ตัดหน้ากระชั้นชิด",
       "tokens": [
-        "คน/รถ/สัตว์ตัดหน้ากระชั้นชิด"
+        "คน",
+        "/",
+        "รถ",
+        "/",
+        "สัตว์",
+        "ตัดหน้า",
+        "กระชั้นชิด"
       ],
       "category_english": "Cutting in front",
       "xgboost_feature": "cause_คน/รถ/สัตว์ตัดหน้ากระชั้นชิด",
-      "feature_importance": 0.174,
+      "feature_importance": 0.0,
       "location": "Unknown"
     },
     {
       "accident_id": 28,
       "raw_thai": "คน/รถ/สัตว์ตัดหน้ากระชั้นชิด",
       "tokens": [
-        "คน/รถ/สัตว์ตัดหน้ากระชั้นชิด"
+        "คน",
+        "/",
+        "รถ",
+        "/",
+        "สัตว์",
+        "ตัดหน้า",
+        "กระชั้นชิด"
       ],
       "category_english": "Cutting in front",
       "xgboost_feature": "cause_คน/รถ/สัตว์ตัดหน้ากระชั้นชิด",
-      "feature_importance": 0.174,
+      "feature_importance": 0.0,
       "location": "ทางตรง+ไม่มีความลาดชัน"
     },
     {
       "accident_id": 37,
       "raw_thai": "คน/รถ/สัตว์ตัดหน้ากระชั้นชิด",
       "tokens": [
-        "คน/รถ/สัตว์ตัดหน้ากระชั้นชิด"
+        "คน",
+        "/",
+        "รถ",
+        "/",
+        "สัตว์",
+        "ตัดหน้า",
+        "กระชั้นชิด"
       ],
       "category_english": "Cutting in front",
       "xgboost_feature": "cause_คน/รถ/สัตว์ตัดหน้ากระชั้นชิด",
-      "feature_importance": 0.174,
+      "feature_importance": 0.0,
       "location": "ทางตรง+ไม่มีความลาดชัน"
     },
     {
       "accident_id": 39,
       "raw_thai": "คน/รถ/สัตว์ตัดหน้ากระชั้นชิด",
       "tokens": [
-        "คน/รถ/สัตว์ตัดหน้ากระชั้นชิด"
+        "คน",
+        "/",
+        "รถ",
+        "/",
+        "สัตว์",
+        "ตัดหน้า",
+        "กระชั้นชิด"
       ],
       "category_english": "Cutting in front",
       "xgboost_feature": "cause_คน/รถ/สัตว์ตัดหน้ากระชั้นชิด",
-      "feature_importance": 0.174,
+      "feature_importance": 0.0,
       "location": "ทางตรง+ไม่มีความลาดชัน"
     },
     {
       "accident_id": 71,
       "raw_thai": "คน/รถ/สัตว์ตัดหน้ากระชั้นชิด",
       "tokens": [
-        "คน/รถ/สัตว์ตัดหน้ากระชั้นชิด"
+        "คน",
+        "/",
+        "รถ",
+        "/",
+        "สัตว์",
+        "ตัดหน้า",
+        "กระชั้นชิด"
       ],
       "category_english": "Cutting in front",
       "xgboost_feature": "cause_คน/รถ/สัตว์ตัดหน้ากระชั้นชิด",
-      "feature_importance": 0.174,
+      "feature_importance": 0.0,
       "location": "Unknown"
     },
     {
       "accident_id": 88,
       "raw_thai": "ฝ่าฝืนสัญญาณไฟ/เครื่องหมายจราจร",
       "tokens": [
-        "ฝ่าฝืนสัญญาณไฟ/เครื่องหมายจราจร"
+        "ฝ่าฝืน",
+        "สัญญาณไฟ",
+        "/",
+        "เครื่องหมายจราจร"
       ],
       "category_english": "Running red light / traffic sign violation",
       "xgboost_feature": "cause_ฝ่าฝืนสัญญาณไฟ/เครื่องหมายจราจร",
@@ -822,7 +833,10 @@
       "accident_id": 449,
       "raw_thai": "ฝ่าฝืนสัญญาณไฟ/เครื่องหมายจราจร",
       "tokens": [
-        "ฝ่าฝืนสัญญาณไฟ/เครื่องหมายจราจร"
+        "ฝ่าฝืน",
+        "สัญญาณไฟ",
+        "/",
+        "เครื่องหมายจราจร"
       ],
       "category_english": "Running red light / traffic sign violation",
       "xgboost_feature": "cause_ฝ่าฝืนสัญญาณไฟ/เครื่องหมายจราจร",
@@ -833,7 +847,10 @@
       "accident_id": 722,
       "raw_thai": "ฝ่าฝืนสัญญาณไฟ/เครื่องหมายจราจร",
       "tokens": [
-        "ฝ่าฝืนสัญญาณไฟ/เครื่องหมายจราจร"
+        "ฝ่าฝืน",
+        "สัญญาณไฟ",
+        "/",
+        "เครื่องหมายจราจร"
       ],
       "category_english": "Running red light / traffic sign violation",
       "xgboost_feature": "cause_ฝ่าฝืนสัญญาณไฟ/เครื่องหมายจราจร",
@@ -844,7 +861,10 @@
       "accident_id": 761,
       "raw_thai": "ฝ่าฝืนสัญญาณไฟ/เครื่องหมายจราจร",
       "tokens": [
-        "ฝ่าฝืนสัญญาณไฟ/เครื่องหมายจราจร"
+        "ฝ่าฝืน",
+        "สัญญาณไฟ",
+        "/",
+        "เครื่องหมายจราจร"
       ],
       "category_english": "Running red light / traffic sign violation",
       "xgboost_feature": "cause_ฝ่าฝืนสัญญาณไฟ/เครื่องหมายจราจร",
@@ -855,7 +875,10 @@
       "accident_id": 1027,
       "raw_thai": "ฝ่าฝืนสัญญาณไฟ/เครื่องหมายจราจร",
       "tokens": [
-        "ฝ่าฝืนสัญญาณไฟ/เครื่องหมายจราจร"
+        "ฝ่าฝืน",
+        "สัญญาณไฟ",
+        "/",
+        "เครื่องหมายจราจร"
       ],
       "category_english": "Running red light / traffic sign violation",
       "xgboost_feature": "cause_ฝ่าฝืนสัญญาณไฟ/เครื่องหมายจราจร",
@@ -866,7 +889,10 @@
       "accident_id": 1058,
       "raw_thai": "ฝ่าฝืนสัญญาณไฟ/เครื่องหมายจราจร",
       "tokens": [
-        "ฝ่าฝืนสัญญาณไฟ/เครื่องหมายจราจร"
+        "ฝ่าฝืน",
+        "สัญญาณไฟ",
+        "/",
+        "เครื่องหมายจราจร"
       ],
       "category_english": "Running red light / traffic sign violation",
       "xgboost_feature": "cause_ฝ่าฝืนสัญญาณไฟ/เครื่องหมายจราจร",
@@ -877,7 +903,10 @@
       "accident_id": 57,
       "raw_thai": "ยางเสื่อมสภาพ/ยางแตก",
       "tokens": [
-        "ยางเสื่อมสภาพ/ยางแตก"
+        "ยาง",
+        "เสื่อมสภาพ",
+        "/",
+        "ยางแตก"
       ],
       "category_english": "Tire blowout / worn tires",
       "xgboost_feature": "cause_ยางเสื่อมสภาพ/ยางแตก",
@@ -888,7 +917,10 @@
       "accident_id": 65,
       "raw_thai": "ยางเสื่อมสภาพ/ยางแตก",
       "tokens": [
-        "ยางเสื่อมสภาพ/ยางแตก"
+        "ยาง",
+        "เสื่อมสภาพ",
+        "/",
+        "ยางแตก"
       ],
       "category_english": "Tire blowout / worn tires",
       "xgboost_feature": "cause_ยางเสื่อมสภาพ/ยางแตก",
@@ -899,7 +931,10 @@
       "accident_id": 139,
       "raw_thai": "ยางเสื่อมสภาพ/ยางแตก",
       "tokens": [
-        "ยางเสื่อมสภาพ/ยางแตก"
+        "ยาง",
+        "เสื่อมสภาพ",
+        "/",
+        "ยางแตก"
       ],
       "category_english": "Tire blowout / worn tires",
       "xgboost_feature": "cause_ยางเสื่อมสภาพ/ยางแตก",
@@ -910,7 +945,10 @@
       "accident_id": 198,
       "raw_thai": "ยางเสื่อมสภาพ/ยางแตก",
       "tokens": [
-        "ยางเสื่อมสภาพ/ยางแตก"
+        "ยาง",
+        "เสื่อมสภาพ",
+        "/",
+        "ยางแตก"
       ],
       "category_english": "Tire blowout / worn tires",
       "xgboost_feature": "cause_ยางเสื่อมสภาพ/ยางแตก",
@@ -921,7 +959,10 @@
       "accident_id": 202,
       "raw_thai": "ยางเสื่อมสภาพ/ยางแตก",
       "tokens": [
-        "ยางเสื่อมสภาพ/ยางแตก"
+        "ยาง",
+        "เสื่อมสภาพ",
+        "/",
+        "ยางแตก"
       ],
       "category_english": "Tire blowout / worn tires",
       "xgboost_feature": "cause_ยางเสื่อมสภาพ/ยางแตก",
@@ -932,7 +973,10 @@
       "accident_id": 205,
       "raw_thai": "ยางเสื่อมสภาพ/ยางแตก",
       "tokens": [
-        "ยางเสื่อมสภาพ/ยางแตก"
+        "ยาง",
+        "เสื่อมสภาพ",
+        "/",
+        "ยางแตก"
       ],
       "category_english": "Tire blowout / worn tires",
       "xgboost_feature": "cause_ยางเสื่อมสภาพ/ยางแตก",
@@ -1162,17 +1206,6 @@
       "motorcycle_pct": 1.6
     },
     {
-      "grid_id": "G025_036",
-      "lat": 13.829500000000008,
-      "lon": 100.6785,
-      "total_accidents": 31,
-      "risk_score": 36.5,
-      "dominant_cause": "ขับรถเร็วเกินอัตรากำหนด",
-      "dominant_cause_english": "Speeding",
-      "dominant_cause_pct": 100.0,
-      "motorcycle_pct": 1.3
-    },
-    {
       "grid_id": "G020_012",
       "lat": 13.784500000000008,
       "lon": 100.4625,
@@ -1182,6 +1215,17 @@
       "dominant_cause_english": "Speeding",
       "dominant_cause_pct": 54.8,
       "motorcycle_pct": 28.8
+    },
+    {
+      "grid_id": "G025_036",
+      "lat": 13.829500000000008,
+      "lon": 100.6785,
+      "total_accidents": 31,
+      "risk_score": 36.5,
+      "dominant_cause": "ขับรถเร็วเกินอัตรากำหนด",
+      "dominant_cause_english": "Speeding",
+      "dominant_cause_pct": 100.0,
+      "motorcycle_pct": 1.3
     },
     {
       "grid_id": "G004_006",
@@ -1316,50 +1360,6 @@
       "motorcycle_pct": 0.0
     },
     {
-      "grid_id": "G033_038",
-      "lat": 13.901500000000013,
-      "lon": 100.6965,
-      "total_accidents": 24,
-      "risk_score": 28.2,
-      "dominant_cause": "ขับรถเร็วเกินอัตรากำหนด",
-      "dominant_cause_english": "Speeding",
-      "dominant_cause_pct": 91.7,
-      "motorcycle_pct": 0.0
-    },
-    {
-      "grid_id": "G020_013",
-      "lat": 13.784500000000008,
-      "lon": 100.4715,
-      "total_accidents": 24,
-      "risk_score": 28.2,
-      "dominant_cause": "ขับรถเร็วเกินอัตรากำหนด",
-      "dominant_cause_english": "Speeding",
-      "dominant_cause_pct": 75.0,
-      "motorcycle_pct": 39.5
-    },
-    {
-      "grid_id": "G020_009",
-      "lat": 13.784500000000008,
-      "lon": 100.4355,
-      "total_accidents": 24,
-      "risk_score": 28.2,
-      "dominant_cause": "ขับรถเร็วเกินอัตรากำหนด",
-      "dominant_cause_english": "Speeding",
-      "dominant_cause_pct": 66.7,
-      "motorcycle_pct": 25.9
-    },
-    {
-      "grid_id": "G014_046",
-      "lat": 13.730500000000005,
-      "lon": 100.76850000000002,
-      "total_accidents": 24,
-      "risk_score": 28.2,
-      "dominant_cause": "ขับรถเร็วเกินอัตรากำหนด",
-      "dominant_cause_english": "Speeding",
-      "dominant_cause_pct": 95.8,
-      "motorcycle_pct": 0.0
-    },
-    {
       "grid_id": "G006_009",
       "lat": 13.658500000000002,
       "lon": 100.4355,
@@ -1380,6 +1380,50 @@
       "dominant_cause_english": "Speeding",
       "dominant_cause_pct": 91.7,
       "motorcycle_pct": 27.5
+    },
+    {
+      "grid_id": "G014_046",
+      "lat": 13.730500000000005,
+      "lon": 100.76850000000002,
+      "total_accidents": 24,
+      "risk_score": 28.2,
+      "dominant_cause": "ขับรถเร็วเกินอัตรากำหนด",
+      "dominant_cause_english": "Speeding",
+      "dominant_cause_pct": 95.8,
+      "motorcycle_pct": 0.0
+    },
+    {
+      "grid_id": "G020_009",
+      "lat": 13.784500000000008,
+      "lon": 100.4355,
+      "total_accidents": 24,
+      "risk_score": 28.2,
+      "dominant_cause": "ขับรถเร็วเกินอัตรากำหนด",
+      "dominant_cause_english": "Speeding",
+      "dominant_cause_pct": 66.7,
+      "motorcycle_pct": 25.9
+    },
+    {
+      "grid_id": "G020_013",
+      "lat": 13.784500000000008,
+      "lon": 100.4715,
+      "total_accidents": 24,
+      "risk_score": 28.2,
+      "dominant_cause": "ขับรถเร็วเกินอัตรากำหนด",
+      "dominant_cause_english": "Speeding",
+      "dominant_cause_pct": 75.0,
+      "motorcycle_pct": 39.5
+    },
+    {
+      "grid_id": "G033_038",
+      "lat": 13.901500000000013,
+      "lon": 100.6965,
+      "total_accidents": 24,
+      "risk_score": 28.2,
+      "dominant_cause": "ขับรถเร็วเกินอัตรากำหนด",
+      "dominant_cause_english": "Speeding",
+      "dominant_cause_pct": 91.7,
+      "motorcycle_pct": 0.0
     },
     {
       "grid_id": "G001_003",
@@ -1437,17 +1481,6 @@
       "motorcycle_pct": 0.0
     },
     {
-      "grid_id": "G019_037",
-      "lat": 13.775500000000006,
-      "lon": 100.6875,
-      "total_accidents": 21,
-      "risk_score": 24.7,
-      "dominant_cause": "ขับรถเร็วเกินอัตรากำหนด",
-      "dominant_cause_english": "Speeding",
-      "dominant_cause_pct": 90.5,
-      "motorcycle_pct": 0.0
-    },
-    {
       "grid_id": "G019_006",
       "lat": 13.775500000000006,
       "lon": 100.4085,
@@ -1457,6 +1490,17 @@
       "dominant_cause_english": "Speeding",
       "dominant_cause_pct": 100.0,
       "motorcycle_pct": 11.4
+    },
+    {
+      "grid_id": "G019_037",
+      "lat": 13.775500000000006,
+      "lon": 100.6875,
+      "total_accidents": 21,
+      "risk_score": 24.7,
+      "dominant_cause": "ขับรถเร็วเกินอัตรากำหนด",
+      "dominant_cause_english": "Speeding",
+      "dominant_cause_pct": 90.5,
+      "motorcycle_pct": 0.0
     },
     {
       "grid_id": "G006_005",
@@ -1525,17 +1569,6 @@
       "motorcycle_pct": 0.0
     },
     {
-      "grid_id": "G034_038",
-      "lat": 13.910500000000011,
-      "lon": 100.6965,
-      "total_accidents": 18,
-      "risk_score": 21.2,
-      "dominant_cause": "ขับรถเร็วเกินอัตรากำหนด",
-      "dominant_cause_english": "Speeding",
-      "dominant_cause_pct": 100.0,
-      "motorcycle_pct": 0.0
-    },
-    {
       "grid_id": "G005_004",
       "lat": 13.649500000000002,
       "lon": 100.3905,
@@ -1556,6 +1589,17 @@
       "dominant_cause_english": "Speeding",
       "dominant_cause_pct": 83.3,
       "motorcycle_pct": 35.3
+    },
+    {
+      "grid_id": "G034_038",
+      "lat": 13.910500000000011,
+      "lon": 100.6965,
+      "total_accidents": 18,
+      "risk_score": 21.2,
+      "dominant_cause": "ขับรถเร็วเกินอัตรากำหนด",
+      "dominant_cause_english": "Speeding",
+      "dominant_cause_pct": 100.0,
+      "motorcycle_pct": 0.0
     },
     {
       "grid_id": "G014_038",
@@ -1679,37 +1723,15 @@
       "motorcycle_pct": 0.0
     },
     {
-      "grid_id": "G029_036",
-      "lat": 13.86550000000001,
-      "lon": 100.6785,
+      "grid_id": "G007_011",
+      "lat": 13.667500000000002,
+      "lon": 100.4535,
       "total_accidents": 13,
       "risk_score": 15.3,
       "dominant_cause": "ขับรถเร็วเกินอัตรากำหนด",
       "dominant_cause_english": "Speeding",
-      "dominant_cause_pct": 92.3,
-      "motorcycle_pct": 0.0
-    },
-    {
-      "grid_id": "G027_035",
-      "lat": 13.847500000000007,
-      "lon": 100.6695,
-      "total_accidents": 13,
-      "risk_score": 15.3,
-      "dominant_cause": "ขับรถเร็วเกินอัตรากำหนด",
-      "dominant_cause_english": "Speeding",
-      "dominant_cause_pct": 61.5,
-      "motorcycle_pct": 4.3
-    },
-    {
-      "grid_id": "G017_006",
-      "lat": 13.757500000000006,
-      "lon": 100.4085,
-      "total_accidents": 13,
-      "risk_score": 15.3,
-      "dominant_cause": "ขับรถเร็วเกินอัตรากำหนด",
-      "dominant_cause_english": "Speeding",
-      "dominant_cause_pct": 92.3,
-      "motorcycle_pct": 19.2
+      "dominant_cause_pct": 100.0,
+      "motorcycle_pct": 17.2
     },
     {
       "grid_id": "G012_052",
@@ -1723,15 +1745,37 @@
       "motorcycle_pct": 0.0
     },
     {
-      "grid_id": "G007_011",
-      "lat": 13.667500000000002,
-      "lon": 100.4535,
+      "grid_id": "G017_006",
+      "lat": 13.757500000000006,
+      "lon": 100.4085,
       "total_accidents": 13,
       "risk_score": 15.3,
       "dominant_cause": "ขับรถเร็วเกินอัตรากำหนด",
       "dominant_cause_english": "Speeding",
-      "dominant_cause_pct": 100.0,
-      "motorcycle_pct": 17.2
+      "dominant_cause_pct": 92.3,
+      "motorcycle_pct": 19.2
+    },
+    {
+      "grid_id": "G027_035",
+      "lat": 13.847500000000007,
+      "lon": 100.6695,
+      "total_accidents": 13,
+      "risk_score": 15.3,
+      "dominant_cause": "ขับรถเร็วเกินอัตรากำหนด",
+      "dominant_cause_english": "Speeding",
+      "dominant_cause_pct": 61.5,
+      "motorcycle_pct": 4.3
+    },
+    {
+      "grid_id": "G029_036",
+      "lat": 13.86550000000001,
+      "lon": 100.6785,
+      "total_accidents": 13,
+      "risk_score": 15.3,
+      "dominant_cause": "ขับรถเร็วเกินอัตรากำหนด",
+      "dominant_cause_english": "Speeding",
+      "dominant_cause_pct": 92.3,
+      "motorcycle_pct": 0.0
     },
     {
       "grid_id": "G006_038",
@@ -1844,48 +1888,37 @@
       "motorcycle_pct": 0.0
     },
     {
-      "grid_id": "G008_013",
-      "lat": 13.676500000000004,
-      "lon": 100.4715,
-      "total_accidents": 10,
-      "risk_score": 11.8,
-      "dominant_cause": "ขับรถเร็วเกินอัตรากำหนด",
-      "dominant_cause_english": "Speeding",
-      "dominant_cause_pct": 80.0,
-      "motorcycle_pct": 50.0
-    },
-    {
-      "grid_id": "G018_006",
-      "lat": 13.766500000000006,
-      "lon": 100.4085,
+      "grid_id": "G002_010",
+      "lat": 13.6225,
+      "lon": 100.4445,
       "total_accidents": 10,
       "risk_score": 11.8,
       "dominant_cause": "ขับรถเร็วเกินอัตรากำหนด",
       "dominant_cause_english": "Speeding",
       "dominant_cause_pct": 100.0,
-      "motorcycle_pct": 15.0
+      "motorcycle_pct": 13.6
     },
     {
-      "grid_id": "G015_036",
-      "lat": 13.739500000000003,
-      "lon": 100.6785,
+      "grid_id": "G002_013",
+      "lat": 13.6225,
+      "lon": 100.4715,
       "total_accidents": 10,
       "risk_score": 11.8,
       "dominant_cause": "ขับรถเร็วเกินอัตรากำหนด",
       "dominant_cause_english": "Speeding",
-      "dominant_cause_pct": 90.0,
-      "motorcycle_pct": 0.0
+      "dominant_cause_pct": 100.0,
+      "motorcycle_pct": 5.9
     },
     {
-      "grid_id": "G014_047",
-      "lat": 13.730500000000005,
-      "lon": 100.7775,
+      "grid_id": "G004_007",
+      "lat": 13.6405,
+      "lon": 100.4175,
       "total_accidents": 10,
       "risk_score": 11.8,
       "dominant_cause": "ขับรถเร็วเกินอัตรากำหนด",
       "dominant_cause_english": "Speeding",
-      "dominant_cause_pct": 70.0,
-      "motorcycle_pct": 0.0
+      "dominant_cause_pct": 80.0,
+      "motorcycle_pct": 18.8
     },
     {
       "grid_id": "G006_004",
@@ -1910,37 +1943,48 @@
       "motorcycle_pct": 25.0
     },
     {
-      "grid_id": "G004_007",
-      "lat": 13.6405,
-      "lon": 100.4175,
-      "total_accidents": 10,
-      "risk_score": 11.8,
-      "dominant_cause": "ขับรถเร็วเกินอัตรากำหนด",
-      "dominant_cause_english": "Speeding",
-      "dominant_cause_pct": 80.0,
-      "motorcycle_pct": 18.8
-    },
-    {
-      "grid_id": "G002_013",
-      "lat": 13.6225,
+      "grid_id": "G008_013",
+      "lat": 13.676500000000004,
       "lon": 100.4715,
       "total_accidents": 10,
       "risk_score": 11.8,
       "dominant_cause": "ขับรถเร็วเกินอัตรากำหนด",
       "dominant_cause_english": "Speeding",
-      "dominant_cause_pct": 100.0,
-      "motorcycle_pct": 5.9
+      "dominant_cause_pct": 80.0,
+      "motorcycle_pct": 50.0
     },
     {
-      "grid_id": "G002_010",
-      "lat": 13.6225,
-      "lon": 100.4445,
+      "grid_id": "G014_047",
+      "lat": 13.730500000000005,
+      "lon": 100.7775,
+      "total_accidents": 10,
+      "risk_score": 11.8,
+      "dominant_cause": "ขับรถเร็วเกินอัตรากำหนด",
+      "dominant_cause_english": "Speeding",
+      "dominant_cause_pct": 70.0,
+      "motorcycle_pct": 0.0
+    },
+    {
+      "grid_id": "G015_036",
+      "lat": 13.739500000000003,
+      "lon": 100.6785,
+      "total_accidents": 10,
+      "risk_score": 11.8,
+      "dominant_cause": "ขับรถเร็วเกินอัตรากำหนด",
+      "dominant_cause_english": "Speeding",
+      "dominant_cause_pct": 90.0,
+      "motorcycle_pct": 0.0
+    },
+    {
+      "grid_id": "G018_006",
+      "lat": 13.766500000000006,
+      "lon": 100.4085,
       "total_accidents": 10,
       "risk_score": 11.8,
       "dominant_cause": "ขับรถเร็วเกินอัตรากำหนด",
       "dominant_cause_english": "Speeding",
       "dominant_cause_pct": 100.0,
-      "motorcycle_pct": 13.6
+      "motorcycle_pct": 15.0
     },
     {
       "grid_id": "G007_006",
@@ -2020,61 +2064,6 @@
       "motorcycle_pct": 0.0
     },
     {
-      "grid_id": "G014_037",
-      "lat": 13.730500000000005,
-      "lon": 100.6875,
-      "total_accidents": 8,
-      "risk_score": 9.4,
-      "dominant_cause": "ขับรถเร็วเกินอัตรากำหนด",
-      "dominant_cause_english": "Speeding",
-      "dominant_cause_pct": 87.5,
-      "motorcycle_pct": 0.0
-    },
-    {
-      "grid_id": "G013_051",
-      "lat": 13.721500000000004,
-      "lon": 100.8135,
-      "total_accidents": 8,
-      "risk_score": 9.4,
-      "dominant_cause": "ขับรถเร็วเกินอัตรากำหนด",
-      "dominant_cause_english": "Speeding",
-      "dominant_cause_pct": 87.5,
-      "motorcycle_pct": 0.0
-    },
-    {
-      "grid_id": "G009_038",
-      "lat": 13.685500000000005,
-      "lon": 100.6965,
-      "total_accidents": 8,
-      "risk_score": 9.4,
-      "dominant_cause": "ขับรถเร็วเกินอัตรากำหนด",
-      "dominant_cause_english": "Speeding",
-      "dominant_cause_pct": 100.0,
-      "motorcycle_pct": 0.0
-    },
-    {
-      "grid_id": "G008_011",
-      "lat": 13.676500000000004,
-      "lon": 100.4535,
-      "total_accidents": 8,
-      "risk_score": 9.4,
-      "dominant_cause": "ขับรถเร็วเกินอัตรากำหนด",
-      "dominant_cause_english": "Speeding",
-      "dominant_cause_pct": 75.0,
-      "motorcycle_pct": 60.0
-    },
-    {
-      "grid_id": "G007_038",
-      "lat": 13.667500000000002,
-      "lon": 100.6965,
-      "total_accidents": 8,
-      "risk_score": 9.4,
-      "dominant_cause": "ขับรถเร็วเกินอัตรากำหนด",
-      "dominant_cause_english": "Speeding",
-      "dominant_cause_pct": 75.0,
-      "motorcycle_pct": 0.0
-    },
-    {
       "grid_id": "G003_007",
       "lat": 13.6315,
       "lon": 100.4175,
@@ -2095,6 +2084,61 @@
       "dominant_cause_english": "Speeding",
       "dominant_cause_pct": 75.0,
       "motorcycle_pct": 41.7
+    },
+    {
+      "grid_id": "G007_038",
+      "lat": 13.667500000000002,
+      "lon": 100.6965,
+      "total_accidents": 8,
+      "risk_score": 9.4,
+      "dominant_cause": "ขับรถเร็วเกินอัตรากำหนด",
+      "dominant_cause_english": "Speeding",
+      "dominant_cause_pct": 75.0,
+      "motorcycle_pct": 0.0
+    },
+    {
+      "grid_id": "G008_011",
+      "lat": 13.676500000000004,
+      "lon": 100.4535,
+      "total_accidents": 8,
+      "risk_score": 9.4,
+      "dominant_cause": "ขับรถเร็วเกินอัตรากำหนด",
+      "dominant_cause_english": "Speeding",
+      "dominant_cause_pct": 75.0,
+      "motorcycle_pct": 60.0
+    },
+    {
+      "grid_id": "G009_038",
+      "lat": 13.685500000000005,
+      "lon": 100.6965,
+      "total_accidents": 8,
+      "risk_score": 9.4,
+      "dominant_cause": "ขับรถเร็วเกินอัตรากำหนด",
+      "dominant_cause_english": "Speeding",
+      "dominant_cause_pct": 100.0,
+      "motorcycle_pct": 0.0
+    },
+    {
+      "grid_id": "G013_051",
+      "lat": 13.721500000000004,
+      "lon": 100.8135,
+      "total_accidents": 8,
+      "risk_score": 9.4,
+      "dominant_cause": "ขับรถเร็วเกินอัตรากำหนด",
+      "dominant_cause_english": "Speeding",
+      "dominant_cause_pct": 87.5,
+      "motorcycle_pct": 0.0
+    },
+    {
+      "grid_id": "G014_037",
+      "lat": 13.730500000000005,
+      "lon": 100.6875,
+      "total_accidents": 8,
+      "risk_score": 9.4,
+      "dominant_cause": "ขับรถเร็วเกินอัตรากำหนด",
+      "dominant_cause_english": "Speeding",
+      "dominant_cause_pct": 87.5,
+      "motorcycle_pct": 0.0
     },
     {
       "grid_id": "G002_011",
@@ -2185,31 +2229,20 @@
       "motorcycle_pct": 0.0
     },
     {
-      "grid_id": "G011_038",
-      "lat": 13.703500000000004,
-      "lon": 100.6965,
-      "total_accidents": 6,
-      "risk_score": 7.1,
-      "dominant_cause": "ขับรถเร็วเกินอัตรากำหนด",
-      "dominant_cause_english": "Speeding",
-      "dominant_cause_pct": 100.0,
-      "motorcycle_pct": 0.0
-    },
-    {
-      "grid_id": "G023_053",
-      "lat": 13.811500000000008,
-      "lon": 100.8315,
+      "grid_id": "G007_018",
+      "lat": 13.667500000000002,
+      "lon": 100.5165,
       "total_accidents": 6,
       "risk_score": 7.1,
       "dominant_cause": "other",
       "dominant_cause_english": "Other",
-      "dominant_cause_pct": 50.0,
-      "motorcycle_pct": 0.0
+      "dominant_cause_pct": 66.7,
+      "motorcycle_pct": 33.3
     },
     {
-      "grid_id": "G019_020",
-      "lat": 13.775500000000006,
-      "lon": 100.5345,
+      "grid_id": "G008_018",
+      "lat": 13.676500000000004,
+      "lon": 100.5165,
       "total_accidents": 6,
       "risk_score": 7.1,
       "dominant_cause": "other",
@@ -2229,9 +2262,20 @@
       "motorcycle_pct": 0.0
     },
     {
-      "grid_id": "G008_018",
-      "lat": 13.676500000000004,
-      "lon": 100.5165,
+      "grid_id": "G011_038",
+      "lat": 13.703500000000004,
+      "lon": 100.6965,
+      "total_accidents": 6,
+      "risk_score": 7.1,
+      "dominant_cause": "ขับรถเร็วเกินอัตรากำหนด",
+      "dominant_cause_english": "Speeding",
+      "dominant_cause_pct": 100.0,
+      "motorcycle_pct": 0.0
+    },
+    {
+      "grid_id": "G019_020",
+      "lat": 13.775500000000006,
+      "lon": 100.5345,
       "total_accidents": 6,
       "risk_score": 7.1,
       "dominant_cause": "other",
@@ -2240,15 +2284,15 @@
       "motorcycle_pct": 0.0
     },
     {
-      "grid_id": "G007_018",
-      "lat": 13.667500000000002,
-      "lon": 100.5165,
+      "grid_id": "G023_053",
+      "lat": 13.811500000000008,
+      "lon": 100.8315,
       "total_accidents": 6,
       "risk_score": 7.1,
       "dominant_cause": "other",
       "dominant_cause_english": "Other",
-      "dominant_cause_pct": 66.7,
-      "motorcycle_pct": 33.3
+      "dominant_cause_pct": 50.0,
+      "motorcycle_pct": 0.0
     },
     {
       "grid_id": "G002_014",
@@ -2393,5 +2437,278 @@
       "dominant_cause_pct": 100.0,
       "motorcycle_pct": 0.0
     }
-  ]
+  ],
+  "ml_classifier_metrics": {
+    "model_type": "TF-IDF + Logistic Regression",
+    "description": "Thai text classifier trained on 2,466 accident reports. Uses pythainlp tokenization and TF-IDF vectorization to classify accident cause categories from Thai report text.",
+    "tokenizer": "pythainlp newmm (Thai word segmentation)",
+    "accuracy": 1.0,
+    "precision": 1.0,
+    "recall": 1.0,
+    "f1_score": 1.0,
+    "cv_accuracy_mean": 0.9947,
+    "cv_accuracy_std": 0.003,
+    "training_samples": 1972,
+    "test_samples": 494,
+    "total_samples": 2466,
+    "vocabulary_size": 288,
+    "num_classes": 6,
+    "classes": [
+      "cutting_in_front",
+      "drowsy_driving",
+      "equipment_failure",
+      "other",
+      "speeding",
+      "traffic_violation"
+    ],
+    "class_english": {
+      "speeding": "Speeding",
+      "cutting_in_front": "Cutting in front",
+      "drowsy_driving": "Drowsy driving",
+      "equipment_failure": "Equipment failure",
+      "traffic_violation": "Traffic violation",
+      "other": "Other causes"
+    },
+    "per_class_metrics": {
+      "cutting_in_front": {
+        "english_name": "Cutting in front",
+        "precision": 1.0,
+        "recall": 1.0,
+        "f1_score": 1.0,
+        "support": 25,
+        "top_features": [
+          {
+            "token": "คน รถ",
+            "weight": 1.91
+          },
+          {
+            "token": "คน",
+            "weight": 1.91
+          },
+          {
+            "token": "รถ สัตว์",
+            "weight": 1.91
+          },
+          {
+            "token": "ตัดหน้า กระชั้นชิด",
+            "weight": 1.91
+          },
+          {
+            "token": "สัตว์ ตัดหน้า",
+            "weight": 1.91
+          }
+        ]
+      },
+      "drowsy_driving": {
+        "english_name": "Drowsy driving",
+        "precision": 1.0,
+        "recall": 1.0,
+        "f1_score": 1.0,
+        "support": 9,
+        "top_features": [
+          {
+            "token": "หลับใน",
+            "weight": 3.993
+          },
+          {
+            "token": "หลับใน ทางตรง",
+            "weight": 2.876
+          },
+          {
+            "token": "หลับใน ทางโค้ง",
+            "weight": 0.692
+          },
+          {
+            "token": "หลับใน พลิกคว่ำ",
+            "weight": 0.49
+          },
+          {
+            "token": "ทางตรง แจ่มใส",
+            "weight": 0.44
+          }
+        ]
+      },
+      "equipment_failure": {
+        "english_name": "Equipment failure",
+        "precision": 1.0,
+        "recall": 1.0,
+        "f1_score": 1.0,
+        "support": 14,
+        "top_features": [
+          {
+            "token": "เสื่อมสภาพ",
+            "weight": 1.784
+          },
+          {
+            "token": "ยาง",
+            "weight": 1.784
+          },
+          {
+            "token": "ยางแตก",
+            "weight": 1.784
+          },
+          {
+            "token": "ยาง เสื่อมสภาพ",
+            "weight": 1.784
+          },
+          {
+            "token": "เสื่อมสภาพ ยางแตก",
+            "weight": 1.784
+          }
+        ]
+      },
+      "other": {
+        "english_name": "Other causes",
+        "precision": 1.0,
+        "recall": 1.0,
+        "f1_score": 1.0,
+        "support": 12,
+        "top_features": [
+          {
+            "token": "ถนน ลื่น",
+            "weight": 1.441
+          },
+          {
+            "token": "ลื่น",
+            "weight": 1.441
+          },
+          {
+            "token": "โรคประจำตัว ทางตรง",
+            "weight": 1.135
+          },
+          {
+            "token": "โรคประจำตัว",
+            "weight": 1.135
+          },
+          {
+            "token": "ลื่น ทางตรง",
+            "weight": 1.13
+          }
+        ]
+      },
+      "speeding": {
+        "english_name": "Speeding",
+        "precision": 1.0,
+        "recall": 1.0,
+        "f1_score": 1.0,
+        "support": 422,
+        "top_features": [
+          {
+            "token": "ขับรถ เร็ว",
+            "weight": 2.738
+          },
+          {
+            "token": "เร็ว",
+            "weight": 2.738
+          },
+          {
+            "token": "เร็ว เกิน",
+            "weight": 2.738
+          },
+          {
+            "token": "กำหนด",
+            "weight": 2.738
+          },
+          {
+            "token": "อัตรา กำหนด",
+            "weight": 2.738
+          }
+        ]
+      },
+      "traffic_violation": {
+        "english_name": "Traffic violation",
+        "precision": 1.0,
+        "recall": 1.0,
+        "f1_score": 1.0,
+        "support": 12,
+        "top_features": [
+          {
+            "token": "เครื่องหมายจราจร",
+            "weight": 1.061
+          },
+          {
+            "token": "สัญญาณไฟ",
+            "weight": 1.061
+          },
+          {
+            "token": "ฝ่าฝืน",
+            "weight": 1.061
+          },
+          {
+            "token": "ฝ่าฝืน สัญญาณไฟ",
+            "weight": 1.061
+          },
+          {
+            "token": "สัญญาณไฟ เครื่องหมายจราจร",
+            "weight": 1.061
+          }
+        ]
+      }
+    },
+    "confusion_matrix": [
+      [
+        25,
+        0,
+        0,
+        0,
+        0,
+        0
+      ],
+      [
+        0,
+        9,
+        0,
+        0,
+        0,
+        0
+      ],
+      [
+        0,
+        0,
+        14,
+        0,
+        0,
+        0
+      ],
+      [
+        0,
+        0,
+        0,
+        12,
+        0,
+        0
+      ],
+      [
+        0,
+        0,
+        0,
+        0,
+        422,
+        0
+      ],
+      [
+        0,
+        0,
+        0,
+        0,
+        0,
+        12
+      ]
+    ],
+    "input_columns": [
+      "มูลเหตุสันนิษฐาน",
+      "บริเวณที่เกิดเหตุ",
+      "ลักษณะการเกิดเหตุ",
+      "สภาพอากาศ",
+      "รถคันที่1"
+    ],
+    "class_distribution": {
+      "speeding": 2104,
+      "cutting_in_front": 126,
+      "equipment_failure": 70,
+      "other": 62,
+      "traffic_violation": 61,
+      "drowsy_driving": 43
+    }
+  }
 }
