@@ -1769,6 +1769,37 @@ def nlp_wordcloud():
         return jsonify({"error": str(exc)}), 500
 
 
+@app.route("/api/nlp/ml-metrics")
+def nlp_ml_metrics():
+    """ML text classifier metrics (accuracy, precision, recall, F1, per-class)."""
+    try:
+        metrics_path = BASE_DIR / "data" / "processed" / "nlp_metrics.json"
+        if metrics_path.exists():
+            with open(metrics_path, encoding="utf-8") as f:
+                return jsonify(json.load(f))
+        return jsonify({"error": "Metrics not available"}), 404
+    except Exception as exc:
+        return jsonify({"error": str(exc)}), 500
+
+
+@app.route("/api/nlp/classify", methods=["POST"])
+def nlp_classify():
+    """Classify Thai text into accident cause category using ML classifier."""
+    try:
+        from nlp_analysis import get_cause_classifier
+
+        data = request.json
+        text = data.get("text", "").strip()
+        if not text:
+            return jsonify({"error": "No text provided"}), 400
+
+        classifier = get_cause_classifier()
+        result = classifier.classify(text)
+        return jsonify(result)
+    except Exception as exc:
+        return jsonify({"error": str(exc)}), 500
+
+
 # ---------------------------------------------------------------------------
 # Chatbot — hybrid scripted + Groq AI
 # ---------------------------------------------------------------------------
