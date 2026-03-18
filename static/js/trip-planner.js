@@ -15,6 +15,7 @@ let tripWaypointCumulativeKm = [];
 let lastAlertSegmentIndex = -1;
 let spokenAlerts = new Set();
 let lastAlertTime = 0;
+let safeAlertFadeTimeout = null;
 const ALERT_COOLDOWN = 5000; // 5 seconds between alerts minimum
 const TRIP_PLANNER_JS_VERSION = "2026-02-19.1";
 const SIMULATION_STEP_KM = 0.2;
@@ -1394,13 +1395,13 @@ function checkNavigationAlerts() {
         title = "🔴 HIGH RISK ZONE";
         subtitle = `Extra caution | Risk: ${currentSegment.risk_score}/100`;
 
-        // Voice alert once per segment with cooldown
+        // Voice alert once per segment with cooldown (deferred to avoid blocking animation)
         const now = Date.now();
         const segmentId = `segment-${currentSegment.start_km}`;
         if (!spokenAlerts.has(segmentId) && now - lastAlertTime >= ALERT_COOLDOWN) {
-            speakAlert("Warning: High risk zone. Drive carefully.");
             spokenAlerts.add(segmentId);
             lastAlertTime = now;
+            setTimeout(() => speakAlert("Warning: High risk zone. Drive carefully."), 0);
         }
     } else if (severity === "warning") {
         icon = "⚠️";
@@ -1418,9 +1419,16 @@ function checkNavigationAlerts() {
     const navScreen = document.getElementById("navigation-fullscreen");
     navScreen.className = "navigation-fullscreen active " + severity;
 
+    // Clear any pending safe-zone fadeout so it doesn't hide a danger/warning alert
+    if (safeAlertFadeTimeout) {
+        clearTimeout(safeAlertFadeTimeout);
+        safeAlertFadeTimeout = null;
+    }
+
     if (severity === "safe") {
-        setTimeout(() => {
+        safeAlertFadeTimeout = setTimeout(() => {
             fadeOutCurrentAlert();
+            safeAlertFadeTimeout = null;
         }, 4000);
     }
 }
@@ -1455,15 +1463,23 @@ function fadeOutCurrentAlert() {
 function showNavigationAlert(severity, icon, title, subtitle) {
     const alertBox = document.getElementById("nav-alert-box");
 
+    // Reset any leftover opacity from fadeOutCurrentAlert
+    alertBox.style.opacity = "1";
+    alertBox.style.transition = "";
+
     alertBox.className = "nav-alert-box " + severity;
     document.getElementById("nav-alert-icon").textContent = icon;
     document.getElementById("nav-alert-title").textContent = title;
     document.getElementById("nav-alert-subtitle").textContent = subtitle;
 
-    // Pulse animation
+    // Trigger entrance animation; for danger zones, also run the continuous dangerPulse
     alertBox.style.animation = "none";
     setTimeout(() => {
-        alertBox.style.animation = "slideUp 0.4s ease";
+        if (severity === "danger") {
+            alertBox.style.animation = "slideUp 0.4s ease, dangerPulse 2s ease infinite";
+        } else {
+            alertBox.style.animation = "slideUp 0.4s ease";
+        }
     }, 10);
 }
 
@@ -1493,6 +1509,10 @@ function exitNavigation() {
     tripWaypointCumulativeKm = [];
     lastAlertSegmentIndex = -1;
     spokenAlerts.clear();
+    if (safeAlertFadeTimeout) {
+        clearTimeout(safeAlertFadeTimeout);
+        safeAlertFadeTimeout = null;
+    }
 
     // Remove moving marker
     if (tripMovingMarker && tripNavigationMap) {
