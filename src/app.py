@@ -81,6 +81,74 @@ else:
     print("Google Maps: No API key found. Using OSRM/estimated travel times.")
 
 
+# ---------------------------------------------------------------------------
+# Cached demo routes — loaded once from static/demo_routes.json so that when
+# OSRM is unreachable we can still return real road-following waypoints.
+# ---------------------------------------------------------------------------
+DEMO_ROUTES_PATH = BASE_DIR / "static" / "demo_routes.json"
+_demo_routes_cache = None
+
+
+def _load_demo_routes():
+    global _demo_routes_cache
+    if _demo_routes_cache is not None:
+        return _demo_routes_cache
+    try:
+        with open(DEMO_ROUTES_PATH) as fh:
+            _demo_routes_cache = json.load(fh)
+    except Exception:
+        _demo_routes_cache = {}
+    return _demo_routes_cache
+
+
+def _find_cached_route(start_lat, start_lon, end_lat, end_lon, threshold_km=2.0):
+    """Return cached demo-route waypoints if start/end are close enough."""
+    demo_routes = _load_demo_routes()
+    for _name, route in demo_routes.items():
+        r_start = route.get("start", {})
+        r_end = route.get("end", {})
+        if not r_start or not r_end:
+            continue
+        start_dist = _haversine_km(start_lat, start_lon, r_start["lat"], r_start["lon"])
+        end_dist = _haversine_km(end_lat, end_lon, r_end["lat"], r_end["lon"])
+        if start_dist <= threshold_km and end_dist <= threshold_km:
+            wps = route.get("waypoints", [])
+            if len(wps) >= 10:
+                return {
+                    "waypoints": wps,
+                    "distance_km": route.get("distance", 0),
+                    "duration_min": route.get("duration", 0),
+                }
+    return None
+
+
+def _generate_dense_interpolation(start_lat, start_lon, end_lat, end_lon, num_points=80):
+    """Generate a dense curved path when no OSRM or cached route is available.
+
+    Instead of a 5-point straight line, this adds a slight curve and many
+    intermediate points so the route looks plausible on the map.
+    """
+    points = []
+    for i in range(num_points + 1):
+        t = i / num_points
+        # Add a gentle sinusoidal curve perpendicular to the travel direction
+        # so the path doesn't look ruler-straight on the map.
+        curve = math.sin(t * math.pi) * 0.003
+        dlat = end_lat - start_lat
+        dlon = end_lon - start_lon
+        # Perpendicular offset: rotate (dlat, dlon) 90°
+        perp_lat = -dlon
+        perp_lon = dlat
+        length = math.sqrt(perp_lat ** 2 + perp_lon ** 2) or 1.0
+        perp_lat /= length
+        perp_lon /= length
+
+        lat = start_lat + dlat * t + perp_lat * curve
+        lon = start_lon + dlon * t + perp_lon * curve
+        points.append([round(lat, 6), round(lon, 6)])
+    return points
+
+
 def get_google_maps_travel_time(origin_lat, origin_lon, dest_lat, dest_lon):
     """Get traffic-aware travel time from Google Maps Directions API.
 
@@ -347,6 +415,10 @@ def get_osrm_alternatives(start_lat, start_lon, end_lat, end_lon, num_alternativ
     except Exception:
         pass
 
+    # Fallback: return cached demo route as single "alternative"
+    cached = _find_cached_route(start_lat, start_lon, end_lat, end_lon)
+    if cached:
+        return [cached]
     return []
 
 
@@ -372,24 +444,30 @@ def find_safest_midpoint(start_lat, start_lon, end_lat, end_lon, grid_df, num_sa
 
 
 def generate_fast_route(start_lat, start_lon, end_lat, end_lon):
-    """Generate fast route using OSRM (follows real roads)."""
-    osrm_route = get_osrm_route(start_lat, start_lon, end_lat, end_lon)
+    """Generate fast route using OSRM (follows real roads).
 
+    Fallback order: OSRM live → cached demo route → dense interpolation.
+    """
+    # 1) Try live OSRM routing
+    osrm_route = get_osrm_route(start_lat, start_lon, end_lat, end_lon)
     if osrm_route:
         waypoints = osrm_route["waypoints"]
         sampled = waypoints[:: max(1, len(waypoints) // 100)]
-        # Ensure last point is included
         if sampled[-1] != waypoints[-1]:
             sampled.append(waypoints[-1])
         return sampled
 
-    return [
-        [start_lat, start_lon],
-        [start_lat + ((end_lat - start_lat) * 0.25), start_lon + ((end_lon - start_lon) * 0.25)],
-        [start_lat + ((end_lat - start_lat) * 0.5), start_lon + ((end_lon - start_lon) * 0.5)],
-        [start_lat + ((end_lat - start_lat) * 0.75), start_lon + ((end_lon - start_lon) * 0.75)],
-        [end_lat, end_lon],
-    ]
+    # 2) Try cached demo-route (real OSRM geometry saved to disk)
+    cached = _find_cached_route(start_lat, start_lon, end_lat, end_lon)
+    if cached:
+        waypoints = cached["waypoints"]
+        sampled = waypoints[:: max(1, len(waypoints) // 100)]
+        if sampled[-1] != waypoints[-1]:
+            sampled.append(waypoints[-1])
+        return sampled
+
+    # 3) Dense curved interpolation (better than 5-point straight line)
+    return _generate_dense_interpolation(start_lat, start_lon, end_lat, end_lon)
 
 
 def generate_safe_route(start_lat, start_lon, end_lat, end_lon, grid_df, fast_waypoints=None):
@@ -1076,24 +1154,34 @@ def analyze_route():
                     route_duration_min = int((route_distance_km / 40) * 60) if route_distance_km > 0 else 0
             route_duration_min = max(0, route_duration_min)
         else:
-            # Try Google Maps first, then OSRM
+            # Try OSRM → cached demo route → dense interpolation
             gmaps_data = get_google_maps_travel_time(start_lat, start_lon, end_lat, end_lon)
             osrm_route = get_osrm_route(start_lat, start_lon, end_lat, end_lon)
-            if not osrm_route and not gmaps_data:
-                return jsonify({"error": "Could not calculate route"}), 400
+
             if osrm_route:
                 waypoints = osrm_route["waypoints"]
                 route_distance_km = float(osrm_route["distance_km"])
+                route_duration_min = int(osrm_route["duration_min"])
                 analyze_traffic_source = "osrm"
             else:
-                # No OSRM but have gmaps — use straight-line waypoints
-                waypoints = [[start_lat, start_lon], [end_lat, end_lon]]
-                route_distance_km = gmaps_data["distance_km"]
+                cached_route = _find_cached_route(start_lat, start_lon, end_lat, end_lon)
+                if cached_route:
+                    waypoints = cached_route["waypoints"]
+                    route_distance_km = float(cached_route["distance_km"] or 0) or calculate_distance_from_waypoints(waypoints)
+                    route_duration_min = int(cached_route["duration_min"] or 0) or int((route_distance_km / 40) * 60)
+                    analyze_traffic_source = "cached_osrm"
+                else:
+                    waypoints = _generate_dense_interpolation(start_lat, start_lon, end_lat, end_lon)
+                    route_distance_km = calculate_distance_from_waypoints(waypoints)
+                    route_duration_min = int((route_distance_km / 40) * 60)
+                    analyze_traffic_source = "estimated"
+
+            # Override duration with Google Maps traffic-aware time when available
             if gmaps_data:
                 route_duration_min = gmaps_data["duration_minutes"]
+                if gmaps_data["distance_km"] and analyze_traffic_source == "estimated":
+                    route_distance_km = gmaps_data["distance_km"]
                 analyze_traffic_source = "google_maps_traffic" if gmaps_data["has_traffic"] else "google_maps"
-            else:
-                route_duration_min = int(osrm_route["duration_min"])
 
         sampled_waypoints = waypoints[:: max(1, len(waypoints) // 50)]
 
