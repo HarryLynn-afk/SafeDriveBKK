@@ -5,8 +5,6 @@ Flask web app for Bangkok Road Risk system.
 import json
 import math
 import os
-import sys
-from concurrent.futures import ThreadPoolExecutor, as_completed
 from datetime import datetime
 from pathlib import Path
 
@@ -1039,11 +1037,6 @@ def home():
             map_available=False,
             error_message=str(exc),
         ), 500
-
-
-# @app.route("/route-compare")
-# def route_compare():
-#     return render_template("route_compare.html")
 
 
 @app.route("/route-analyze")
