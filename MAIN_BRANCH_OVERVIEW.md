@@ -20,16 +20,16 @@
 │  ┌──────────────┐  ┌──────────────┐  ┌──────────────┐  │
 │  │  Dashboard /  │  │ Trip Planner │  │  Analytics   │  │
 │  └──────────────┘  └──────────────┘  └──────────────┘  │
-│  ┌──────────────┐  ┌──────────────┐  ┌──────────────┐  │
-│  │  NLP /nlp    │  │ Detection    │  │  About       │  │
-│  └──────────────┘  └──────────────┘  └──────────────┘  │
+│  ┌──────────────┐  ┌──────────────┐                     │
+│  │  NLP /nlp    │  │  About       │                     │
+│  └──────────────┘  └──────────────┘                     │
 │                                                         │
 ├─────────────────────────────────────────────────────────┤
 │                 18+ API Endpoints                       │
 │  /api/compare-routes    /api/analyze-route              │
 │  /api/risk-zones        /api/temporal-stats             │
 │  /api/model-info        /api/analytics-data             │
-│  /api/nlp/*             /api/detection/*                │
+│  /api/nlp/*                                             │
 │  /api/compare-predictions                               │
 ├─────────────────────────────────────────────────────────┤
 │            ML Prediction (ml_model.py)                  │
@@ -53,7 +53,7 @@
 - Hero section with project description
 - 4 metric cards (accidents analyzed, danger zones, model accuracy, data points)
 - Embedded interactive Bangkok risk heatmap (Folium)
-- Quick links to NLP and Detection tracks
+- Quick links to NLP analysis and About page
 
 ### 2. Trip Planner (`/trip-planner`)
 - **Grab-style UI** with start/end location inputs
@@ -101,12 +101,6 @@
 - **Key insight**: NLP output maps directly to XGBoost features (cause categories = 3.8% model importance)
 - Pre-cached results in `nlp_cache.json`
 
-### 7. Object Detection (`/detection`) — Track 3
-- YOLOv8 vehicle detection pipeline
-- Detects cars, motorcycles, trucks, buses from traffic images
-- **Key insight**: Detection counts map to XGBoost features (vehicle counts = 10% model importance)
-- Gallery-style visualization of detection results
-
 ---
 
 ## ML Model Details
@@ -148,7 +142,6 @@ hackathon/
 │   ├── app.py                    # Flask app — 1,451 lines, 18+ routes
 │   ├── ml_model.py               # RiskPredictor class — 301 lines
 │   ├── nlp_analysis.py           # Thai NLP pipeline — 424 lines
-│   ├── object_detection.py       # YOLOv8 detection — 326 lines
 │   ├── data_processing.py        # Raw data cleaning
 │   ├── feature_engineering.py    # 44-feature extraction
 │   ├── grid_aggregation.py       # 1km grid system
@@ -173,7 +166,6 @@ hackathon/
 │   ├── trip_planner.html         # Grab-style trip planner
 │   ├── analytics.html            # Charts dashboard
 │   ├── nlp.html                  # NLP analysis page
-│   ├── detection.html            # Object detection page
 │   ├── about.html                # Methodology
 │   ├── route_analyze.html        # Route analysis
 │   └── route_compare.html        # Route comparison
@@ -188,7 +180,7 @@ hackathon/
 │   └── 01_data_exploration.ipynb     # EDA notebook
 ├── scripts/
 │   ├── generate_dense_routes.py      # OSRM route fetcher
-│   └── setup_nlp_detection.py        # Pre-cache NLP/YOLO results
+│   └── generate_dense_routes.py      # OSRM route fetcher
 ├── requirements.txt
 ├── runtime.txt
 └── README.md
@@ -203,7 +195,6 @@ hackathon/
 | Backend | Flask 3.0 |
 | ML | XGBoost 2.0.3, scikit-learn 1.4 |
 | NLP | pythainlp 5.0+ (Thai tokenization) |
-| Vision | ultralytics (YOLOv8), OpenCV |
 | Maps | Folium 0.15, Leaflet.js |
 | Charts | Chart.js |
 | Routing | OSRM (OpenStreetMap Routing Machine) |
@@ -229,14 +220,13 @@ hackathon/
 
 ---
 
-## The 3-Track Strategy
+## The 2-Track Strategy
 
-The project is designed to compete across **all 3 hackathon tracks** through one unified system:
+The project competes across **2 hackathon tracks** through one unified system:
 
 | Track | Component | How It Connects to XGBoost |
 |-------|-----------|---------------------------|
 | **Track 1: NLP** | Thai accident text analysis | Cause categories → 3.8% feature importance |
 | **Track 2: Data Visualization** | Heatmap + Analytics + Trip Planner | Core prediction display |
-| **Track 3: Object Detection** | YOLOv8 vehicle detection | Vehicle counts → 10% feature importance |
 
-All three tracks feed features into the **same XGBoost model**, creating a unified narrative: "Three AI techniques, one prediction engine."
+Both tracks feed into the **same XGBoost model**, creating a unified narrative: "NLP + Data Visualization, one prediction engine."

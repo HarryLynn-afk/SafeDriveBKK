@@ -1876,7 +1876,6 @@ def chatbot_suggestions():
         "Show me drunk driving patterns",
         "What causes most accidents?",
         "Is Sukhumvit safe at night?",
-        "Where are the 7 traffic cameras?",
     ]
     return jsonify({"success": True, "suggestions": suggestions})
 

@@ -45,12 +45,6 @@ class FloatingChat {
                 { text: 'Main accident causes?', question: 'What are the main causes of accidents?' },
                 { text: 'Weekend vs weekday?', question: 'Are weekends more dangerous than weekdays?' }
             ];
-        } else if (path.includes('detection')) {
-            suggestions = [
-                { text: 'Camera locations?', question: 'Where are the traffic cameras?' },
-                { text: 'How does detection work?', question: 'How does vehicle detection work?' },
-                { text: 'Real-time monitoring?', question: 'Is this real-time monitoring?' }
-            ];
         } else if (path.includes('about')) {
             suggestions = [
                 { text: 'How does it work?', question: 'How does this system work?' },

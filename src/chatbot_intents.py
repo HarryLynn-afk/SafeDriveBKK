@@ -160,15 +160,6 @@ INTENTS = {
         ],
         "handler": "handle_camera_deployment",
     },
-    "camera_locations": {
-        "patterns": [
-            re.compile(r"(?:where|which|show|list).*cameras?", re.I),
-            re.compile(r"cameras?.*(?:locations?|placed?)", re.I),
-            re.compile(r"(?:cctv|surveillance|traffic).*cameras?", re.I),
-            re.compile(r"(?:yolo|detection).*cameras?", re.I),
-        ],
-        "handler": "handle_camera_locations",
-    },
     "high_risk_zones": {
         "patterns": [
             re.compile(r"(?:show|list|display).*(?:high|red).*(?:risk|danger).*zones?", re.I),
@@ -466,23 +457,6 @@ def handle_route_safety(user_message=""):
         "followup": "Want to know which areas to avoid? ⚠️",
     }
 
-
-def handle_camera_locations(user_message=""):
-    data = load_chatbot_data()
-    cameras = data["cameras"]
-
-    lines = [f"• **{cam['location']}**" for cam in cameras]
-
-    return {
-        "type": "list",
-        "message": (
-            f"We have {len(cameras)} traffic cameras across Bangkok:\n" +
-            "\n".join(lines) +
-            f"\n\nThey detect vehicles in real-time and feed into our risk model."
-        ),
-        "data": cameras,
-        "followup": "Want to see the most dangerous zones? ⚠️",
-    }
 
 
 def handle_high_risk_zones(user_message=""):
@@ -934,7 +908,6 @@ _HANDLERS = {
     "handle_dangerous_zones": handle_dangerous_zones,
     "handle_zone_safety": handle_zone_safety,
     "handle_route_safety": handle_route_safety,
-    "handle_camera_locations": handle_camera_locations,
     "handle_high_risk_zones": handle_high_risk_zones,
     "handle_motorcycle_zones": handle_motorcycle_zones,
     "handle_cause_breakdown": handle_cause_breakdown,
