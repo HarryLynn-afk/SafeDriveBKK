@@ -19,6 +19,7 @@ import requests
 from flask import Flask, jsonify, render_template, request, send_file
 
 import googlemaps
+from googlemaps.convert import decode_polyline
 
 from ml_model import RiskPredictor
 from chatbot_intents import detect_intent, get_scripted_response
@@ -183,6 +184,57 @@ def get_google_maps_travel_time(origin_lat, origin_lon, dest_lat, dest_lon):
     except Exception as e:
         print(f"Google Maps API error: {e}")
         return None
+
+
+def get_google_maps_routes(origin_lat, origin_lon, dest_lat, dest_lon):
+    """Get multiple alternative routes from Google Maps Directions API.
+
+    Returns a list of dicts, each with:
+        waypoints: [[lat, lon], ...] decoded from polyline
+        distance_km, duration_minutes, has_traffic, summary
+    Returns empty list if unavailable.
+    """
+    if not gmaps_client:
+        return []
+    try:
+        results = gmaps_client.directions(
+            origin=f"{origin_lat},{origin_lon}",
+            destination=f"{dest_lat},{dest_lon}",
+            mode="driving",
+            departure_time="now",
+            traffic_model="best_guess",
+            alternatives=True,
+        )
+        if not results:
+            return []
+
+        routes = []
+        for route in results:
+            # Decode the overview polyline to get route geometry
+            polyline_str = route["overview_polyline"]["points"]
+            decoded = decode_polyline(polyline_str)
+            waypoints = [[pt["lat"], pt["lng"]] for pt in decoded]
+
+            leg = route["legs"][0]
+            if "duration_in_traffic" in leg:
+                duration_sec = leg["duration_in_traffic"]["value"]
+                has_traffic = True
+            else:
+                duration_sec = leg["duration"]["value"]
+                has_traffic = False
+            distance_m = leg["distance"]["value"]
+
+            routes.append({
+                "waypoints": waypoints,
+                "distance_km": round(distance_m / 1000, 2),
+                "duration_minutes": round(duration_sec / 60),
+                "has_traffic": has_traffic,
+                "summary": route.get("summary", ""),
+            })
+        return routes
+    except Exception as e:
+        print(f"Google Maps routes API error: {e}")
+        return []
 
 
 def _require_file(file_path):
@@ -1297,6 +1349,14 @@ def analyze_route():
 
 @app.route("/api/compare-routes", methods=["POST"])
 def compare_routes():
+    """Hybrid Google Maps + Risk Overlay route comparison.
+
+    1. Fetches multiple alternative routes from Google Maps (real roads).
+    2. Decodes polyline waypoints for each route.
+    3. Maps waypoints to 276 Bangkok grid zones.
+    4. Scores each route using accident-density risk model.
+    5. Returns FASTEST (shortest time) and SAFEST (lowest risk).
+    """
     try:
         payload = request.get_json(silent=True) or {}
         required_fields = {"start_lat", "start_lon", "end_lat", "end_lon"}
@@ -1317,70 +1377,77 @@ def compare_routes():
 
         grid_df = _load_grid_stats()
 
-        # --- Phase 1: generate both routes (safe reuses fast waypoints) ---
-        fast_waypoints = generate_fast_route(start_lat, start_lon, end_lat, end_lon)
-        safe_waypoints = generate_safe_route(start_lat, start_lon, end_lat, end_lon, grid_df, fast_waypoints=fast_waypoints)
+        # ── Step 1: Get ALL alternative routes from Google Maps ──
+        gmaps_routes = get_google_maps_routes(start_lat, start_lon, end_lat, end_lon)
 
-        # --- Phase 2: evaluate routes + fetch travel times in parallel ---
-        safe_mid_lat, safe_mid_lon = find_safest_midpoint(start_lat, start_lon, end_lat, end_lon, grid_df)
+        if gmaps_routes:
+            # ── Step 2-4: Score each route with risk model ──
+            scored_routes = []
+            for groute in gmaps_routes:
+                waypoints = groute["waypoints"]
+                # Sample waypoints for risk calculation (every ~100m)
+                sampled = waypoints[:: max(1, len(waypoints) // 80)]
+                if sampled[-1] != waypoints[-1]:
+                    sampled.append(waypoints[-1])
 
-        with ThreadPoolExecutor(max_workers=8) as pool:
-            fut_eval_fast = pool.submit(_evaluate_route, fast_waypoints, grid_df)
-            fut_eval_safe = pool.submit(_evaluate_route, safe_waypoints, grid_df)
-            fut_fast_gmaps = pool.submit(get_google_maps_travel_time, start_lat, start_lon, end_lat, end_lon)
-            fut_fast_osrm = pool.submit(get_osrm_route, start_lat, start_lon, end_lat, end_lon)
-            fut_safe_gmaps = pool.submit(get_google_maps_travel_time, start_lat, start_lon, safe_mid_lat, safe_mid_lon)
-            fut_safe_gmaps2 = pool.submit(get_google_maps_travel_time, safe_mid_lat, safe_mid_lon, end_lat, end_lon)
-            fut_safe_route1 = pool.submit(get_osrm_route, start_lat, start_lon, safe_mid_lat, safe_mid_lon)
-            fut_safe_route2 = pool.submit(get_osrm_route, safe_mid_lat, safe_mid_lon, end_lat, end_lon)
+                # Calculate risk using both ML and spatial models
+                ml_risk = calculate_route_risk_ml(sampled)
+                spatial_risk = calculate_route_risk_density_aware(sampled, grid_df)
+                risk = ml_risk if ml_risk is not None else spatial_risk
 
-        route_fast = fut_eval_fast.result()
-        route_safe = fut_eval_safe.result()
-        fast_gmaps = fut_fast_gmaps.result()
-        fast_osrm = fut_fast_osrm.result()
-        safe_gmaps = fut_safe_gmaps.result()
-        safe_gmaps2 = fut_safe_gmaps2.result()
-        safe_route1 = fut_safe_route1.result()
-        safe_route2 = fut_safe_route2.result()
+                scored_routes.append({
+                    "waypoints": waypoints,
+                    "distance_km": groute["distance_km"],
+                    "time_min": groute["duration_minutes"],
+                    "risk_score": risk["risk_score"],
+                    "risk_level": risk["risk_level"],
+                    "high_risk_zones": risk.get("high_risk_zones", 0),
+                    "medium_risk_zones": risk.get("medium_risk_zones", 0),
+                    "matched_grids": risk.get("matched_grids", 0),
+                    "evaluated_waypoints": risk.get("evaluated_waypoints", len(sampled)),
+                    "traffic_source": "google_maps_traffic" if groute["has_traffic"] else "google_maps",
+                    "summary": groute.get("summary", ""),
+                })
 
-        # Fast route: time + distance
-        traffic_source = "estimated"
-        if fast_gmaps:
-            fast_distance = fast_gmaps["distance_km"]
-            fast_time = fast_gmaps["duration_minutes"]
-            traffic_source = "google_maps_traffic" if fast_gmaps["has_traffic"] else "google_maps"
-        elif fast_osrm:
-            fast_distance = float(fast_osrm["distance_km"])
-            fast_time = int(fast_osrm["duration_min"])
-            traffic_source = "osrm"
+            # ── Step 5: Sort and pick FASTEST and SAFEST ──
+            fastest = min(scored_routes, key=lambda r: r["time_min"])
+            safest = min(scored_routes, key=lambda r: r["risk_score"])
+
+            # If safest == fastest (same route), try to pick a different one
+            # for the safe option that has lower risk
+            if len(scored_routes) > 1 and safest["waypoints"] == fastest["waypoints"]:
+                # Pick the route with 2nd lowest risk that isn't the fastest
+                alternatives = [r for r in scored_routes if r["waypoints"] != fastest["waypoints"]]
+                if alternatives:
+                    safest = min(alternatives, key=lambda r: r["risk_score"])
+
+            route_fast = fastest
+            route_safe = safest
+            alternatives_analyzed = len(gmaps_routes)
         else:
-            fast_distance = calculate_distance_from_waypoints(fast_waypoints)
-            fast_time = int((fast_distance / 40) * 60)
+            # ── Fallback: original OSRM/interpolation logic ──
+            fast_waypoints = generate_fast_route(start_lat, start_lon, end_lat, end_lon)
+            safe_waypoints = generate_safe_route(
+                start_lat, start_lon, end_lat, end_lon, grid_df, fast_waypoints=fast_waypoints
+            )
+            route_fast = _evaluate_route(fast_waypoints, grid_df)
+            route_safe = _evaluate_route(safe_waypoints, grid_df)
 
-        # Safe route: time + distance
-        safe_traffic_source = "estimated"
-        if safe_gmaps and safe_gmaps2:
-            safe_distance = safe_gmaps["distance_km"] + safe_gmaps2["distance_km"]
-            safe_time = safe_gmaps["duration_minutes"] + safe_gmaps2["duration_minutes"]
-            safe_traffic_source = "google_maps_traffic" if (safe_gmaps["has_traffic"] or safe_gmaps2["has_traffic"]) else "google_maps"
-        elif safe_route1 and safe_route2:
-            safe_distance = float(safe_route1["distance_km"]) + float(safe_route2["distance_km"])
-            safe_time = int(safe_route1["duration_min"]) + int(safe_route2["duration_min"])
-            safe_traffic_source = "osrm"
-        else:
-            safe_distance = calculate_distance_from_waypoints(safe_waypoints)
-            safe_time = int((safe_distance / 40) * 60)
+            # Try Google Maps for accurate travel times
+            gmaps_time = get_google_maps_travel_time(start_lat, start_lon, end_lat, end_lon)
+            if gmaps_time:
+                route_fast["distance_km"] = gmaps_time["distance_km"]
+                route_fast["time_min"] = gmaps_time["duration_minutes"]
+                route_fast["traffic_source"] = (
+                    "google_maps_traffic" if gmaps_time["has_traffic"] else "google_maps"
+                )
+            else:
+                route_fast["traffic_source"] = "estimated"
 
-        route_fast["distance_km"] = round(fast_distance, 2)
-        route_safe["distance_km"] = round(safe_distance, 2)
-        route_fast["time_min"] = fast_time
-        route_safe["time_min"] = safe_time
-        route_fast["traffic_source"] = traffic_source
-        route_safe["traffic_source"] = safe_traffic_source
+            route_safe["traffic_source"] = "estimated"
+            alternatives_analyzed = 1
 
-        # ML metadata: use XGBoost when the predictor is loaded, otherwise
-        # report the spatial density model.  Confidence is derived from how
-        # many accident-grid cells were matched along the route (0.75–0.99).
+        # ── Metadata ──
         prediction_method = "xgboost" if (USE_ML and ml_predictor) else "spatial"
         for _route in (route_fast, route_safe):
             matched = _route.get("matched_grids", 0)
@@ -1401,12 +1468,16 @@ def compare_routes():
         if safe_risk_score >= fast_risk_score:
             recommendation = "Fast route is already the safest available option. No safer alternative exists for this trip."
         else:
-            risk_reduction_pct = int((1 - (safe_risk_score / fast_risk_score)) * 100) if fast_risk_score > 0 else 0
-            time_cost = safe_time - fast_time
+            risk_reduction_pct = (
+                int((1 - (safe_risk_score / fast_risk_score)) * 100) if fast_risk_score > 0 else 0
+            )
+            time_cost = route_safe["time_min"] - route_fast["time_min"]
             if time_cost > 0:
                 recommendation = f"Safe route reduces risk by {risk_reduction_pct}% for +{time_cost} minutes."
             elif time_cost < 0:
-                recommendation = f"Safe route reduces risk by {risk_reduction_pct}% and is {abs(time_cost)} minutes faster."
+                recommendation = (
+                    f"Safe route reduces risk by {risk_reduction_pct}% and is {abs(time_cost)} minutes faster."
+                )
             else:
                 recommendation = f"Safe route reduces risk by {risk_reduction_pct}% with no extra time."
 
@@ -1414,13 +1485,16 @@ def compare_routes():
             "fast_waypoints_sample": route_fast["waypoints"][:3],
             "safe_waypoints_sample": route_safe["waypoints"][:3],
             "fast_risk_details": (
-                f"Calculated from {route_fast['matched_grids']} matched grids "
-                f"across {route_fast['evaluated_waypoints']} waypoints"
+                f"Calculated from {route_fast.get('matched_grids', 0)} matched grids "
+                f"across {route_fast.get('evaluated_waypoints', 0)} waypoints"
             ),
             "safe_risk_details": (
-                f"Calculated from {route_safe['matched_grids']} matched grids "
-                f"across {route_safe['evaluated_waypoints']} waypoints"
+                f"Calculated from {route_safe.get('matched_grids', 0)} matched grids "
+                f"across {route_safe.get('evaluated_waypoints', 0)} waypoints"
             ),
+            "fast_summary": route_fast.get("summary", ""),
+            "safe_summary": route_safe.get("summary", ""),
+            "google_maps_alternatives": alternatives_analyzed,
         }
 
         return jsonify(
@@ -1430,7 +1504,7 @@ def compare_routes():
                 "route_fast": route_fast,
                 "route_safe": route_safe,
                 "recommendation": recommendation,
-                "alternatives_analyzed": 5,
+                "alternatives_analyzed": alternatives_analyzed,
                 "debug": debug_data,
             }
         )
