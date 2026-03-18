@@ -5,267 +5,26 @@
 
 {% block extra_css %}
 <link rel="stylesheet" href="{{ url_for('static', filename='css/chatbot.css') }}">
-<style>
-/* ML Classifier Section */
-.ml-classifier-section {
-    background: linear-gradient(135deg, #1a1a2e 0%, #16213e 100%);
-    border-radius: 16px;
-    padding: 2rem;
-    margin-bottom: 2rem;
-    color: #e0e0e0;
-}
-.ml-classifier-section h2 {
-    color: #fff;
-    margin-bottom: 0.5rem;
-    font-size: 1.5rem;
-}
-.ml-classifier-section .ml-subtitle {
-    color: #8892b0;
-    margin-bottom: 1.5rem;
-    font-size: 0.95rem;
-}
-.ml-metrics-grid {
-    display: grid;
-    grid-template-columns: repeat(auto-fit, minmax(140px, 1fr));
-    gap: 1rem;
-    margin-bottom: 1.5rem;
-}
-.ml-metric-card {
-    background: rgba(255,255,255,0.06);
-    border: 1px solid rgba(255,255,255,0.1);
-    border-radius: 12px;
-    padding: 1.2rem 1rem;
-    text-align: center;
-    transition: transform 0.2s;
-}
-.ml-metric-card:hover { transform: translateY(-2px); }
-.ml-metric-value {
-    font-size: 1.8rem;
-    font-weight: 700;
-    color: #64ffda;
-    line-height: 1.2;
-}
-.ml-metric-label {
-    font-size: 0.8rem;
-    color: #8892b0;
-    margin-top: 0.3rem;
-    text-transform: uppercase;
-    letter-spacing: 0.5px;
-}
-.ml-pipeline-visual {
-    display: flex;
-    align-items: center;
-    gap: 0.5rem;
-    flex-wrap: wrap;
-    margin-bottom: 1.5rem;
-    padding: 1rem;
-    background: rgba(255,255,255,0.03);
-    border-radius: 10px;
-}
-.pipeline-node {
-    background: rgba(100,255,218,0.1);
-    border: 1px solid rgba(100,255,218,0.3);
-    border-radius: 8px;
-    padding: 0.6rem 1rem;
-    font-size: 0.85rem;
-    color: #64ffda;
-    white-space: nowrap;
-}
-.pipeline-arrow {
-    color: #8892b0;
-    font-size: 1.2rem;
-}
-/* Live classifier demo */
-.classifier-demo {
-    background: rgba(255,255,255,0.04);
-    border-radius: 12px;
-    padding: 1.5rem;
-    margin-top: 1rem;
-}
-.classifier-demo h3 {
-    color: #fff;
-    margin-bottom: 1rem;
-    font-size: 1.1rem;
-}
-.demo-input-row {
-    display: flex;
-    gap: 0.5rem;
-    margin-bottom: 1rem;
-}
-.demo-input-row input {
-    flex: 1;
-    padding: 0.7rem 1rem;
-    border-radius: 8px;
-    border: 1px solid rgba(255,255,255,0.15);
-    background: rgba(255,255,255,0.08);
-    color: #fff;
-    font-size: 0.9rem;
-}
-.demo-input-row input::placeholder { color: #6c7a96; }
-.demo-input-row button {
-    padding: 0.7rem 1.2rem;
-    border-radius: 8px;
-    border: none;
-    background: #64ffda;
-    color: #1a1a2e;
-    font-weight: 600;
-    cursor: pointer;
-    white-space: nowrap;
-}
-.demo-input-row button:hover { background: #52e0c4; }
-.demo-result {
-    display: none;
-    background: rgba(100,255,218,0.08);
-    border: 1px solid rgba(100,255,218,0.2);
-    border-radius: 8px;
-    padding: 1rem;
-}
-.demo-result .result-label { color: #8892b0; font-size: 0.8rem; }
-.demo-result .result-value { color: #64ffda; font-weight: 600; font-size: 1.1rem; }
-.demo-result .result-confidence { color: #ffd93d; font-size: 0.9rem; margin-top: 0.3rem; }
-.demo-result .result-method { color: #8892b0; font-size: 0.8rem; margin-top: 0.2rem; }
-.demo-presets {
-    display: flex;
-    gap: 0.4rem;
-    flex-wrap: wrap;
-    margin-bottom: 0.8rem;
-}
-.demo-presets button {
-    padding: 0.35rem 0.7rem;
-    border-radius: 6px;
-    border: 1px solid rgba(255,255,255,0.15);
-    background: rgba(255,255,255,0.05);
-    color: #ccc;
-    font-size: 0.78rem;
-    cursor: pointer;
-}
-.demo-presets button:hover { background: rgba(100,255,218,0.15); color: #64ffda; border-color: rgba(100,255,218,0.3); }
-/* Per-class table */
-.per-class-table {
-    width: 100%;
-    border-collapse: collapse;
-    margin-top: 1rem;
-    font-size: 0.85rem;
-}
-.per-class-table th {
-    color: #8892b0;
-    text-align: left;
-    padding: 0.5rem;
-    border-bottom: 1px solid rgba(255,255,255,0.1);
-    font-weight: 600;
-    text-transform: uppercase;
-    font-size: 0.75rem;
-    letter-spacing: 0.5px;
-}
-.per-class-table td {
-    padding: 0.5rem;
-    border-bottom: 1px solid rgba(255,255,255,0.05);
-    color: #e0e0e0;
-}
-.per-class-table tr:hover td { background: rgba(255,255,255,0.03); }
-</style>
 {% endblock %}
 
 {% block content %}
 <div class="container">
     <div class="chatbot-page">
 
-        <!-- ML Text Classifier Section -->
-        <div class="ml-classifier-section">
-            <h2>ML Text Classification</h2>
-            <p class="ml-subtitle">TF-IDF + Logistic Regression trained on 2,466 Thai accident reports</p>
-
-            <!-- Pipeline visualization -->
-            <div class="ml-pipeline-visual">
-                <div class="pipeline-node">Thai Text Input</div>
-                <span class="pipeline-arrow">&rarr;</span>
-                <div class="pipeline-node">pythainlp Tokenization</div>
-                <span class="pipeline-arrow">&rarr;</span>
-                <div class="pipeline-node">TF-IDF Vectorization</div>
-                <span class="pipeline-arrow">&rarr;</span>
-                <div class="pipeline-node">Logistic Regression</div>
-                <span class="pipeline-arrow">&rarr;</span>
-                <div class="pipeline-node">Cause Category</div>
-            </div>
-
-            <!-- Metrics cards -->
-            <div class="ml-metrics-grid">
-                <div class="ml-metric-card">
-                    <div class="ml-metric-value" id="mlAccuracy">--</div>
-                    <div class="ml-metric-label">Accuracy</div>
-                </div>
-                <div class="ml-metric-card">
-                    <div class="ml-metric-value" id="mlPrecision">--</div>
-                    <div class="ml-metric-label">Precision</div>
-                </div>
-                <div class="ml-metric-card">
-                    <div class="ml-metric-value" id="mlRecall">--</div>
-                    <div class="ml-metric-label">Recall</div>
-                </div>
-                <div class="ml-metric-card">
-                    <div class="ml-metric-value" id="mlF1">--</div>
-                    <div class="ml-metric-label">F1-Score</div>
-                </div>
-                <div class="ml-metric-card">
-                    <div class="ml-metric-value" id="mlCvAccuracy">--</div>
-                    <div class="ml-metric-label">CV Accuracy</div>
-                </div>
-                <div class="ml-metric-card">
-                    <div class="ml-metric-value" id="mlVocabSize">--</div>
-                    <div class="ml-metric-label">Thai Tokens</div>
-                </div>
-            </div>
-
-            <!-- Per-class metrics table -->
-            <table class="per-class-table" id="perClassTable">
-                <thead>
-                    <tr>
-                        <th>Cause Category</th>
-                        <th>Precision</th>
-                        <th>Recall</th>
-                        <th>F1</th>
-                        <th>Support</th>
-                    </tr>
-                </thead>
-                <tbody id="perClassBody">
-                    <tr><td colspan="5" style="color:#8892b0;">Loading...</td></tr>
-                </tbody>
-            </table>
-
-            <!-- Live classifier demo -->
-            <div class="classifier-demo">
-                <h3>Try the Classifier</h3>
-                <div class="demo-presets">
-                    <button onclick="demoClassify('ขับรถเร็วเกินอัตรากำหนด ทางตรง ชนท้าย แจ่มใส')">Speeding report</button>
-                    <button onclick="demoClassify('หลับใน พลิกคว่ำ/ตกถนนในทางตรง ฝนตก')">Drowsy driving</button>
-                    <button onclick="demoClassify('ฝ่าฝืนสัญญาณไฟ ชนด้านข้าง ทางแยก')">Traffic violation</button>
-                    <button onclick="demoClassify('ยางเสื่อมสภาพ/ยางแตก ทางตรง พลิกคว่ำ')">Equipment failure</button>
-                    <button onclick="demoClassify('คน/รถ/สัตว์ตัดหน้ากระชั้นชิด ชนด้านข้าง ทางโค้ง')">Cutting in front</button>
-                </div>
-                <div class="demo-input-row">
-                    <input type="text" id="classifyInput" placeholder="Enter Thai accident report text..." />
-                    <button onclick="demoClassify()">Classify</button>
-                </div>
-                <div class="demo-result" id="classifyResult">
-                    <div class="result-label">Predicted Cause:</div>
-                    <div class="result-value" id="resultCause"></div>
-                    <div class="result-confidence" id="resultConfidence"></div>
-                    <div class="result-method" id="resultMethod"></div>
-                </div>
-            </div>
-        </div>
-
-        <!-- Header -->
+        <!-- Intro -->
         <div class="chatbot-header">
             <h1>&#x1F916; Bangkok Safety Assistant</h1>
-            <p class="subtitle">AI-powered road safety insights from 2,669 Thai accident reports</p>
+            <p class="subtitle">
+                Our NLP system analyzes 2,669 Thai accident reports using pythainlp tokenization and
+                a TF-IDF + Logistic Regression classifier to extract accident causes and safety patterns.
+                Ask the assistant anything about Bangkok road safety.
+            </p>
         </div>
 
         <!-- Chat Container -->
         <div class="chatbot-container">
             <!-- Messages Area -->
             <div class="chat-messages" id="chatMessages">
-                <!-- Welcome message -->
                 <div class="message bot">
                     <div class="message-avatar">&#x1F916;</div>
                     <div class="message-content">
@@ -285,7 +44,7 @@
                 </div>
             </div>
 
-            <!-- Typing Indicator (hidden by default) -->
+            <!-- Typing Indicator -->
             <div class="typing-indicator" id="typingIndicator" style="display: none;">
                 <div class="typing-dot"></div>
                 <div class="typing-dot"></div>
@@ -310,108 +69,10 @@
             </div>
         </div>
 
-        <!-- How It Works (Expandable) -->
-        <div class="how-it-works">
-            <button class="accordion-toggle" id="howItWorksToggle">
-                <span>&#x1F50D; How does this chatbot work?</span>
-                <svg class="toggle-icon" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor">
-                    <polyline points="6 9 12 15 18 9"></polyline>
-                </svg>
-            </button>
-            <div class="accordion-content" id="howItWorksContent" style="display: none;">
-                <div class="pipeline-steps">
-                    <div class="step">
-                        <div class="step-number">1</div>
-                        <h3>Thai Text Processing</h3>
-                        <p>2,669 accident reports analyzed using pythainlp for tokenization and TF-IDF + Logistic Regression for cause classification</p>
-                    </div>
-                    <div class="step">
-                        <div class="step-number">2</div>
-                        <h3>Intent Detection</h3>
-                        <p>Your question is analyzed to understand what you're asking about</p>
-                    </div>
-                    <div class="step">
-                        <div class="step-number">3</div>
-                        <h3>Hybrid Response</h3>
-                        <p>Common questions get instant scripted responses; complex questions use AI reasoning with our data</p>
-                    </div>
-                    <div class="step">
-                        <div class="step-number">4</div>
-                        <h3>Conversational Output</h3>
-                        <p>Insights delivered in natural language with actionable recommendations</p>
-                    </div>
-                </div>
-            </div>
-        </div>
     </div>
 </div>
 {% endblock %}
 
 {% block extra_js %}
 <script src="{{ url_for('static', filename='js/chatbot.js') }}"></script>
-<script>
-// Load and display ML classifier metrics
-fetch('/api/nlp/ml-metrics')
-    .then(r => r.json())
-    .then(data => {
-        if (data.error) return;
-        document.getElementById('mlAccuracy').textContent = (data.accuracy * 100).toFixed(1) + '%';
-        document.getElementById('mlPrecision').textContent = (data.precision * 100).toFixed(1) + '%';
-        document.getElementById('mlRecall').textContent = (data.recall * 100).toFixed(1) + '%';
-        document.getElementById('mlF1').textContent = (data.f1_score * 100).toFixed(1) + '%';
-        document.getElementById('mlCvAccuracy').textContent = (data.cv_accuracy_mean * 100).toFixed(1) + '%';
-        document.getElementById('mlVocabSize').textContent = data.vocabulary_size;
-
-        // Per-class table
-        const tbody = document.getElementById('perClassBody');
-        tbody.innerHTML = '';
-        if (data.per_class_metrics) {
-            for (const [cls, m] of Object.entries(data.per_class_metrics)) {
-                const tr = document.createElement('tr');
-                tr.innerHTML = `
-                    <td>${m.english_name}</td>
-                    <td>${(m.precision * 100).toFixed(1)}%</td>
-                    <td>${(m.recall * 100).toFixed(1)}%</td>
-                    <td>${(m.f1_score * 100).toFixed(1)}%</td>
-                    <td>${m.support}</td>
-                `;
-                tbody.appendChild(tr);
-            }
-        }
-    })
-    .catch(() => {});
-
-// Live classifier demo
-function demoClassify(preset) {
-    const input = document.getElementById('classifyInput');
-    const text = preset || input.value.trim();
-    if (!text) return;
-    if (preset) input.value = text;
-
-    fetch('/api/nlp/classify', {
-        method: 'POST',
-        headers: {'Content-Type': 'application/json'},
-        body: JSON.stringify({text: text})
-    })
-    .then(r => r.json())
-    .then(data => {
-        const resultDiv = document.getElementById('classifyResult');
-        resultDiv.style.display = 'block';
-        document.getElementById('resultCause').textContent =
-            data.english_name + ' (' + data.cause + ')';
-        document.getElementById('resultConfidence').textContent =
-            'Confidence: ' + (data.confidence * 100).toFixed(1) + '%';
-        document.getElementById('resultMethod').textContent =
-            'Method: ' + data.method;
-    })
-    .catch(err => {
-        console.error('Classify error:', err);
-    });
-}
-
-// Allow Enter key in classify input
-document.getElementById('classifyInput').addEventListener('keypress', function(e) {
-    if (e.key === 'Enter') demoClassify();
-});
-</script>
 {% endblock %}
