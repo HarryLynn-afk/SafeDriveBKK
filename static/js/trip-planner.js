@@ -1119,6 +1119,33 @@ function getWaypointIndexForDistance(distanceKm) {
     return tripWaypointCumulativeKm.length - 1;
 }
 
+function getInterpolatedPosition(distanceKm, waypoints) {
+    if (!tripWaypointCumulativeKm.length || waypoints.length === 0) {
+        return waypoints[0] || [0, 0];
+    }
+
+    // Clamp to route bounds
+    const maxDist = tripWaypointCumulativeKm[tripWaypointCumulativeKm.length - 1];
+    if (distanceKm <= 0) return waypoints[0];
+    if (distanceKm >= maxDist) return waypoints[waypoints.length - 1];
+
+    // Find the segment that brackets the current distance and interpolate
+    for (let i = 1; i < tripWaypointCumulativeKm.length; i += 1) {
+        if (tripWaypointCumulativeKm[i] >= distanceKm) {
+            const prevDist = tripWaypointCumulativeKm[i - 1];
+            const segLen = tripWaypointCumulativeKm[i] - prevDist;
+            if (segLen <= 0) return waypoints[i];
+
+            const t = (distanceKm - prevDist) / segLen;
+            const lat = waypoints[i - 1][0] + t * (waypoints[i][0] - waypoints[i - 1][0]);
+            const lon = waypoints[i - 1][1] + t * (waypoints[i][1] - waypoints[i - 1][1]);
+            return [lat, lon];
+        }
+    }
+    return waypoints[waypoints.length - 1];
+}
+
+
 function getSegmentSeverity(segment) {
     const segmentColor = String(segment.color || "").toLowerCase().trim();
     if (
@@ -1283,13 +1310,21 @@ function startNavigationSimulation() {
 
     // Reset state
     tripCurrentDistance = 0;
-    const totalDistance = tripPlannerRouteData.route.distance_km;
     const waypoints = tripPlannerRouteData.route.waypoints;
     tripWaypointCumulativeKm = buildWaypointDistanceProfile(waypoints);
 
-    // Update UI
-    document.getElementById("nav-total-km").textContent = totalDistance.toFixed(1);
-    document.getElementById("nav-distance").textContent = totalDistance.toFixed(1) + " km";
+    // Use the actual haversine-computed distance from the waypoints so the
+    // car's distance counter stays perfectly in sync with the cumulative
+    // profile.  The backend-reported distance (OSRM road curves) can differ
+    // significantly from haversine between sparse sampled points; using that
+    // value would cause the car to freeze at the end or finish too early.
+    const waypointTotalKm = tripWaypointCumulativeKm[tripWaypointCumulativeKm.length - 1] || 0;
+    const totalDistance = waypointTotalKm > 0 ? waypointTotalKm : tripPlannerRouteData.route.distance_km;
+
+    // Update UI (show backend-reported distance for user display, but simulate with actual)
+    const displayDistance = tripPlannerRouteData.route.distance_km;
+    document.getElementById("nav-total-km").textContent = displayDistance.toFixed(1);
+    document.getElementById("nav-distance").textContent = displayDistance.toFixed(1) + " km";
     document.getElementById("nav-eta").textContent = tripPlannerRouteData.route.duration_min + " min";
 
     // Create moving marker (car icon)
@@ -1354,19 +1389,16 @@ function updateNavigationUI(totalDistance, waypoints) {
     const remainingMinutes = Math.ceil((remainingDistance / baseSpeed) * 60);
     document.getElementById("nav-eta").textContent = remainingMinutes + " min";
 
-    // Move marker using distance profile (keeps marker and segment alerts aligned)
-    const waypointIndex = getWaypointIndexForDistance(tripCurrentDistance);
-    if (waypointIndex < waypoints.length) {
-        const newPosition = waypoints[waypointIndex];
-        if (tripMovingMarker) tripMovingMarker.setLatLng(newPosition);
+    // Move marker using interpolated position for smooth movement
+    const newPosition = getInterpolatedPosition(tripCurrentDistance, waypoints);
+    if (tripMovingMarker) tripMovingMarker.setLatLng(newPosition);
 
-        // Pan map to follow marker smoothly
-        tripNavigationMap.panTo(newPosition, {
-            animate: true,
-            duration: 0.3,
-            easeLinearity: 0.5
-        });
-    }
+    // Pan map to follow marker smoothly
+    tripNavigationMap.panTo(newPosition, {
+        animate: true,
+        duration: 0.3,
+        easeLinearity: 0.5
+    });
 }
 
 function checkNavigationAlerts() {
