@@ -41,11 +41,82 @@ const BACKUP_DESTINATIONS = [
 // ===== ADDRESS AUTOCOMPLETE =====
 let searchTimeout = null;
 let startSearchTimeout = null;
+let useGooglePlaces = false;  // Set true when Google Places API loads
 
 // Default start location (used as fallback only)
 const DEFAULT_START = { name: "Siam Paragon", lat: 13.7467, lon: 100.5348 };
 
+// ---------------------------------------------------------------------------
+// Google Places Autocomplete (used when API key is available)
+// ---------------------------------------------------------------------------
+window.initGooglePlaces = function () {
+    const startInput = document.getElementById("start-location");
+    const destInput = document.getElementById("destination");
+    if (!startInput || !destInput) return;
+
+    const options = {
+        types: ["geocode", "establishment"],
+        componentRestrictions: { country: "th" },
+        bounds: new google.maps.LatLngBounds(
+            new google.maps.LatLng(13.50, 100.30),
+            new google.maps.LatLng(13.95, 100.90)
+        ),
+        strictBounds: false,
+    };
+
+    const startAC = new google.maps.places.Autocomplete(startInput, options);
+    const destAC = new google.maps.places.Autocomplete(destInput, options);
+
+    startAC.addListener("place_changed", function () {
+        const place = startAC.getPlace();
+        if (!place.geometry) return;
+        const lat = place.geometry.location.lat();
+        const lon = place.geometry.location.lng();
+        const name = place.name || place.formatted_address || startInput.value;
+        startInput.value = name;
+        window.startLat = lat;
+        window.startLon = lon;
+        if (window.endLat && window.endLon) {
+            calculateRoute(lat, lon, window.endLat, window.endLon, document.getElementById("destination").value);
+        }
+    });
+
+    destAC.addListener("place_changed", function () {
+        const place = destAC.getPlace();
+        if (!place.geometry) return;
+        const lat = place.geometry.location.lat();
+        const lon = place.geometry.location.lng();
+        const name = place.name || place.formatted_address || destInput.value;
+        destInput.value = name;
+        window.endLat = lat;
+        window.endLon = lon;
+        if (!window.startLat || !window.startLon) {
+            alert("Please set a start location first (search or use GPS).");
+            startInput.focus();
+            return;
+        }
+        calculateRoute(window.startLat, window.startLon, lat, lon, name);
+    });
+
+    // Disable the custom oninput search since Google handles it
+    startInput.removeAttribute("oninput");
+    destInput.removeAttribute("oninput");
+    useGooglePlaces = true;
+    console.log("Google Places Autocomplete initialized");
+};
+
+// Timeout: if Google API fails to load, keep Nominatim fallback active
+setTimeout(function () {
+    if (!useGooglePlaces) {
+        console.log("Google Places not available, using Nominatim search");
+    }
+}, 5000);
+
+// ---------------------------------------------------------------------------
+// Nominatim fallback search (used when no Google API key)
+// ---------------------------------------------------------------------------
 async function searchLocations(query, dropdownId, onSelect) {
+    if (useGooglePlaces) return;  // Google handles its own dropdown
     return new Promise((resolve) => {
         const dropdown = document.getElementById(dropdownId);
         if (!query || query.length < 2) {
@@ -71,7 +142,6 @@ async function searchLocations(query, dropdownId, onSelect) {
                     throw new Error("API failed");
                 }
             } catch (error) {
-                // console.log("API failed, using backup destinations");
                 const filtered = BACKUP_DESTINATIONS.filter((destination) =>
                     destination.name.toLowerCase().includes(query.toLowerCase())
                 );
@@ -129,6 +199,7 @@ function displayLocationSuggestions(results, source, dropdownId, onSelect) {
 }
 
 async function searchStartLocations(query) {
+    if (useGooglePlaces) return;
     if (startSearchTimeout) {
         clearTimeout(startSearchTimeout);
     }
@@ -142,7 +213,6 @@ async function searchStartLocations(query) {
 }
 
 function selectStartLocation(name, lat, lon) {
-    // console.log("Selected start:", name, lat, lon);
     document.getElementById("start-location").value = name;
     hideElement("start-suggestions-dropdown");
     window.startLat = lat;
@@ -156,6 +226,7 @@ function selectStartLocation(name, lat, lon) {
 }
 
 async function searchDestinations(query) {
+    if (useGooglePlaces) return;
     if (searchTimeout) {
         clearTimeout(searchTimeout);
     }
@@ -169,8 +240,6 @@ async function searchDestinations(query) {
 }
 
 function selectDestination(name, lat, lon) {
-    // console.log("Selected destination:", name, lat, lon);
-
     document.getElementById("destination").value = name;
     hideElement("suggestions-dropdown");
 
@@ -190,8 +259,9 @@ function selectDestination(name, lat, lon) {
     calculateRoute(startLat, startLon, lat, lon, name);
 }
 
-// Close suggestions when clicking outside
+// Close suggestions when clicking outside (for Nominatim fallback)
 document.addEventListener("click", (event) => {
+    if (useGooglePlaces) return;
     const destDropdown = document.getElementById("suggestions-dropdown");
     const destInput = document.getElementById("destination");
     const startDropdown = document.getElementById("start-suggestions-dropdown");
@@ -478,6 +548,14 @@ function showRouteSelectionUI(data) {
     const safeMethod = safeRoute.prediction_method || "xgboost";
     const methodLabel = (m) => m === "xgboost" ? "XGBoost" : "Spatial ML";
     const altCount = data.alternatives_analyzed || 5;
+    const fastTrafficSrc = fastRoute.traffic_source || "estimated";
+    const safeTrafficSrc = safeRoute.traffic_source || "estimated";
+    const trafficBadge = (src) => {
+        if (src === "google_maps_traffic") return '<span class="traffic-badge live">Live Traffic</span>';
+        if (src === "google_maps") return '<span class="traffic-badge">Google Maps</span>';
+        if (src === "osrm") return '';
+        return '<small class="simulated-note">*estimated</small>';
+    };
 
     const routeSelectionHTML = `
         <div class="route-selection-container">
@@ -494,7 +572,7 @@ function showRouteSelectionUI(data) {
                 <!-- Fast Route Card -->
                 <div class="route-card" id="route-card-fast" onclick="selectRoute('fast')">
                     <div class="route-badge fastest">🚀 FASTEST</div>
-                    <div class="route-time">${fastTime} min</div>
+                    <div class="route-time">${fastTime} min ${trafficBadge(fastTrafficSrc)}</div>
                     <div class="route-distance">${(fastRoute.distance_km || 0).toFixed(1)} km</div>
                     <div class="route-card-risk ${fastRoute.risk_level}">
                         ${getRiskIcon(fastRoute.risk_level)} ${(fastRoute.risk_level || "unknown").toUpperCase()} RISK
@@ -521,7 +599,7 @@ function showRouteSelectionUI(data) {
                 <div class="route-card recommended" id="route-card-safe" onclick="selectRoute('safe')">
                     <div class="route-badge safest">🛡️ SAFEST</div>
                     ${safeRiskScore < fastRiskScore ? '<div class="recommended-badge">⭐ RECOMMENDED</div>' : ""}
-                    <div class="route-time">${safeTime} min</div>
+                    <div class="route-time">${safeTime} min ${trafficBadge(safeTrafficSrc)}</div>
                     <div class="route-distance">${(safeRoute.distance_km || 0).toFixed(1)} km</div>
                     <div class="route-card-risk ${safeRoute.risk_level}">
                         ${getRiskIcon(safeRoute.risk_level)} ${(safeRoute.risk_level || "unknown").toUpperCase()} RISK
@@ -738,6 +816,19 @@ function displayRoutePreview(data, destName) {
     // Update stats
     document.getElementById("preview-time").textContent = route.duration_min;
     document.getElementById("preview-distance").textContent = route.distance_km.toFixed(1);
+
+    // Show traffic source badge
+    const trafficSrc = route.traffic_source || summary.traffic_source || "estimated";
+    const previewTimeEl = document.getElementById("preview-time");
+    if (previewTimeEl) {
+        if (trafficSrc === "google_maps_traffic") {
+            previewTimeEl.insertAdjacentHTML("afterend", '<span class="traffic-badge live" style="font-size:11px;margin-left:6px;">Live Traffic</span>');
+        } else if (trafficSrc === "google_maps") {
+            previewTimeEl.insertAdjacentHTML("afterend", '<span class="traffic-badge" style="font-size:11px;margin-left:6px;">Google Maps</span>');
+        } else if (trafficSrc === "estimated") {
+            previewTimeEl.insertAdjacentHTML("afterend", '<small class="simulated-note" style="font-size:11px;margin-left:6px;color:#999;">*estimated</small>');
+        }
+    }
 
     // Update risk indicator
     const riskIndicator = document.getElementById("risk-indicator");

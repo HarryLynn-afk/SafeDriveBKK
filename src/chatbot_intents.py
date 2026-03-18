@@ -746,11 +746,10 @@ def handle_how_it_works(user_message=""):
     return {
         "type": "info",
         "message": (
-            f"We combine 3 AI techniques:\n"
-            f"1. **Thai NLP** - reads accident reports to classify causes\n"
-            f"2. **XGBoost ML** - predicts risk scores for every 1km zone ({data['stats']['model_accuracy']}% accuracy)\n"
-            f"3. **YOLOv8 cameras** - detects vehicles in real-time at 7 Bangkok locations\n\n"
-            f"Together, they power our risk map and trip planner. ✅"
+            f"We combine 2 core AI techniques:\n"
+            f"1. **Thai NLP** - reads accident reports to classify causes and power our Safety Assistant chatbot\n"
+            f"2. **XGBoost ML** - predicts risk scores for every 1km zone ({data['stats']['model_accuracy']}% accuracy)\n\n"
+            f"Together, they power our risk map, trip planner, and analytics dashboard. ✅"
         ),
         "data": [],
         "followup": "Want to know about our data source?",

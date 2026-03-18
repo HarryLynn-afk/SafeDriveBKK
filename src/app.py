@@ -17,6 +17,8 @@ import pandas as pd
 import requests
 from flask import Flask, jsonify, render_template, request, send_file
 
+import googlemaps
+
 from ml_model import RiskPredictor
 from chatbot_intents import detect_intent, get_scripted_response
 from chatbot_groq import get_groq_response
@@ -65,6 +67,53 @@ except Exception as exc:
     print(f"ML predictor: failed to load ({exc}), spatial fallback active")
     ml_predictor = None
     USE_ML = False
+
+# ---------------------------------------------------------------------------
+# Google Maps client — for traffic-aware travel times
+# ---------------------------------------------------------------------------
+GOOGLE_MAPS_API_KEY = os.getenv("GOOGLE_MAPS_API_KEY")
+if GOOGLE_MAPS_API_KEY:
+    gmaps_client = googlemaps.Client(key=GOOGLE_MAPS_API_KEY)
+    print("Google Maps: API key loaded (traffic-aware travel times enabled)")
+else:
+    gmaps_client = None
+    print("Google Maps: No API key found. Using OSRM/estimated travel times.")
+
+
+def get_google_maps_travel_time(origin_lat, origin_lon, dest_lat, dest_lon):
+    """Get traffic-aware travel time from Google Maps Directions API.
+
+    Returns dict with duration_minutes, distance_km, has_traffic on success,
+    or None if unavailable.
+    """
+    if not gmaps_client:
+        return None
+    try:
+        result = gmaps_client.directions(
+            origin=f"{origin_lat},{origin_lon}",
+            destination=f"{dest_lat},{dest_lon}",
+            mode="driving",
+            departure_time="now",
+            traffic_model="best_guess",
+        )
+        if not result:
+            return None
+        leg = result[0]["legs"][0]
+        if "duration_in_traffic" in leg:
+            duration_sec = leg["duration_in_traffic"]["value"]
+            has_traffic = True
+        else:
+            duration_sec = leg["duration"]["value"]
+            has_traffic = False
+        distance_m = leg["distance"]["value"]
+        return {
+            "duration_minutes": round(duration_sec / 60),
+            "distance_km": round(distance_m / 1000, 2),
+            "has_traffic": has_traffic,
+        }
+    except Exception as e:
+        print(f"Google Maps API error: {e}")
+        return None
 
 
 def _require_file(file_path):
@@ -781,7 +830,10 @@ def route_analyze_page():
 @app.route("/trip-planner")
 def trip_planner():
     """New Grab-style trip planner page."""
-    return render_template("trip_planner.html")
+    return render_template(
+        "trip_planner.html",
+        google_maps_api_key=os.getenv("GOOGLE_MAPS_API_KEY", ""),
+    )
 
 
 @app.route("/about")
@@ -971,6 +1023,7 @@ def analyze_route():
                 if isinstance(point, (list, tuple)) and len(point) >= 2:
                     parsed_waypoints.append([float(point[0]), float(point[1])])
 
+        analyze_traffic_source = "estimated"
         if len(parsed_waypoints) >= 2:
             waypoints = parsed_waypoints
             calculated_distance = calculate_distance_from_waypoints(waypoints)
@@ -983,18 +1036,36 @@ def analyze_route():
                 route_distance_km = calculated_distance
             route_distance_km = max(0.0, route_distance_km)
 
-            try:
-                route_duration_min = int(payload_duration)
-            except (TypeError, ValueError):
-                route_duration_min = int((route_distance_km / 40) * 60) if route_distance_km > 0 else 0
+            # Try Google Maps for traffic-aware duration
+            gmaps_data = get_google_maps_travel_time(start_lat, start_lon, end_lat, end_lon)
+            if gmaps_data:
+                route_duration_min = gmaps_data["duration_minutes"]
+                analyze_traffic_source = "google_maps_traffic" if gmaps_data["has_traffic"] else "google_maps"
+            else:
+                try:
+                    route_duration_min = int(payload_duration)
+                except (TypeError, ValueError):
+                    route_duration_min = int((route_distance_km / 40) * 60) if route_distance_km > 0 else 0
             route_duration_min = max(0, route_duration_min)
         else:
+            # Try Google Maps first, then OSRM
+            gmaps_data = get_google_maps_travel_time(start_lat, start_lon, end_lat, end_lon)
             osrm_route = get_osrm_route(start_lat, start_lon, end_lat, end_lon)
-            if not osrm_route:
+            if not osrm_route and not gmaps_data:
                 return jsonify({"error": "Could not calculate route"}), 400
-            waypoints = osrm_route["waypoints"]
-            route_distance_km = float(osrm_route["distance_km"])
-            route_duration_min = int(osrm_route["duration_min"])
+            if osrm_route:
+                waypoints = osrm_route["waypoints"]
+                route_distance_km = float(osrm_route["distance_km"])
+                analyze_traffic_source = "osrm"
+            else:
+                # No OSRM but have gmaps — use straight-line waypoints
+                waypoints = [[start_lat, start_lon], [end_lat, end_lon]]
+                route_distance_km = gmaps_data["distance_km"]
+            if gmaps_data:
+                route_duration_min = gmaps_data["duration_minutes"]
+                analyze_traffic_source = "google_maps_traffic" if gmaps_data["has_traffic"] else "google_maps"
+            else:
+                route_duration_min = int(osrm_route["duration_min"])
 
         sampled_waypoints = waypoints[:: max(1, len(waypoints) // 50)]
 
@@ -1024,6 +1095,7 @@ def analyze_route():
                     "duration_min": route_duration_min,
                     "risk_score": min(100, overall_risk["risk_score"]),
                     "risk_level": overall_risk["risk_level"],
+                    "traffic_source": analyze_traffic_source,
                 },
                 "segments": segments,
                 "alerts": alerts,
@@ -1036,6 +1108,7 @@ def analyze_route():
                     "total_alerts": len(alerts),
                     "prediction_method": prediction_method,
                     "model_accuracy": "39/39 zones (83.8% capture)" if prediction_method == "xgboost" else "83.8% spatial",
+                    "traffic_source": analyze_traffic_source,
                 },
             }
         )
@@ -1072,22 +1145,39 @@ def compare_routes():
         safe_waypoints = generate_safe_route(start_lat, start_lon, end_lat, end_lon, grid_df)
         route_safe = _evaluate_route(safe_waypoints, grid_df)
 
-        # Prefer OSRM distance/time; fallback to waypoint-based haversine.
+        # Prefer Google Maps (traffic-aware) → OSRM → haversine estimate.
+        fast_gmaps = get_google_maps_travel_time(start_lat, start_lon, end_lat, end_lon)
         fast_osrm = get_osrm_route(start_lat, start_lon, end_lat, end_lon)
         safe_mid_lat, safe_mid_lon = find_safest_midpoint(start_lat, start_lon, end_lat, end_lon, grid_df)
+        safe_gmaps = get_google_maps_travel_time(start_lat, start_lon, safe_mid_lat, safe_mid_lon)
+        safe_gmaps2 = get_google_maps_travel_time(safe_mid_lat, safe_mid_lon, end_lat, end_lon)
         safe_route1 = get_osrm_route(start_lat, start_lon, safe_mid_lat, safe_mid_lon)
         safe_route2 = get_osrm_route(safe_mid_lat, safe_mid_lon, end_lat, end_lon)
 
-        if fast_osrm:
+        # Fast route: time + distance
+        traffic_source = "estimated"
+        if fast_gmaps:
+            fast_distance = fast_gmaps["distance_km"]
+            fast_time = fast_gmaps["duration_minutes"]
+            traffic_source = "google_maps_traffic" if fast_gmaps["has_traffic"] else "google_maps"
+        elif fast_osrm:
             fast_distance = float(fast_osrm["distance_km"])
             fast_time = int(fast_osrm["duration_min"])
+            traffic_source = "osrm"
         else:
             fast_distance = calculate_distance_from_waypoints(fast_waypoints)
             fast_time = int((fast_distance / 40) * 60)
 
-        if safe_route1 and safe_route2:
+        # Safe route: time + distance
+        safe_traffic_source = "estimated"
+        if safe_gmaps and safe_gmaps2:
+            safe_distance = safe_gmaps["distance_km"] + safe_gmaps2["distance_km"]
+            safe_time = safe_gmaps["duration_minutes"] + safe_gmaps2["duration_minutes"]
+            safe_traffic_source = "google_maps_traffic" if (safe_gmaps["has_traffic"] or safe_gmaps2["has_traffic"]) else "google_maps"
+        elif safe_route1 and safe_route2:
             safe_distance = float(safe_route1["distance_km"]) + float(safe_route2["distance_km"])
             safe_time = int(safe_route1["duration_min"]) + int(safe_route2["duration_min"])
+            safe_traffic_source = "osrm"
         else:
             safe_distance = calculate_distance_from_waypoints(safe_waypoints)
             safe_time = int((safe_distance / 40) * 60)
@@ -1096,6 +1186,8 @@ def compare_routes():
         route_safe["distance_km"] = round(safe_distance, 2)
         route_fast["time_min"] = fast_time
         route_safe["time_min"] = safe_time
+        route_fast["traffic_source"] = traffic_source
+        route_safe["traffic_source"] = safe_traffic_source
 
         # ML metadata: use XGBoost when the predictor is loaded, otherwise
         # report the spatial density model.  Confidence is derived from how
@@ -1415,122 +1507,6 @@ def nlp_wordcloud():
 
 
 # ---------------------------------------------------------------------------
-# Object Detection (Track 3) — serves from cache
-# ---------------------------------------------------------------------------
-DETECTION_CACHE_PATH = BASE_DIR / "static" / "detection_cache.json"
-
-
-def _load_detection_cache():
-    try:
-        if DETECTION_CACHE_PATH.exists():
-            with open(DETECTION_CACHE_PATH, encoding="utf-8") as f:
-                return json.load(f)
-    except (json.JSONDecodeError, OSError):
-        pass
-    # Return skeleton with pipeline data even without images
-    return {
-        "image_results": [],
-        "comparisons": [],
-        "vehicle_importance": _get_vehicle_importance_fallback(),
-        "pipeline": _get_pipeline_fallback(),
-        "total_images": 0,
-    }
-
-
-def _get_vehicle_importance_fallback():
-    """Vehicle feature importance from CSV when no detection cache exists."""
-    try:
-        imp_path = BASE_DIR / "models" / "xgb_feature_importance.csv"
-        if not imp_path.exists():
-            return {}
-        imp = pd.read_csv(imp_path)
-        imp_dict = dict(zip(imp["feature"], imp["importance"]))
-        vehicle_features = [
-            "pickup_count", "pickup_pct", "motorcycle_count", "car_count",
-            "motorcycle_pct", "car_pct", "heavy_truck_count", "heavy_truck_pct",
-            "max_vehicles",
-        ]
-        features = []
-        total = 0
-        for f in vehicle_features:
-            v = imp_dict.get(f, 0)
-            total += v
-            features.append({
-                "feature": f,
-                "importance_pct": round(v * 100, 3),
-                "yolo_detectable": f not in ("pickup_count", "pickup_pct", "max_vehicles"),
-            })
-        features.sort(key=lambda x: x["importance_pct"], reverse=True)
-        return {
-            "vehicle_features": features,
-            "total_vehicle_importance_pct": round(total * 100, 2),
-            "highlight": "pickup_count is #4 most important feature overall at 7.39%",
-            "limitation": "COCO has no pickup class; pickups classified as car/truck by YOLO",
-        }
-    except Exception:
-        return {}
-
-
-def _get_pipeline_fallback():
-    """Static pipeline diagram data."""
-    return {
-        "stages": [
-            {"stage": 1, "title": "Camera Feed", "description": "CCTV camera at Bangkok intersection", "icon": "camera"},
-            {"stage": 2, "title": "YOLOv8 Detection", "description": "Process frame, detect vehicles by type", "icon": "eye",
-             "features_produced": ["car_count", "motorcycle_count", "heavy_truck_count"]},
-            {"stage": 3, "title": "Feature Aggregation", "description": "Aggregate counts per grid cell per time window", "icon": "grid",
-             "features_produced": ["motorcycle_pct", "car_pct", "heavy_truck_pct"]},
-            {"stage": 4, "title": "XGBoost Prediction", "description": "Feed vehicle features into trained model", "icon": "brain"},
-            {"stage": 5, "title": "Dynamic Risk Map", "description": "Real-time risk score updates per zone", "icon": "map"},
-        ],
-        "key_message": "No model retraining needed. YOLO provides fresher values for features the model already understands.",
-    }
-
-
-@app.route("/detection")
-def detection():
-    """Object detection page — YOLO vehicle detection mapped to XGBoost features."""
-    detection_data = _load_detection_cache()
-    return render_template("detection.html", detection_data=detection_data)
-
-
-@app.route("/api/detection/results")
-def detection_results():
-    """All detection results from cache."""
-    try:
-        cache = _load_detection_cache()
-        return jsonify({
-            "image_results": cache.get("image_results", []),
-            "total_images": cache.get("total_images", 0),
-        })
-    except Exception as exc:
-        return jsonify({"error": str(exc)}), 500
-
-
-@app.route("/api/detection/compare/<grid_id>")
-def detection_compare(grid_id):
-    """YOLO vs model comparison for a specific grid zone."""
-    try:
-        cache = _load_detection_cache()
-        for comp in cache.get("comparisons", []):
-            if comp.get("grid_id") == grid_id:
-                return jsonify(comp)
-        return jsonify({"error": f"No comparison data for grid {grid_id}"}), 404
-    except Exception as exc:
-        return jsonify({"error": str(exc)}), 500
-
-
-@app.route("/api/detection/pipeline")
-def detection_pipeline():
-    """Future vision pipeline diagram data."""
-    try:
-        cache = _load_detection_cache()
-        return jsonify(cache.get("pipeline", {}))
-    except Exception as exc:
-        return jsonify({"error": str(exc)}), 500
-
-
-# ---------------------------------------------------------------------------
 # Chatbot — hybrid scripted + Groq AI
 # ---------------------------------------------------------------------------
 
@@ -1625,9 +1601,7 @@ if __name__ == "__main__":
     print("  POST /api/compare-predictions  ML vs spatial")
     print("  POST /api/refresh-demo-routes  Refresh demos")
     print("  GET  /nlp                      NLP analysis (Track 1)")
-    print("  GET  /detection                Object detection (Track 3)")
     print("  GET  /api/nlp/*                NLP endpoints")
-    print("  GET  /api/detection/*          Detection endpoints")
     print("  POST /api/chatbot              Hybrid chatbot")
     print("  GET  /api/chatbot/suggestions  Suggested questions")
     print("=" * 64)
