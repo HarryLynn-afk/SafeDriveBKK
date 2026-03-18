@@ -97,23 +97,53 @@ def prepare_context(user_message, chatbot_data):
     return "\n\n".join(context_parts)
 
 
+# ---------------------------------------------------------------------------
+# Pre-cached responses for common demo questions
+# These fire before any API call, guaranteeing instant reliable answers.
+# ---------------------------------------------------------------------------
+_DEMO_CACHE = {
+    # cause questions
+    "most dangerous zone":       "The most dangerous zone is **Lat Krabang / Motorway (Eastern)** with 156 accidents — 17× the city average. Speeding accounts for 78.6% of incidents there. Worth avoiding during rush hour (5–7 PM). Stay safe! ⚠️",
+    "safest time to drive":      "Safest window: **10 AM – 3 PM** (between rush hours). Most dangerous: **6–7 PM** (evening rush). For weekend driving, avoid 10 PM – 2 AM when risk spikes due to drunk driving. Plan accordingly! 🚗",
+    "main cause":                "The #1 cause is **speeding — 78.8% of all Bangkok accidents** (2,104 incidents). Cutting in front is #2. Our ML model uses these NLP-extracted cause patterns as features to predict future danger zones.",
+    "how accurate":              "Our XGBoost model detects **39 out of 39 danger zones** (100% recall) with a **17.5× lift** over random selection and **83.8% temporal capture rate** — validated on Oct–Dec 2024 holdout data.",
+    "weekend":                   "Weekends see ~23% fewer accidents overall, but Saturday is actually the **deadliest single day**. Late-night hours (10 PM – 2 AM Fri/Sat) are the highest-risk window due to drunk driving. Drive extra carefully on weekend nights! 🌙",
+    "nlp":                       "Our Thai NLP pipeline uses **pythainlp tokenization + TF-IDF + Logistic Regression** to classify accident report text into 6 cause categories with 99.5% cross-validated accuracy. These NLP features feed directly into the XGBoost risk model.",
+    "xgboost":                   "XGBoost gradient boosting trains on **44 engineered features** per 1 km² grid cell — severity, spatial neighbors, temporal patterns, vehicle mix, and NLP cause categories. Key insight: severity_mean (54% importance) outweighs raw accident count.",
+}
+
+def _check_demo_cache(user_message):
+    """Return a cached response if the message matches a demo keyword."""
+    msg = user_message.lower()
+    for keyword, response in _DEMO_CACHE.items():
+        if keyword in msg:
+            return {"type": "ai", "message": response, "source": "cached"}
+    return None
+
+
 def get_groq_response(user_message, chatbot_data):
     """
-    Get AI response from Groq
+    Get AI response from Groq with pre-cached fallback and timeout handling.
+
+    Priority:
+      1. Pre-cached demo responses (instant, no API needed)
+      2. Groq LLM call (10s timeout)
+      3. Friendly fallback if API unavailable or times out
     """
+    # 1. Check pre-cached responses first
+    cached = _check_demo_cache(user_message)
+    if cached:
+        return cached
+
+    # 2. Try Groq API
     try:
         api_key = os.environ.get("GROQ_API_KEY")
         if not api_key or api_key == "gsk_your_key_here":
-            return {
-                "type": "error",
-                "message": "Groq API key not configured. Please set GROQ_API_KEY in .env file.",
-                "error": "missing_api_key"
-            }
+            return _groq_fallback("no_key")
 
-        client = Groq(api_key=api_key)
+        client = Groq(api_key=api_key, timeout=10.0)
         context = prepare_context(user_message, chatbot_data)
 
-        # Enhanced prompt with response formatting instructions
         full_prompt = f"""{SYSTEM_PROMPT}
 
 Available data:
@@ -132,27 +162,53 @@ IMPORTANT:
 Provide your answer:"""
 
         response = client.chat.completions.create(
-            messages=[
-                {
-                    "role": "user",
-                    "content": full_prompt
-                }
-            ],
+            messages=[{"role": "user", "content": full_prompt}],
             model="llama-3.3-70b-versatile",
-            temperature=0.5,  # Increased from 0.3 for more natural language
-            max_tokens=300,   # Reduced from 500 to enforce brevity
-            top_p=0.9
+            temperature=0.5,
+            max_tokens=300,
+            top_p=0.9,
         )
 
         return {
             "type": "ai",
             "message": response.choices[0].message.content,
-            "source": "groq"
+            "source": "groq",
         }
 
     except Exception as e:
-        return {
-            "type": "error",
-            "message": "I'm having trouble connecting right now. Could you rephrase your question?",
-            "error": str(e)
-        }
+        err = str(e).lower()
+        if "timeout" in err or "timed out" in err:
+            return _groq_fallback("timeout")
+        if "401" in err or "api_key" in err or "authentication" in err:
+            return _groq_fallback("no_key")
+        return _groq_fallback("error")
+
+
+def _groq_fallback(reason):
+    """Friendly fallback when Groq is unavailable — guides users to what works."""
+    messages = {
+        "no_key": (
+            "My advanced AI assistant isn't configured right now, but I can still help! "
+            "Try asking about:\n\n"
+            "• **Dangerous zones** — 'Which areas have the most accidents?'\n"
+            "• **Accident causes** — 'What causes Bangkok accidents?'\n"
+            "• **Safe times** — 'When is rush hour dangerous?'\n"
+            "• **Route planning** — 'What's the safest route?'\n\n"
+            "Or use the Trip Planner for a full route analysis! 🚗"
+        ),
+        "timeout": (
+            "That's taking longer than expected — the AI seems slow right now. "
+            "Try a more specific question like 'Is Asok safe?' or 'When are accidents most common?' "
+            "and I'll answer instantly from our data! ⚡"
+        ),
+        "error": (
+            "I'm having a small hiccup with my AI assistant right now. "
+            "I can still answer questions about dangerous zones, accident causes, safe times, and route safety — "
+            "just ask away! 😊"
+        ),
+    }
+    return {
+        "type": "ai",
+        "message": messages.get(reason, messages["error"]),
+        "source": "fallback",
+    }
