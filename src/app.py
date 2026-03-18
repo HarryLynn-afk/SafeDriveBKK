@@ -470,21 +470,61 @@ def generate_fast_route(start_lat, start_lon, end_lat, end_lon):
     return _generate_dense_interpolation(start_lat, start_lon, end_lat, end_lon)
 
 
+def _build_detour_path(start_lat, start_lon, mid_lat, mid_lon, end_lat, end_lon, points_per_leg=40):
+    """Build a dense interpolated path: start → midpoint → end.
+
+    Used when OSRM is unavailable to create detour routes through
+    low-risk midpoints.
+    """
+    path = []
+    for i in range(points_per_leg + 1):
+        t = i / points_per_leg
+        lat = start_lat + (mid_lat - start_lat) * t
+        lon = start_lon + (mid_lon - start_lon) * t
+        # Add slight curve so it looks road-like
+        curve = math.sin(t * math.pi) * 0.002
+        dlat = mid_lat - start_lat
+        dlon = mid_lon - start_lon
+        length = math.sqrt(dlat ** 2 + dlon ** 2) or 1.0
+        lat += (-dlon / length) * curve
+        lon += (dlat / length) * curve
+        path.append([round(lat, 6), round(lon, 6)])
+
+    for i in range(1, points_per_leg + 1):
+        t = i / points_per_leg
+        lat = mid_lat + (end_lat - mid_lat) * t
+        lon = mid_lon + (end_lon - mid_lon) * t
+        curve = math.sin(t * math.pi) * 0.002
+        dlat = end_lat - mid_lat
+        dlon = end_lon - mid_lon
+        length = math.sqrt(dlat ** 2 + dlon ** 2) or 1.0
+        lat += (-dlon / length) * curve
+        lon += (dlat / length) * curve
+        path.append([round(lat, 6), round(lon, 6)])
+
+    return path
+
+
 def generate_safe_route(start_lat, start_lon, end_lat, end_lon, grid_df, fast_waypoints=None):
-    """Generate safe route - guaranteed to be safer or equal to fast route."""
+    """Generate safe route - guaranteed to be safer or equal to fast route.
+
+    Tries OSRM alternatives first.  When OSRM is unavailable, generates
+    detour paths through low-risk grid cells using interpolation.
+    """
     find_grid_for_point = _find_grid_for_point
     if fast_waypoints is None:
         fast_waypoints = generate_fast_route(start_lat, start_lon, end_lat, end_lon)
     fast_risk = calculate_route_risk_density_aware(fast_waypoints, grid_df)
     fast_risk_score = int(fast_risk["risk_score"])
 
+    # ---- Strategy 1: OSRM alternatives ----
     alternatives = get_osrm_alternatives(start_lat, start_lon, end_lat, end_lon, num_alternatives=5)
 
-    if len(alternatives) >= 2:
+    if alternatives:
         best_safe_route = None
         best_safe_risk = float("inf")
 
-        for i, alt in enumerate(alternatives):
+        for alt in alternatives:
             waypoints = alt["waypoints"]
             sampled = waypoints[:: max(1, len(waypoints) // 100)]
             if sampled[-1] != waypoints[-1]:
@@ -499,27 +539,33 @@ def generate_safe_route(start_lat, start_lon, end_lat, end_lon, grid_df, fast_wa
         if best_safe_route is not None:
             return best_safe_route
 
+    # ---- Strategy 2: Detour through low-risk midpoints ----
     best_detour_route = None
     best_detour_risk = float("inf")
     dlat = end_lat - start_lat
     dlon = end_lon - start_lon
 
-    # Pre-filter candidate midpoints (CPU-only, fast)
+    # Generate candidate midpoints at various angles around the midpoint
+    # Use wider offsets so routes differ meaningfully from the fast route.
     candidate_midpoints = []
-    for angle in [0, 45, 90, 135, 180, 225, 270, 315]:
-        offset = 0.02
-        mid_lat = start_lat + (dlat * 0.5) + offset * math.cos(math.radians(angle))
-        mid_lon = start_lon + (dlon * 0.5) + offset * math.sin(math.radians(angle))
+    for angle in [0, 30, 60, 90, 120, 150, 180, 210, 240, 270, 300, 330]:
+        for offset in [0.015, 0.03, 0.05]:
+            mid_lat = start_lat + (dlat * 0.5) + offset * math.cos(math.radians(angle))
+            mid_lon = start_lon + (dlon * 0.5) + offset * math.sin(math.radians(angle))
 
-        waypoint_grid = find_grid_for_point(mid_lat, mid_lon, grid_df)
-        if waypoint_grid is not None and int(waypoint_grid["total_accidents"]) > 10:
-            continue
-        candidate_midpoints.append((mid_lat, mid_lon))
+            # Keep within Bangkok bounds
+            if not (BKK_LAT_MIN <= mid_lat <= BKK_LAT_MAX and BKK_LON_MIN <= mid_lon <= BKK_LON_MAX):
+                continue
 
-    # Fetch all detour OSRM legs in parallel (both legs of each detour at once)
+            waypoint_grid = find_grid_for_point(mid_lat, mid_lon, grid_df)
+            if waypoint_grid is not None and int(waypoint_grid["total_accidents"]) > 5:
+                continue  # Skip high-accident midpoints
+            candidate_midpoints.append((mid_lat, mid_lon))
+
+    # Try OSRM detour legs in parallel first
+    osrm_detours_found = False
     if candidate_midpoints:
-        with ThreadPoolExecutor(max_workers=len(candidate_midpoints) * 2) as pool:
-            # Submit all individual OSRM calls at once
+        with ThreadPoolExecutor(max_workers=min(16, len(candidate_midpoints) * 2)) as pool:
             leg_futures = {}
             for mlat, mlon in candidate_midpoints:
                 f1 = pool.submit(get_osrm_route, start_lat, start_lon, mlat, mlon)
@@ -529,6 +575,7 @@ def generate_safe_route(start_lat, start_lon, end_lat, end_lon, grid_df, fast_wa
             for (mlat, mlon), (f1, f2) in leg_futures.items():
                 route1, route2 = f1.result(), f2.result()
                 if route1 and route2:
+                    osrm_detours_found = True
                     combined = route1["waypoints"][:-1] + route2["waypoints"]
                     sampled = combined[:: max(1, len(combined) // 100)]
                     if sampled[-1] != combined[-1]:
@@ -539,6 +586,19 @@ def generate_safe_route(start_lat, start_lon, end_lat, end_lon, grid_df, fast_wa
                     if risk_score < fast_risk_score and risk_score < best_detour_risk:
                         best_detour_risk = risk_score
                         best_detour_route = sampled
+
+    # ---- Strategy 3: Interpolated detours (when OSRM is unavailable) ----
+    if not osrm_detours_found and candidate_midpoints:
+        for mlat, mlon in candidate_midpoints:
+            detour_path = _build_detour_path(
+                start_lat, start_lon, mlat, mlon, end_lat, end_lon
+            )
+            risk_result = calculate_route_risk_density_aware(detour_path, grid_df)
+            risk_score = int(risk_result["risk_score"])
+
+            if risk_score < fast_risk_score and risk_score < best_detour_risk:
+                best_detour_risk = risk_score
+                best_detour_route = detour_path
 
     if best_detour_route is not None:
         return best_detour_route
@@ -618,7 +678,7 @@ def calculate_route_risk_ml(waypoints):
     blended = (weighted_avg * 0.6) + (max_score * 0.4)
     risk_score = min(100, int(blended))
 
-    if risk_score >= 55:
+    if risk_score >= 60:
         risk_level = "high"
     elif risk_score >= 30:
         risk_level = "medium"
@@ -687,20 +747,22 @@ def calculate_route_risk_density_aware(waypoints, grid_df):
     else:
         weighted_avg_accidents = float(np.mean(point_accidents)) if point_accidents else 0.0
 
-    # Blend: 60% distance-weighted average, 40% max (preserve worst-zone signal).
+    # Blend: 80% distance-weighted average, 20% max (worst-zone signal).
+    # A lower max weight prevents shared start/end cells from dominating
+    # the score when two routes share origin/destination.
     if max_accidents_in_grid > 0:
-        blended = (weighted_avg_accidents * 0.6) + (max_accidents_in_grid * 0.4)
+        blended = (weighted_avg_accidents * 0.8) + (max_accidents_in_grid * 0.2)
     else:
         blended = weighted_avg_accidents
 
-    # Convert to 0-100 scale using log curve so high-accident zones still
-    # differentiate (85 vs 69 accidents should produce different scores).
-    # Formula: 100 * (1 - e^(-blended/20))  → 20 accidents ≈ 63, 50 ≈ 92, 85 ≈ 99
-    risk_score = min(100, int(100 * (1 - math.exp(-blended / 20.0))))
+    # Convert to 0-100 scale using log curve.
+    # Formula: 100 * (1 - e^(-blended/25))  → 10 ≈ 33, 25 ≈ 63, 50 ≈ 86
+    risk_score = min(100, int(100 * (1 - math.exp(-blended / 25.0))))
+    # Diminishing danger-zone penalty: sqrt so 7 zones ≈ +8, 59 zones ≈ +15 (capped)
     if high_risk_zones > 0:
-        risk_score = min(100, risk_score + (high_risk_zones * 3))
+        risk_score = min(100, risk_score + min(15, int(math.sqrt(high_risk_zones) * 3)))
 
-    if risk_score >= 55:
+    if risk_score >= 60:
         risk_level = "high"
     elif risk_score >= 30:
         risk_level = "medium"
