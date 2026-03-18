@@ -278,45 +278,88 @@ document.addEventListener("click", (event) => {
 // ===== GPS LOCATION DETECTION =====
 function detectMyLocation() {
     const startInput = document.getElementById("start-location");
+    const gpsBtn = document.querySelector(".gps-button");
 
     if (!navigator.geolocation) {
-        // Geolocation not available — use default start
         startInput.value = DEFAULT_START.name;
         window.startLat = DEFAULT_START.lat;
         window.startLon = DEFAULT_START.lon;
+        alert("Geolocation is not supported by your browser. Using default start location.");
         return;
     }
 
+    // Show loading state
     startInput.value = "Detecting location...";
+    if (gpsBtn) {
+        gpsBtn.textContent = "⏳";
+        gpsBtn.disabled = true;
+    }
 
     navigator.geolocation.getCurrentPosition(
         (position) => {
             const lat = position.coords.latitude;
             const lon = position.coords.longitude;
 
-            // Reverse geocode to get place name
-            fetch(`https://nominatim.openstreetmap.org/reverse?lat=${lat}&lon=${lon}&format=json`)
-                .then((response) => response.json())
-                .then((data) => {
-                    const placeName = data.display_name ? data.display_name.split(",")[0] : "";
-                    startInput.value = placeName || "Current Location";
+            // Restore button
+            if (gpsBtn) {
+                gpsBtn.textContent = "✅";
+                gpsBtn.disabled = false;
+                setTimeout(() => { gpsBtn.textContent = "📍"; }, 2000);
+            }
 
-                    // Store coordinates
-                    window.startLat = lat;
-                    window.startLon = lon;
-                })
-                .catch(() => {
-                    startInput.value = `${lat.toFixed(4)}, ${lon.toFixed(4)}`;
+            // Reverse geocode to get place name (try Google first, then Nominatim)
+            if (typeof google !== "undefined" && google.maps && google.maps.Geocoder) {
+                const geocoder = new google.maps.Geocoder();
+                geocoder.geocode({ location: { lat, lng: lon } }, (results, status) => {
+                    if (status === "OK" && results[0]) {
+                        startInput.value = results[0].formatted_address.split(",")[0] || "Current Location";
+                    } else {
+                        startInput.value = "Current Location";
+                    }
                     window.startLat = lat;
                     window.startLon = lon;
                 });
+            } else {
+                fetch(`https://nominatim.openstreetmap.org/reverse?lat=${lat}&lon=${lon}&format=json`)
+                    .then((response) => response.json())
+                    .then((data) => {
+                        const placeName = data.display_name ? data.display_name.split(",")[0] : "";
+                        startInput.value = placeName || "Current Location";
+                        window.startLat = lat;
+                        window.startLon = lon;
+                    })
+                    .catch(() => {
+                        startInput.value = "Current Location";
+                        window.startLat = lat;
+                        window.startLon = lon;
+                    });
+            }
         },
         (error) => {
-            // GPS failed (common on HTTP) — use default start
+            // Restore button
+            if (gpsBtn) {
+                gpsBtn.textContent = "📍";
+                gpsBtn.disabled = false;
+            }
+
+            // Tell user what happened and use default
+            let reason = "Unknown error";
+            if (error.code === 1) reason = "Location permission denied";
+            else if (error.code === 2) reason = "Location unavailable";
+            else if (error.code === 3) reason = "Location request timed out";
+
+            // HTTPS is required for geolocation in most browsers
+            if (window.location.protocol === "http:" && window.location.hostname !== "localhost") {
+                reason = "GPS requires HTTPS connection";
+            }
+
+            console.warn("GPS detection failed:", reason);
             startInput.value = DEFAULT_START.name;
             window.startLat = DEFAULT_START.lat;
             window.startLon = DEFAULT_START.lon;
-        }
+            startInput.placeholder = `GPS failed: ${reason}. Using default.`;
+        },
+        { enableHighAccuracy: true, timeout: 10000, maximumAge: 60000 }
     );
 }
 
