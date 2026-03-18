@@ -18,9 +18,12 @@ let lastAlertTime = 0;
 let safeAlertFadeTimeout = null;
 const ALERT_COOLDOWN = 5000; // 5 seconds between alerts minimum
 const TRIP_PLANNER_JS_VERSION = "2026-02-19.1";
-// Animation speed: adaptive so all routes finish in ~10 seconds
-const SIMULATION_TARGET_SECONDS = 10;
+// Animation speed: adaptive so all routes finish in ~18 seconds
+// (+ pauses on danger/warning alerts for judges to read)
+const SIMULATION_TARGET_SECONDS = 18;
 const SIMULATION_TICK_MS = 100;
+const ALERT_PAUSE_MS = 2500;  // pause animation 2.5s when danger/warning alert appears
+let simulationPaused = false;
 const DEMO_ROUTE_NAMES = {
     "Ratchada": "ratchada",
     "Din Daeng": "din_daeng",
@@ -1373,7 +1376,10 @@ function startNavigationSimulation() {
     if (tripNavigationInterval) {
         clearInterval(tripNavigationInterval);
     }
+    simulationPaused = false;
     tripNavigationInterval = setInterval(() => {
+        if (simulationPaused) return;  // skip tick while paused on alert
+
         tripPreviousDistance = tripCurrentDistance;
         tripCurrentDistance = Math.min(totalDistance, tripCurrentDistance + simStepKm);
 
@@ -1472,6 +1478,12 @@ function checkNavigationAlerts() {
     showNavigationAlert(severity, icon, title, subtitle);
     lastAlertSegmentIndex = segmentIndex;
 
+    // Pause animation on danger/warning so judges can read the alert
+    if ((severity === "danger" || severity === "warning") && ALERT_PAUSE_MS > 0) {
+        simulationPaused = true;
+        setTimeout(() => { simulationPaused = false; }, ALERT_PAUSE_MS);
+    }
+
     const navScreen = document.getElementById("navigation-fullscreen");
     navScreen.className = "navigation-fullscreen active " + severity;
 
@@ -1548,6 +1560,7 @@ function exitNavigation() {
     }
 
     // Stop simulation
+    simulationPaused = false;
     if (tripNavigationInterval) {
         clearInterval(tripNavigationInterval);
         tripNavigationInterval = null;
