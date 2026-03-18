@@ -6,6 +6,7 @@ import json
 import math
 import os
 import sys
+from concurrent.futures import ThreadPoolExecutor, as_completed
 from datetime import datetime
 from pathlib import Path
 
@@ -412,6 +413,8 @@ def generate_safe_route(start_lat, start_lon, end_lat, end_lon, grid_df):
     dlat = end_lat - start_lat
     dlon = end_lon - start_lon
 
+    # Pre-filter candidate midpoints (CPU-only, fast)
+    candidate_midpoints = []
     for angle in [0, 45, 90, 135, 180, 225, 270, 315]:
         offset = 0.02
         mid_lat = start_lat + (dlat * 0.5) + offset * math.cos(math.radians(angle))
@@ -420,19 +423,32 @@ def generate_safe_route(start_lat, start_lon, end_lat, end_lon, grid_df):
         waypoint_grid = find_grid_for_point(mid_lat, mid_lon, grid_df)
         if waypoint_grid is not None and int(waypoint_grid["total_accidents"]) > 10:
             continue
+        candidate_midpoints.append((mid_lat, mid_lon))
 
-        route1 = get_osrm_route(start_lat, start_lon, mid_lat, mid_lon)
-        route2 = get_osrm_route(mid_lat, mid_lon, end_lat, end_lon)
+    # Fetch all detour OSRM legs in parallel
+    def _fetch_detour(mid_lat, mid_lon):
+        r1 = get_osrm_route(start_lat, start_lon, mid_lat, mid_lon)
+        r2 = get_osrm_route(mid_lat, mid_lon, end_lat, end_lon)
+        return r1, r2
 
-        if route1 and route2:
-            combined = route1["waypoints"][:-1] + route2["waypoints"]
-            sampled = combined[:: max(1, len(combined) // 25)]
-            risk_result = calculate_route_risk_density_aware(sampled, grid_df)
-            risk_score = int(risk_result["risk_score"])
+    if candidate_midpoints:
+        with ThreadPoolExecutor(max_workers=len(candidate_midpoints)) as pool:
+            detour_futures = {
+                pool.submit(_fetch_detour, mlat, mlon): (mlat, mlon)
+                for mlat, mlon in candidate_midpoints
+            }
 
-            if risk_score < fast_risk_score and risk_score < best_detour_risk:
-                best_detour_risk = risk_score
-                best_detour_route = sampled
+            for future in as_completed(detour_futures):
+                route1, route2 = future.result()
+                if route1 and route2:
+                    combined = route1["waypoints"][:-1] + route2["waypoints"]
+                    sampled = combined[:: max(1, len(combined) // 25)]
+                    risk_result = calculate_route_risk_density_aware(sampled, grid_df)
+                    risk_score = int(risk_result["risk_score"])
+
+                    if risk_score < fast_risk_score and risk_score < best_detour_risk:
+                        best_detour_risk = risk_score
+                        best_detour_route = sampled
 
     if best_detour_route is not None:
         return best_detour_route
@@ -1139,20 +1155,31 @@ def compare_routes():
 
         grid_df = _load_grid_stats()
 
+        # --- Phase 1: generate both routes (safe depends on fast) ---
         fast_waypoints = generate_fast_route(start_lat, start_lon, end_lat, end_lon)
-        route_fast = _evaluate_route(fast_waypoints, grid_df)
-
         safe_waypoints = generate_safe_route(start_lat, start_lon, end_lat, end_lon, grid_df)
-        route_safe = _evaluate_route(safe_waypoints, grid_df)
 
-        # Prefer Google Maps (traffic-aware) → OSRM → haversine estimate.
-        fast_gmaps = get_google_maps_travel_time(start_lat, start_lon, end_lat, end_lon)
-        fast_osrm = get_osrm_route(start_lat, start_lon, end_lat, end_lon)
+        # --- Phase 2: evaluate routes + fetch travel times in parallel ---
         safe_mid_lat, safe_mid_lon = find_safest_midpoint(start_lat, start_lon, end_lat, end_lon, grid_df)
-        safe_gmaps = get_google_maps_travel_time(start_lat, start_lon, safe_mid_lat, safe_mid_lon)
-        safe_gmaps2 = get_google_maps_travel_time(safe_mid_lat, safe_mid_lon, end_lat, end_lon)
-        safe_route1 = get_osrm_route(start_lat, start_lon, safe_mid_lat, safe_mid_lon)
-        safe_route2 = get_osrm_route(safe_mid_lat, safe_mid_lon, end_lat, end_lon)
+
+        with ThreadPoolExecutor(max_workers=8) as pool:
+            fut_eval_fast = pool.submit(_evaluate_route, fast_waypoints, grid_df)
+            fut_eval_safe = pool.submit(_evaluate_route, safe_waypoints, grid_df)
+            fut_fast_gmaps = pool.submit(get_google_maps_travel_time, start_lat, start_lon, end_lat, end_lon)
+            fut_fast_osrm = pool.submit(get_osrm_route, start_lat, start_lon, end_lat, end_lon)
+            fut_safe_gmaps = pool.submit(get_google_maps_travel_time, start_lat, start_lon, safe_mid_lat, safe_mid_lon)
+            fut_safe_gmaps2 = pool.submit(get_google_maps_travel_time, safe_mid_lat, safe_mid_lon, end_lat, end_lon)
+            fut_safe_route1 = pool.submit(get_osrm_route, start_lat, start_lon, safe_mid_lat, safe_mid_lon)
+            fut_safe_route2 = pool.submit(get_osrm_route, safe_mid_lat, safe_mid_lon, end_lat, end_lon)
+
+        route_fast = fut_eval_fast.result()
+        route_safe = fut_eval_safe.result()
+        fast_gmaps = fut_fast_gmaps.result()
+        fast_osrm = fut_fast_osrm.result()
+        safe_gmaps = fut_safe_gmaps.result()
+        safe_gmaps2 = fut_safe_gmaps2.result()
+        safe_route1 = fut_safe_route1.result()
+        safe_route2 = fut_safe_route2.result()
 
         # Fast route: time + distance
         traffic_source = "estimated"
