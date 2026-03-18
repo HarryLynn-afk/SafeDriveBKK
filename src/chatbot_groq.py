@@ -59,7 +59,7 @@ A: "Top speeding zones:
 - Asok Intersection (47 accidents)
 - Lat Krabang Industrial (38)
 - Klong Toey Port Road (29)
-These areas need speed cameras. Avoid speeding there - it's the #1 cause (78%) of Bangkok accidents."
+Strict enforcement is urgently needed in these zones. Avoid speeding — it's the #1 cause (78%) of Bangkok accidents."
 
 Q: "What time are accidents most common?"
 A: "Most dangerous: **6-7 PM** (evening rush hour). Safest: **2-5 AM** (but roads are empty then). For normal daytime travel, **10 AM - 3 PM** is your best window - after morning rush, before evening chaos."

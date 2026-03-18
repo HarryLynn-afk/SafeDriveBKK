@@ -1331,7 +1331,7 @@
   "recommendations": [
     {
       "priority": 1,
-      "title": "Speed Camera Deployment",
+      "title": "Speed Enforcement Deployment",
       "description": "Deploy automated speed enforcement in high-speeding zones. 82% of top danger zones have speeding as the dominant cause.",
       "target_cause": "Speeding",
       "zones_affected": 118,
@@ -1361,8 +1361,8 @@
     },
     {
       "priority": 4,
-      "title": "Red Light Camera Network",
-      "description": "Install red-light cameras at intersections with high traffic signal violations.",
+      "title": "Red Light Enforcement Network",
+      "description": "Install red-light enforcement at intersections with high traffic signal violations.",
       "target_cause": "Running red light",
       "zones_affected": 0,
       "expected_impact": "40-50% reduction in red-light violations",
@@ -1574,57 +1574,6 @@
       ]
     }
   },
-  "cameras": [
-    {
-      "camera_id": "BKK_CAM_001",
-      "location": "Asok Intersection (Sukhumvit 21)",
-      "lat": 13.7563,
-      "lon": 100.561,
-      "image": "bangkok_traffic_01.jpg"
-    },
-    {
-      "camera_id": "BKK_CAM_002",
-      "location": "Victory Monument Roundabout",
-      "lat": 13.7632,
-      "lon": 100.538,
-      "image": "bangkok_traffic_02.jpg"
-    },
-    {
-      "camera_id": "BKK_CAM_003",
-      "location": "Lat Phrao / Wang Hin Intersection",
-      "lat": 13.8171,
-      "lon": 100.57,
-      "image": "bangkok_traffic_03.jpg"
-    },
-    {
-      "camera_id": "BKK_CAM_004",
-      "location": "On Nut BTS Station Junction",
-      "lat": 13.7007,
-      "lon": 100.6,
-      "image": "bangkok_traffic_04.jpg"
-    },
-    {
-      "camera_id": "BKK_CAM_005",
-      "location": "Phahon Yothin / Lat Phrao Junction",
-      "lat": 13.8,
-      "lon": 100.543,
-      "image": "bangkok_traffic_05.jpg"
-    },
-    {
-      "camera_id": "BKK_CAM_006",
-      "location": "Rama IV / Silom Intersection",
-      "lat": 13.722,
-      "lon": 100.528,
-      "image": "bangkok_traffic_06.jpg"
-    },
-    {
-      "camera_id": "BKK_CAM_007",
-      "location": "Phra Khanong / Sukhumvit 71",
-      "lat": 13.72,
-      "lon": 100.588,
-      "image": "bangkok_traffic_07.jpg"
-    }
-  ],
   "model_importance": {
     "severity": 53.7,
     "spatial": 20.66,

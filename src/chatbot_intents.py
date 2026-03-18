@@ -49,11 +49,6 @@ def _search_zone_by_name(query):
     for gid, zone in data["zones"].items():
         if query_lower in zone["location"].lower():
             return gid, zone
-    # Also check camera locations
-    for cam in data["cameras"]:
-        if query_lower in cam["location"].lower():
-            # Find nearest zone — return first zone as fallback
-            return None, cam
     return None, None
 
 
@@ -241,7 +236,7 @@ INTENTS = {
             re.compile(r"how.*(?:you|model|system).*(?:analy[sz]|predict|detect|classify)", re.I),
             re.compile(r"(?:explain|describe).*(?:system|model|method|approach|pipeline|architecture)", re.I),
             re.compile(r"what.*(?:technology|tech|stack|model|algorithm|method).*(?:use|behind|under)", re.I),
-            re.compile(r"(?:xgboost|yolo|nlp|machine.?learning).*(?:how|explain|work)", re.I),
+            re.compile(r"(?:xgboost|nlp|machine.?learning).*(?:how|explain|work)", re.I),
         ],
         "handler": "handle_how_it_works",
     },
@@ -314,7 +309,7 @@ def handle_speeding_zones(user_message=""):
         "message": (
             f"Speeding is Bangkok's #1 problem ({speeding['percentage']}% of accidents). "
             f"Worst areas:\n{_fmt_zone_list(speeding['top_zones'], 5)}\n\n"
-            f"These zones need speed cameras urgently."
+            f"These are Bangkok's highest-priority zones for enforcement."
         ),
         "data": speeding["top_zones"][:5],
         "followup": "Need route alternatives? 🚗",
@@ -426,8 +421,8 @@ def handle_zone_safety(user_message=""):
         return {
             "type": "single",
             "message": (
-                f"We have a traffic camera at **{zone['location']}** monitoring this area. "
-                f"For zone risk details, ask about a specific area like Asok or Lat Krabang."
+                f"**{zone['location']}** is a monitored zone. "
+                f"For detailed risk information, ask about a specific area like Asok or Lat Krabang."
             ),
             "data": [zone],
             "followup": "Want to see the most dangerous zones? ⚠️",
@@ -543,7 +538,7 @@ def handle_speeding_stats(user_message=""):
         "message": (
             f"Speeding causes **{speeding['percentage']}%** of all Bangkok accidents - it's the #1 problem by far.\n\n"
             f"Worst zone: **{speeding['top_zones'][0]['location']}** with {speeding['top_zones'][0]['cause_count']} speeding accidents. "
-            f"Speed cameras could cut these numbers by 30-40%."
+            f"Stricter speed enforcement could cut these numbers by 30-40%."
         ),
         "data": speeding["top_zones"][:3],
         "followup": "Want to see top speeding zones? 🚗",
@@ -702,10 +697,9 @@ def handle_camera_deployment(user_message=""):
     return {
         "type": "recommendation",
         "message": (
-            f"Priority locations for speed cameras:\n" +
+            f"Top zones recommended for speed enforcement:\n" +
             "\n".join(lines) +
-            f"\n\nExpected impact: 30-40% reduction in speeding accidents per zone. "
-            f"We already have 7 cameras as proof-of-concept. 💡"
+            f"\n\nData-driven enforcement in these zones could reduce speeding accidents by 30-40%. 💡"
         ),
         "data": top_zones,
         "followup": "Want to see other recommendations?",
@@ -878,7 +872,7 @@ def handle_ml_cause_response(cause_key: str, confidence: float, user_message: st
         zone_text = f"\n\nTop zones:\n{_fmt_zone_list(top_zones, 3)}"
 
     if cause_key == "speeding":
-        advice = "Speed cameras and stricter enforcement could reduce these numbers by 30–40%."
+        advice = "Stricter speed enforcement in these zones could reduce accidents by 30–40%."
     elif cause_key == "cutting_in_front":
         advice = "Zones with high cutting-in-front rates are especially risky — keep safe following distance."
     else:
@@ -936,7 +930,6 @@ if __name__ == "__main__":
         "What are the most dangerous intersections?",
         "Is Lat Krabang safe?",
         "What's the safest route to Asok?",
-        "Where are the cameras?",
         "Show high risk zones",
         "Where do motorcycle crashes happen?",
         "What causes most accidents?",
@@ -948,7 +941,7 @@ if __name__ == "__main__":
         "Is rush hour dangerous?",
         "Weekend vs weekday?",
         "What should Bangkok do?",
-        "Where should cameras be installed?",
+        "What should Bangkok prioritize for safety?",
         "How does this system work?",
         "What data do you use?",
         "Tell me a joke",  # Should return None (fall through to AI)

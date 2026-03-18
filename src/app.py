@@ -1865,7 +1865,7 @@ def chatbot_suggestions():
         "Which areas have the most speeding accidents?",
         "Is Asok Intersection safe?",
         "What time are accidents most common?",
-        "Where should Bangkok install speed cameras?",
+        "What should Bangkok do to improve road safety?",
         "Show me drunk driving patterns",
         "What causes most accidents?",
         "Is Sukhumvit safe at night?",
