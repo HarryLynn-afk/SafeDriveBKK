@@ -830,7 +830,10 @@ def route_analyze_page():
 @app.route("/trip-planner")
 def trip_planner():
     """New Grab-style trip planner page."""
-    return render_template("trip_planner.html")
+    return render_template(
+        "trip_planner.html",
+        google_maps_api_key=os.getenv("GOOGLE_MAPS_API_KEY", ""),
+    )
 
 
 @app.route("/about")

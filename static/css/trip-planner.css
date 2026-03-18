@@ -1432,3 +1432,61 @@ body.demo-mode .start-nav-button {
     font-size: 11px;
     margin-left: 4px;
 }
+
+/* ===== GOOGLE PLACES AUTOCOMPLETE ===== */
+.pac-container {
+    border-radius: 12px;
+    border: none;
+    box-shadow: 0 4px 24px rgba(0, 0, 0, 0.15);
+    margin-top: 4px;
+    font-family: inherit;
+    z-index: 10000;
+    overflow: hidden;
+}
+
+.pac-item {
+    padding: 10px 14px;
+    cursor: pointer;
+    border-top: 1px solid #f0f0f0;
+    font-size: 14px;
+    line-height: 1.4;
+}
+
+.pac-item:first-child {
+    border-top: none;
+}
+
+.pac-item:hover {
+    background-color: #f0f4ff;
+}
+
+.pac-item-selected {
+    background-color: #667eea !important;
+    color: white !important;
+}
+
+.pac-item-selected .pac-item-query,
+.pac-item-selected .pac-matched {
+    color: white !important;
+}
+
+.pac-icon {
+    width: 18px;
+    height: 18px;
+    margin-right: 10px;
+    margin-top: 4px;
+}
+
+.pac-item-query {
+    font-weight: 600;
+    color: #212529;
+    font-size: 14px;
+}
+
+.pac-matched {
+    font-weight: 700;
+}
+
+.pac-logo::after {
+    margin: 6px 12px;
+}
