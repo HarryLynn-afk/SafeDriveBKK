@@ -5,6 +5,7 @@ Flask web app for Bangkok Road Risk system.
 import json
 import math
 import os
+from concurrent.futures import ThreadPoolExecutor
 from datetime import datetime
 from pathlib import Path
 
@@ -1100,6 +1101,32 @@ def trip_planner():
         "trip_planner.html",
         google_maps_api_key=os.getenv("GOOGLE_MAPS_API_KEY", ""),
     )
+
+
+@app.route("/api/geolocate", methods=["POST"])
+def geolocate():
+    """Server-side geolocation using Google Geolocation API.
+    Bypasses browser permission/HTTPS restrictions."""
+    key = os.getenv("GOOGLE_MAPS_API_KEY", "")
+    if not key:
+        return jsonify(success=False, error="No API key"), 500
+    try:
+        resp = requests.post(
+            f"https://www.googleapis.com/geolocation/v1/geolocate?key={key}",
+            json={"considerIp": True},
+            timeout=5,
+        )
+        data = resp.json()
+        if "location" in data:
+            return jsonify(
+                success=True,
+                lat=data["location"]["lat"],
+                lon=data["location"]["lng"],
+                accuracy=data.get("accuracy", 0),
+            )
+        return jsonify(success=False, error=data.get("error", {}).get("message", "Unknown")), 400
+    except Exception as e:
+        return jsonify(success=False, error=str(e)), 500
 
 
 @app.route("/about")

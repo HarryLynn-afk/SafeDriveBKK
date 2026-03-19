@@ -261,10 +261,10 @@ document.addEventListener("click", (event) => {
     const startDropdown = document.getElementById("start-suggestions-dropdown");
     const startInput = document.getElementById("start-location");
 
-    if (event.target !== destInput && !destDropdown.contains(event.target)) {
+    if (destDropdown && event.target !== destInput && !destDropdown.contains(event.target)) {
         hideElement("suggestions-dropdown");
     }
-    if (event.target !== startInput && !startDropdown.contains(event.target)) {
+    if (startDropdown && event.target !== startInput && !startDropdown.contains(event.target)) {
         hideElement("start-suggestions-dropdown");
     }
 });
@@ -283,11 +283,15 @@ function detectMyLocation() {
 
     // Called when we have lat/lon from any source
     function applyLocation(lat, lon) {
+        console.log("[GPS] Location found:", lat, lon);
         if (gpsBtn) {
             gpsBtn.textContent = "OK";
             gpsBtn.disabled = false;
             setTimeout(() => { gpsBtn.textContent = "GPS"; }, 2000);
         }
+        window.startLat = lat;
+        window.startLon = lon;
+        updateFindSaferRouteButton();
         // Reverse geocode to get place name
         if (typeof google !== "undefined" && google.maps && google.maps.Geocoder) {
             const geocoder = new google.maps.Geocoder();
@@ -297,42 +301,16 @@ function detectMyLocation() {
                 } else {
                     startInput.value = "Current Location";
                 }
-                window.startLat = lat;
-                window.startLon = lon;
-                updateFindSaferRouteButton();
                 setPreviewMarker(lat, lon, true, 15);
             });
         } else {
             startInput.value = "Current Location";
-            window.startLat = lat;
-            window.startLon = lon;
-            updateFindSaferRouteButton();
             setPreviewMarker(lat, lon, true, 15);
         }
     }
 
-    // Fallback: use Google Maps Geolocation API (IP-based, works on HTTP)
-    function tryGoogleGeolocation() {
-        const key = window.__GMAPS_KEY__;
-        if (!key) { applyDefault("No API key"); return; }
-        fetch("https://www.googleapis.com/geolocation/v1/geolocate?key=" + key, {
-            method: "POST",
-            headers: { "Content-Type": "application/json" },
-            body: JSON.stringify({ considerIp: true }),
-        })
-            .then((r) => r.json())
-            .then((data) => {
-                if (data.location) {
-                    applyLocation(data.location.lat, data.location.lng);
-                } else {
-                    applyDefault("Google geolocation failed");
-                }
-            })
-            .catch(() => applyDefault("Network error"));
-    }
-
     function applyDefault(reason) {
-        console.warn("GPS detection failed:", reason);
+        console.warn("[GPS] All methods failed:", reason);
         if (gpsBtn) { gpsBtn.textContent = "GPS"; gpsBtn.disabled = false; }
         startInput.value = DEFAULT_START.name;
         window.startLat = DEFAULT_START.lat;
@@ -340,15 +318,34 @@ function detectMyLocation() {
         updateFindSaferRouteButton();
     }
 
-    // Try browser geolocation first, fall back to Google Geolocation API
+    // Fallback 1: server-side geolocation (uses Google API from backend, no CORS/HTTPS issue)
+    function tryServerGeolocation() {
+        console.log("[GPS] Trying server-side /api/geolocate ...");
+        fetch("/api/geolocate", { method: "POST" })
+            .then((r) => r.json())
+            .then((data) => {
+                if (data.success && data.lat && data.lon) {
+                    applyLocation(data.lat, data.lon);
+                } else {
+                    applyDefault(data.error || "Server geolocation failed");
+                }
+            })
+            .catch(() => applyDefault("Server geolocation network error"));
+    }
+
+    // Try browser geolocation first, then server-side fallback
     if (navigator.geolocation) {
+        console.log("[GPS] Trying browser geolocation...");
         navigator.geolocation.getCurrentPosition(
             (pos) => applyLocation(pos.coords.latitude, pos.coords.longitude),
-            () => tryGoogleGeolocation(),
+            (err) => {
+                console.warn("[GPS] Browser geolocation failed:", err.message);
+                tryServerGeolocation();
+            },
             { enableHighAccuracy: false, timeout: 5000, maximumAge: 300000 }
         );
     } else {
-        tryGoogleGeolocation();
+        tryServerGeolocation();
     }
 }
 
