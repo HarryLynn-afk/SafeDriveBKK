@@ -1801,68 +1801,147 @@ function showTripSummaryModal() {
     const modal = document.getElementById("nav-summary-modal");
     if (!modal || !tripPlannerRouteData) return;
 
-    // ── Compute comparison stats ──
-    const myKey = selectedRoute || "safe";
-    const otherKey = myKey === "safe" ? "fast" : "safe";
-    const myRO = routeOptions[myKey] || {};
-    const otherRO = routeOptions[otherKey] || {};
+    // ── Determine which route the user took ──
+    const pickedFast = selectedRoute === "fast";
+    const myRO  = routeOptions[pickedFast ? "fast" : "safe"] || {};
+    const altRO = routeOptions[pickedFast ? "safe" : "fast"] || {};
 
-    const myZones   = Math.round(myRO.high_risk_zones   || 0);
-    const fastZones = Math.round((routeOptions.fast || {}).high_risk_zones || Math.max(myZones + 3, otherRO.high_risk_zones || 0));
-    const safeZones = Math.round((routeOptions.safe || {}).high_risk_zones || myZones);
-    const avoided   = Math.max(0, fastZones - safeZones);
+    const fastRO = routeOptions.fast || {};
+    const safeRO = routeOptions.safe || {};
+    const fastZones = Math.round(fastRO.high_risk_zones || 0);
+    const safeZones = Math.round(safeRO.high_risk_zones || 0);
+    const fastLevel = (fastRO.risk_level || "high").toUpperCase();
+    const safeLevel = (safeRO.risk_level || "medium").toUpperCase().replace("MEDIUM", "MED");
 
-    const myRisk    = Math.round(myRO.risk_score    || tripPlannerRouteData.route.risk_score || 30);
-    const otherRisk = Math.round(otherRO.risk_score || myRisk + 20);
-    const saferPct  = otherRisk > 0 ? Math.min(99, Math.max(0, Math.round((otherRisk - myRisk) / otherRisk * 100))) : 0;
+    const myRisk  = Math.round(myRO.risk_score  || tripPlannerRouteData.route.risk_score || 30);
+    const altRisk = Math.round(altRO.risk_score || myRisk);
+    const myTime  = Math.round(myRO.time_min  || tripPlannerRouteData.route.duration_min || 0);
+    const altTime = Math.round(altRO.time_min || myTime);
 
-    const myTime    = Math.round(myRO.time_min    || tripPlannerRouteData.route.duration_min || 0);
-    const otherTime = Math.round(otherRO.time_min || Math.max(1, myTime - 5));
-    const timeCost  = Math.max(0, myTime - otherTime);
+    // ── Compute framing based on which route was chosen ──
+    let mainStat, mainStatLabel, pctStat, pctStatLabel, pctColor;
+    let timeStat, timeStatLabel, timePrefix, timeCostColor;
+    let arrivedText, verdictText, row1Label, row2Label, tryBtnText;
 
-    const fastLevel = ((routeOptions.fast || {}).risk_level || "high").toUpperCase();
-    const safeLevel = ((routeOptions.safe || {}).risk_level || "medium").toUpperCase().replace("MEDIUM", "MED");
+    if (!pickedFast) {
+        // ── User took the SAFE route ──
+        const avoided  = Math.max(0, fastZones - safeZones);
+        const saferPct = altRisk > 0 ? Math.min(99, Math.max(0, Math.round((altRisk - myRisk) / altRisk * 100))) : 0;
+        const timeCost = Math.max(0, myTime - altTime);
 
-    // Verdict
-    const verdictEl = document.getElementById("s-verdict");
-    if (verdictEl) {
-        if (avoided > 0 && timeCost > 0) {
-            verdictEl.textContent = `+${timeCost} min kept you out of ${avoided} danger zone${avoided !== 1 ? "s" : ""}`;
-        } else if (avoided > 0) {
-            verdictEl.textContent = `You avoided ${avoided} danger zone${avoided !== 1 ? "s" : ""}`;
-        } else {
-            verdictEl.textContent = "You chose the safer path";
-        }
+        mainStat       = avoided;
+        mainStatLabel  = `danger zone${avoided !== 1 ? "s" : ""}<br>avoided`;
+        pctStat        = saferPct;
+        pctStatLabel   = "safer than<br>fast route";
+        pctColor       = "#22c55e";
+        timeStat       = timeCost;
+        timeStatLabel  = "min extra<br>well spent";
+        timePrefix     = "+";
+        timeCostColor  = "#fbbf24";
+        arrivedText    = "Arrived safely";
+        row1Label      = "Fast route";
+        row2Label      = "Your route";
+        tryBtnText     = "Try another route";
+
+        verdictText = avoided > 0 && timeCost > 0
+            ? `+${timeCost} min kept you out of ${avoided} danger zone${avoided !== 1 ? "s" : ""}`
+            : avoided > 0
+                ? `You avoided ${avoided} danger zone${avoided !== 1 ? "s" : ""}`
+                : "You chose the safer path";
+    } else {
+        // ── User took the FAST route ──
+        const extraZones = Math.max(0, fastZones - safeZones);
+        const riskierPct = myRisk > 0 ? Math.min(99, Math.max(0, Math.round((myRisk - altRisk) / myRisk * 100))) : 0;
+        const timeSaved  = Math.max(0, altTime - myTime);
+
+        mainStat       = extraZones;
+        mainStatLabel  = `more zone${extraZones !== 1 ? "s" : ""}<br>vs safe route`;
+        pctStat        = riskierPct;
+        pctStatLabel   = "higher risk<br>than safe route";
+        pctColor       = "#f97316";
+        timeStat       = timeSaved;
+        timeStatLabel  = "min saved<br>going fast";
+        timePrefix     = "";
+        timeCostColor  = "#22c55e";
+        arrivedText    = "Arrived on time";
+        row1Label      = "Your route";
+        row2Label      = "Safe option";
+        tryBtnText     = "Try safer route";
+
+        verdictText = timeSaved > 0 && extraZones > 0
+            ? `Saved ${timeSaved} min — safe route had ${extraZones} fewer risk zone${extraZones !== 1 ? "s" : ""}`
+            : timeSaved > 0
+                ? `You arrived ${timeSaved} min faster on this route`
+                : "Both routes had similar travel time";
     }
+
+    // ── Apply text/color labels before animation ──
+    const arrivedEl = document.getElementById("s-arrived-text");
+    if (arrivedEl) arrivedEl.textContent = arrivedText;
+
+    const avoidedLbl = document.getElementById("s-avoided-label");
+    if (avoidedLbl) avoidedLbl.innerHTML = mainStatLabel;
+
+    const pctLbl = document.getElementById("s-pct-label");
+    if (pctLbl) pctLbl.innerHTML = pctStatLabel;
+
+    const timeLbl = document.getElementById("s-time-label");
+    if (timeLbl) timeLbl.innerHTML = timeStatLabel;
+
+    // Arc and percentage colour
+    const arc = document.getElementById("s-gauge-arc");
+    if (arc) arc.style.stroke = pctColor;
+    const pctSign = modal.querySelector(".arc-pct-sign");
+    if (pctSign) pctSign.style.color = pctColor;
+    const arcNum = modal.querySelector(".arc-label-wrap .s2-num");
+    if (arcNum) arcNum.style.color = pctColor;
+
+    // Time stat colour
+    const timeCostEl = document.getElementById("s-time-cost");
+    if (timeCostEl) timeCostEl.style.color = timeCostColor;
+
+    // Compare row labels — for fast-chose, row 1 = "Your route", row 2 = "Safe option"
+    // bars: fast-bar (red) always shows fast route; safe-bar (green) always shows safe route
+    const row1LabelEl = document.getElementById("s-row1-label");
+    const row2LabelEl = document.getElementById("s-row2-label");
+    if (row1LabelEl) row1LabelEl.textContent = row1Label;
+    if (row2LabelEl) row2LabelEl.textContent = row2Label;
 
     const fZoneEl = document.getElementById("s-fast-zones");
     const sZoneEl = document.getElementById("s-safe-zones");
     if (fZoneEl) fZoneEl.textContent = `${fastZones} zones · ${fastLevel}`;
     if (sZoneEl) sZoneEl.textContent = `${safeZones} zones · ${safeLevel}`;
 
+    const verdictEl = document.getElementById("s-verdict");
+    if (verdictEl) {
+        verdictEl.textContent = verdictText;
+        verdictEl.style.color = pickedFast ? "#fbbf24" : "#4ade80";
+    }
+
+    const tryBtn = document.getElementById("s-try-btn");
+    if (tryBtn) tryBtn.textContent = tryBtnText;
+
     // ── Reset all animated elements ──
-    const ring = modal.querySelector(".check-ring");
-    const mark = modal.querySelector(".check-mark");
+    const ring   = modal.querySelector(".check-ring");
+    const mark   = modal.querySelector(".check-mark");
     const stage2 = modal.querySelector(".summary-s2");
     const stage3 = modal.querySelector(".summary-s3");
-    const arc    = document.getElementById("s-gauge-arc");
     const fBar   = document.getElementById("s-fast-bar");
     const sBar   = document.getElementById("s-safe-bar");
 
-    if (ring) ring.style.strokeDashoffset = "226";
-    if (mark) mark.style.strokeDashoffset = "50";
-    if (arc)  arc.style.strokeDashoffset  = "141";
-    if (fBar) fBar.style.width = "0%";
-    if (sBar) sBar.style.width = "0%";
+    if (ring)   ring.style.strokeDashoffset   = "226";
+    if (mark)   mark.style.strokeDashoffset   = "50";
+    if (arc)    arc.style.strokeDashoffset    = "141";
+    if (fBar)   fBar.style.width = "0%";
+    if (sBar)   sBar.style.width = "0%";
     if (stage2) stage2.classList.remove("visible");
     if (stage3) stage3.classList.remove("visible");
 
     const avoided0  = document.getElementById("s-avoided");
-    const safer0    = document.getElementById("s-safer-pct");
-    const timeCost0 = document.getElementById("s-time-cost");
+    const pct0      = document.getElementById("s-safer-pct");
     if (avoided0)  avoided0.textContent  = "0";
-    if (safer0)    safer0.textContent    = "0";
-    if (timeCost0) timeCost0.textContent = "+0";
+    if (pct0)      pct0.textContent      = "0";
+    if (timeCostEl) timeCostEl.textContent = timePrefix + "0";
 
     // ── Show modal ──
     modal.style.display = "flex";
@@ -1878,13 +1957,14 @@ function showTripSummaryModal() {
     // ── Stage 2: Stats count up (0.6s delay) ──
     setTimeout(() => {
         if (stage2) stage2.classList.add("visible");
-        _summaryCountUp("s-avoided",   0, avoided,   700);
-        _summaryCountUp("s-safer-pct", 0, saferPct,  700);
-        _summaryCountUp("s-time-cost", 0, timeCost,  700, "+");
-        _summaryArcAnimate(saferPct, 700);
+        _summaryCountUp("s-avoided",   0, mainStat, 700);
+        _summaryCountUp("s-safer-pct", 0, pctStat,  700);
+        _summaryCountUp("s-time-cost", 0, timeStat, 700, timePrefix);
+        _summaryArcAnimate(pctStat, 700);
     }, 600);
 
     // ── Stage 3: Comparison bars slide in (1.4s delay) ──
+    // fast-bar always represents the fast route; safe-bar the safe route
     setTimeout(() => {
         if (stage3) stage3.classList.add("visible");
         const maxZ = Math.max(fastZones, safeZones, 1);

@@ -3,7 +3,7 @@
 {% block title %}Plan Your Trip{% endblock %}
 
 {% block extra_css %}
-<link rel="stylesheet" href="{{ url_for('static', filename='css/trip-planner.css', v='20260320c') }}">
+<link rel="stylesheet" href="{{ url_for('static', filename='css/trip-planner.css', v='20260320d') }}">
 <style>
 /* ── Trip planner page: break out of base layout ── */
 .rr-navbar, .rr-footer, footer { display: none !important; }
@@ -284,7 +284,7 @@ main { background: transparent !important; position: relative; z-index: auto; }
                     stroke="#22c55e" stroke-width="3.5" fill="none" stroke-linecap="round" stroke-linejoin="round"
                     stroke-dasharray="50" stroke-dashoffset="50"/>
             </svg>
-            <p class="summary-arrived">Arrived safely</p>
+            <p class="summary-arrived" id="s-arrived-text">Arrived safely</p>
         </div>
 
         <!-- Stage 2: Stats count up -->
@@ -292,7 +292,7 @@ main { background: transparent !important; position: relative; z-index: auto; }
             <div class="s2-stats">
                 <div class="s2-stat">
                     <span class="s2-num" id="s-avoided">0</span>
-                    <span class="s2-label">danger zones<br>avoided</span>
+                    <span class="s2-label" id="s-avoided-label">danger zones<br>avoided</span>
                 </div>
                 <div class="s2-stat">
                     <div class="arc-wrap">
@@ -307,11 +307,11 @@ main { background: transparent !important; position: relative; z-index: auto; }
                             <span class="s2-num" id="s-safer-pct">0</span><span class="arc-pct-sign">%</span>
                         </div>
                     </div>
-                    <span class="s2-label">safer route</span>
+                    <span class="s2-label" id="s-pct-label">safer route</span>
                 </div>
                 <div class="s2-stat">
                     <span class="s2-num time-cost-num" id="s-time-cost">+0</span>
-                    <span class="s2-label">min extra<br>well spent</span>
+                    <span class="s2-label" id="s-time-label">min extra<br>well spent</span>
                 </div>
             </div>
         </div>
@@ -320,14 +320,14 @@ main { background: transparent !important; position: relative; z-index: auto; }
         <div class="summary-s3">
             <div class="compare-section">
                 <div class="compare-row">
-                    <span class="compare-label">Fast route</span>
+                    <span class="compare-label" id="s-row1-label">Fast route</span>
                     <div class="compare-track">
                         <div class="compare-bar fast-bar" id="s-fast-bar" style="width:0%;"></div>
                     </div>
                     <span class="compare-tag fast-tag" id="s-fast-zones">-- · HIGH</span>
                 </div>
                 <div class="compare-row">
-                    <span class="compare-label">Your route</span>
+                    <span class="compare-label" id="s-row2-label">Your route</span>
                     <div class="compare-track">
                         <div class="compare-bar your-bar" id="s-safe-bar" style="width:0%;"></div>
                     </div>
@@ -336,7 +336,7 @@ main { background: transparent !important; position: relative; z-index: auto; }
             </div>
             <p class="summary-verdict" id="s-verdict">+4 min kept you out of 22 danger zones</p>
             <div class="summary-actions">
-                <button class="nav-summary-btn-primary" onclick="closeSummaryAndFindRoute()">Try another route</button>
+                <button class="nav-summary-btn-primary" id="s-try-btn" onclick="closeSummaryAndFindRoute()">Try another route</button>
                 <button class="nav-summary-btn-secondary" onclick="closeSummaryModal()">Back to dashboard</button>
             </div>
         </div>
@@ -350,7 +350,7 @@ main { background: transparent !important; position: relative; z-index: auto; }
 {% if google_maps_api_key %}
 <script>window.__GMAPS_KEY__ = "{{ google_maps_api_key }}";</script>
 {% endif %}
-<script src="{{ url_for('static', filename='js/trip-planner.js', v='20260320c') }}"></script>
+<script src="{{ url_for('static', filename='js/trip-planner.js', v='20260320d') }}"></script>
 {% if google_maps_api_key %}
 <script src="https://maps.googleapis.com/maps/api/js?key={{ google_maps_api_key }}&libraries=places,geometry&loading=async&callback=initGooglePlaces" async></script>
 {% endif %}
