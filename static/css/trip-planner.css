@@ -1559,6 +1559,54 @@ body.demo-mode .start-nav-button {
 
 .planner-topbar * { pointer-events: auto; }
 
+/* Fix 3: topbar left group */
+.planner-topbar-left {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+}
+
+.planner-back-link {
+    font-size: 12px;
+    color: rgba(255,255,255,0.6);
+    text-decoration: none;
+    transition: color 0.2s;
+}
+.planner-back-link:hover { color: rgba(255,255,255,0.9); }
+
+.back-label-mobile  { display: none; }
+.back-label-desktop { display: inline; }
+
+@media (max-width: 480px) {
+    .back-label-desktop { display: none; }
+    .back-label-mobile  { display: inline; }
+}
+
+/* Fix 3: hamburger menu */
+.planner-menu-wrap { position: relative; }
+
+.planner-menu-dropdown {
+    position: absolute;
+    top: 48px; right: 0;
+    background: #1F2937;
+    border-radius: 12px;
+    border: 0.5px solid rgba(255,255,255,0.1);
+    padding: 8px 0;
+    min-width: 180px;
+    z-index: 100;
+    box-shadow: 0 8px 24px rgba(0,0,0,0.5);
+}
+
+.planner-menu-item {
+    display: block;
+    padding: 10px 16px;
+    color: #F9FAFB;
+    font-size: 14px;
+    text-decoration: none;
+    transition: background 0.15s;
+}
+.planner-menu-item:hover { background: #374151; }
+
 .planner-brand {
     color: #ffffff;
     font-weight: 700;
@@ -1601,13 +1649,17 @@ body.demo-mode .start-nav-button {
     z-index: 20;
     background: #111827;
     border-radius: 24px 24px 0 0;
-    padding: 0 16px 32px;
-    transition: height 0.38s cubic-bezier(0.4, 0, 0.2, 1);
+    padding: 0 16px 24px;
+    /* Fix 2: use max-height so the sheet hugs its content in collapsed state */
+    height: auto;
+    transition: max-height 0.38s cubic-bezier(0.4, 0, 0.2, 1);
     overflow: hidden;
 }
 
-.planner-sheet.collapsed { height: 230px; }
-.planner-sheet.expanded  { height: 72vh; overflow-y: auto; }
+/* Fix 2: collapsed = auto-fit content (no empty dark area below button) */
+.planner-sheet.collapsed { max-height: 360px; }
+/* Fix 2: expanded = tall scrollable panel */
+.planner-sheet.expanded  { max-height: 72vh; overflow-y: auto; }
 
 /* Drag handle */
 .sheet-handle-bar {
@@ -1941,8 +1993,8 @@ body .pac-matched { color: #34D399; }
 
 /* Mobile — taller collapsed sheet so chips are visible */
 @media (max-width: 480px) {
-    .planner-sheet.collapsed { height: 260px; }
-    .planner-sheet.expanded  { height: 82vh; }
+    .planner-sheet.collapsed { max-height: 420px; }
+    .planner-sheet.expanded  { max-height: 82vh; }
     .planner-sheet { padding: 0 12px 24px; }
 }
 
@@ -2047,6 +2099,35 @@ body .pac-matched { color: #34D399; }
 .risk-pill-inline.high   { background: rgba(239, 68, 68, 0.15);  color: #F87171; }
 .risk-pill-inline.medium { background: rgba(245, 158, 11, 0.15); color: #FCD34D; }
 .risk-pill-inline.low    { background: rgba(52, 211, 153, 0.15); color: #34D399; }
+
+/* Fix 1: Compact state-3 selected route view */
+.selected-route-compact {
+    padding: 16px;
+    margin-top: 12px;
+}
+
+.compact-route-summary {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    margin-bottom: 14px;
+    flex-wrap: wrap;
+}
+
+.compact-route-name {
+    color: #F9FAFB;
+    font-size: 15px;
+    font-weight: 700;
+    flex: 1;
+    min-width: 0;
+}
+
+.compact-route-time {
+    color: #34D399;
+    font-size: 24px;
+    font-weight: 700;
+    line-height: 1;
+}
 
 /* Fix 1: Route time — large white */
 .planner-sheet .route-card .route-time {

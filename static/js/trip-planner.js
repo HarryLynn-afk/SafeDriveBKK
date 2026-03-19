@@ -758,34 +758,17 @@ function selectRoute(routeId) {
 }
 
 function showRouteDetails(route) {
+    const routeLabel = selectedRoute === "fast" ? "🚀 Fastest Route" : "🛡️ Safest Route";
+    const riskClass  = route.risk_level || "medium";
+    const riskLabel  = (route.risk_level || "").toUpperCase();
+
     const detailsHTML = `
-        <div class="selected-route-details">
-            <h3>📍 Selected Route Details</h3>
-            <div class="route-summary">
-                <div class="summary-item">
-                    <span class="label">Duration</span>
-                    <span class="value">${route.time_min} min</span>
-                </div>
-                <div class="summary-item">
-                    <span class="label">Distance</span>
-                    <span class="value">${(route.distance_km || 0).toFixed(1)} km</span>
-                </div>
-                <div class="summary-item">
-                    <span class="label">Risk Level</span>
-                    <span class="value ${route.risk_level}">${(route.risk_level || "").toUpperCase()}</span>
-                </div>
-                <div class="summary-item">
-                    <span class="label">Risk Score</span>
-                    <span class="value">${Math.round(route.risk_score || 0)}/100</span>
-                </div>
+        <div class="selected-route-details selected-route-compact">
+            <div class="compact-route-summary">
+                <span class="compact-route-name">${routeLabel}</span>
+                <span class="compact-route-time">${route.time_min} min</span>
+                <span class="risk-pill-inline ${riskClass}">${riskLabel}</span>
             </div>
-            ${(route.high_risk_zones || 0) > 0
-                ? `<div class="danger-zones-preview">
-                    <h4>⚠️ Danger Zones on This Route</h4>
-                    <p>This route crosses ${route.high_risk_zones} high-risk zone${route.high_risk_zones > 1 ? "s" : ""}.
-                       You'll receive alerts during navigation.</p>
-                   </div>`
-                : '<div class="safe-route-note">✅ This route avoids major danger zones</div>'}
             <button id="start-navigation-btn" class="start-navigation-btn" onclick="startNavigationWithSelected()">
                 🚗 Start Navigation
             </button>
@@ -800,8 +783,12 @@ function showRouteDetails(route) {
     if (existing) existing.remove();
     if (container) container.insertAdjacentHTML("beforeend", detailsHTML);
 
-    // Fix 6: transition to state 3 and scroll sheet to Start Navigation button
+    // Jump straight to Start Navigation — scroll sheet so button is first thing visible
     setSheetState(3);
+    setTimeout(() => {
+        const sheet = document.getElementById("planner-sheet");
+        if (sheet) sheet.scrollTop = sheet.scrollHeight;
+    }, 100);
 }
 
 function changeRoute() {
@@ -1692,6 +1679,12 @@ document.addEventListener("DOMContentLoaded", () => {
         });
     }
 
+    // Fix 3: close hamburger menu on outside click
+    document.addEventListener("click", () => {
+        const dd = document.getElementById("planner-menu-dropdown");
+        if (dd) dd.style.display = "none";
+    });
+
     // Fix 6: start in input state
     setSheetState(1);
 
@@ -1824,6 +1817,12 @@ function collapseSheet() {
     setTimeout(() => {
         if (tripCompareMap) tripCompareMap.invalidateSize();
     }, 400);
+}
+
+function togglePlannerMenu(e) {
+    e.stopPropagation();
+    const dd = document.getElementById("planner-menu-dropdown");
+    if (dd) dd.style.display = dd.style.display === "none" ? "block" : "none";
 }
 
 function togglePlannerLayers() {
