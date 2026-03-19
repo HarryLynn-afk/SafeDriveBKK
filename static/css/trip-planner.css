@@ -1945,3 +1945,134 @@ body .pac-matched { color: #34D399; }
     .planner-sheet.expanded  { height: 82vh; }
     .planner-sheet { padding: 0 12px 24px; }
 }
+
+/* ==========================================================
+   FIX 1 — Bolder route card colors
+   FIX 4 — Equal card height + tradeoff line outside
+   FIX 6 — Sheet state machine
+   ========================================================== */
+
+/* Fix 6: section visibility */
+.hidden { display: none !important; }
+
+/* Fix 6: back button */
+.sheet-back-btn {
+    background: transparent;
+    border: none;
+    color: #6B7280;
+    font-size: 13px;
+    font-weight: 500;
+    cursor: pointer;
+    padding: 0 0 10px;
+    display: block;
+    transition: color 0.2s;
+}
+.sheet-back-btn:hover { color: #9CA3AF; }
+
+/* Fix 4: tradeoff line outside and above both cards */
+.tradeoff-between {
+    text-align: center;
+    color: #34D399;
+    font-size: 12px;
+    font-weight: 600;
+    letter-spacing: 0.3px;
+    margin: 4px 0 10px;
+}
+
+/* Fix 4: equal-height card grid */
+.planner-sheet .route-options-grid {
+    grid-template-columns: 1fr 1fr;
+    align-items: stretch;
+}
+
+/* Fix 4: flex layout so button sticks to bottom */
+.planner-sheet .route-card {
+    display: flex;
+    flex-direction: column;
+    justify-content: space-between;
+    min-height: 200px;
+}
+
+/* Fix 1: Fastest card — red */
+.route-card-fast-style {
+    border: 2px solid #EF4444 !important;
+    background: rgba(239, 68, 68, 0.08) !important;
+}
+.route-card-fast-style:hover {
+    border-color: #DC2626 !important;
+    background: rgba(239, 68, 68, 0.12) !important;
+}
+.route-card-fast-style.selected {
+    border-color: #DC2626 !important;
+    background: rgba(239, 68, 68, 0.15) !important;
+    box-shadow: 0 0 0 2px rgba(239, 68, 68, 0.2) !important;
+}
+
+/* Fix 1: Safest card — green */
+.route-card-safe-style {
+    border: 2px solid #34D399 !important;
+    background: rgba(52, 211, 153, 0.08) !important;
+}
+.route-card-safe-style:hover {
+    border-color: #10B981 !important;
+    background: rgba(52, 211, 153, 0.12) !important;
+}
+.route-card-safe-style.selected {
+    border-color: #10B981 !important;
+    background: rgba(52, 211, 153, 0.14) !important;
+    box-shadow: 0 0 0 2px rgba(52, 211, 153, 0.2) !important;
+}
+
+/* Fix 1: Solid colored badges */
+.route-badge-v2 {
+    display: inline-block;
+    padding: 4px 11px;
+    border-radius: 20px;
+    font-size: 0.78rem;
+    font-weight: 700;
+    margin-bottom: 8px;
+}
+.route-badge-v2.fastest-v2 { background: #EF4444; color: #ffffff; }
+.route-badge-v2.safest-v2  { background: #34D399; color: #064E3B; }
+
+/* Fix 1: Inline risk pill — small, not full-width */
+.risk-pill-inline {
+    display: inline-block;
+    border-radius: 20px;
+    padding: 3px 10px;
+    font-size: 11px;
+    font-weight: 600;
+    margin: 6px 0 4px;
+}
+.risk-pill-inline.high   { background: rgba(239, 68, 68, 0.15);  color: #F87171; }
+.risk-pill-inline.medium { background: rgba(245, 158, 11, 0.15); color: #FCD34D; }
+.risk-pill-inline.low    { background: rgba(52, 211, 153, 0.15); color: #34D399; }
+
+/* Fix 1: Route time — large white */
+.planner-sheet .route-card .route-time {
+    font-size: 28px;
+    font-weight: 700;
+    color: #F9FAFB;
+    margin: 4px 0 2px;
+    line-height: 1;
+}
+
+/* Fix 1: Select button for fastest — red outline */
+.select-fast-btn {
+    width: 100%;
+    padding: 10px;
+    border: 1.5px solid #EF4444;
+    background: transparent;
+    color: #F87171;
+    border-radius: 8px;
+    font-weight: 600;
+    font-size: 13px;
+    cursor: pointer;
+    margin-top: 8px;
+    transition: all 0.2s;
+    font-family: inherit;
+}
+.select-fast-btn:hover {
+    background: rgba(239, 68, 68, 0.12);
+    color: #FECACA;
+}

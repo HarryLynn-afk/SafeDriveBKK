@@ -544,8 +544,8 @@ function displayMultipleRoutes(data) {
     // Render route selection cards
     showRouteSelectionUI(data);
 
-    // Expand the bottom sheet to show route cards
-    expandSheet();
+    // Fix 6: transition to route comparison state
+    setSheetState(2);
 
     // Draw routes on the background map
     setTimeout(() => {
@@ -635,55 +635,66 @@ function showRouteSelectionUI(data) {
         return '<small class="simulated-note">*estimated</small>';
     };
 
+    // Fix 1 + Fix 4: inline risk pill helper (small pill, not full-width bar)
+    const riskPill = (level) => {
+        const icon = getRiskIcon(level);
+        return `<span class="risk-pill-inline ${level}">${icon} ${(level || "unknown").toUpperCase()} RISK</span>`;
+    };
+
     const routeSelectionHTML = `
         <div class="route-selection-container">
-            <!-- ML analysis badge -->
+            <!-- Fix 6: back to input state -->
+            <button class="sheet-back-btn" onclick="setSheetState(1)">← Change route</button>
+
             <div class="ml-analysis-badge">
                 🤖 <strong>AI-Powered Route Analysis</strong>
                 <span class="ml-model">XGBoost ML &bull; 83.8% Validated</span>
             </div>
 
-            <h3>🗺️ Choose Your Route</h3>
-            <p class="subtitle">AI analyzed ${altCount} route options &mdash; showing you the best two</p>
+            <!-- Fix 4: tradeoff line OUTSIDE cards, centered above grid -->
+            <div class="tradeoff-between">${tradeoffHeadline}</div>
 
             <div class="route-options-grid">
-                <!-- Fast Route Card -->
-                <div class="route-card" id="route-card-fast" onclick="selectRoute('fast')">
-                    <div class="route-badge fastest">🚀 FASTEST</div>
-                    <div class="route-time">${fastTime} min ${trafficBadge(fastTrafficSrc)}</div>
-                    <div class="route-distance">${(fastRoute.distance_km || 0).toFixed(1)} km</div>
-                    <div class="route-card-risk ${fastRoute.risk_level}">
-                        ${getRiskIcon(fastRoute.risk_level)} ${(fastRoute.risk_level || "unknown").toUpperCase()} RISK
+                <!-- Fix 1: Fast card — red border + bg -->
+                <div class="route-card route-card-fast-style" id="route-card-fast" onclick="selectRoute('fast')">
+                    <div>
+                        <div class="route-badge-v2 fastest-v2">🚀 FASTEST</div>
+                        <div class="route-time">${fastTime} min ${trafficBadge(fastTrafficSrc)}</div>
+                        <div class="route-distance">${(fastRoute.distance_km || 0).toFixed(1)} km</div>
+                        ${riskPill(fastRoute.risk_level)}
                     </div>
-                    ${fastHighRisk > 0
-                        ? `<div class="warning-note">⚠️ Passes ${fastHighRisk} danger zone${fastHighRisk > 1 ? "s" : ""}</div>`
-                        : '<div class="safe-note">✅ No major danger zones</div>'}
-                    <button class="select-route-btn" onclick="selectRoute('fast'); event.stopPropagation();">
-                        Select This Route
-                    </button>
+                    <div>
+                        ${fastHighRisk > 0
+                            ? `<div class="warning-note">⚠️ ${fastHighRisk} danger zone${fastHighRisk > 1 ? "s" : ""}</div>`
+                            : '<div class="safe-note">✅ No danger zones</div>'}
+                        <button class="select-route-btn select-fast-btn" onclick="selectRoute('fast'); event.stopPropagation();">
+                            Select This Route
+                        </button>
+                    </div>
                 </div>
 
-                <!-- Safe Route Card -->
-                <div class="route-card recommended" id="route-card-safe" onclick="selectRoute('safe')">
-                    <div class="route-badge safest">🛡️ SAFEST</div>
-                    ${safeRiskScore < fastRiskScore ? '<div class="recommended-badge">⭐ RECOMMENDED</div>' : ""}
-                    <div class="tradeoff-headline">${tradeoffHeadline}</div>
-                    <div class="route-time">${safeTime} min ${trafficBadge(safeTrafficSrc)}</div>
-                    <div class="route-distance">${(safeRoute.distance_km || 0).toFixed(1)} km</div>
-                    <div class="route-card-risk ${safeRoute.risk_level}">
-                        ${getRiskIcon(safeRoute.risk_level)} ${(safeRoute.risk_level || "unknown").toUpperCase()} RISK
+                <!-- Fix 1: Safe card — green border + bg -->
+                <div class="route-card route-card-safe-style recommended" id="route-card-safe" onclick="selectRoute('safe')">
+                    <div>
+                        <div class="route-badge-v2 safest-v2">🛡️ SAFEST</div>
+                        ${safeRiskScore < fastRiskScore ? '<div class="recommended-badge">⭐ REC</div>' : ""}
+                        <div class="route-time">${safeTime} min ${trafficBadge(safeTrafficSrc)}</div>
+                        <div class="route-distance">${(safeRoute.distance_km || 0).toFixed(1)} km</div>
+                        ${riskPill(safeRoute.risk_level)}
                     </div>
-                    ${safeHighRisk > 0
-                        ? `<div class="warning-note">⚠️ Passes ${safeHighRisk} danger zone${safeHighRisk > 1 ? "s" : ""}</div>`
-                        : '<div class="safe-note">✅ No major danger zones</div>'}
-                    <button class="select-route-btn primary" onclick="selectRoute('safe'); event.stopPropagation();">
-                        Select This Route
-                    </button>
+                    <div>
+                        ${safeHighRisk > 0
+                            ? `<div class="warning-note">⚠️ ${safeHighRisk} danger zone${safeHighRisk > 1 ? "s" : ""}</div>`
+                            : '<div class="safe-note">✅ No danger zones</div>'}
+                        <button class="select-route-btn primary" onclick="selectRoute('safe'); event.stopPropagation();">
+                            Select This Route
+                        </button>
+                    </div>
                 </div>
             </div>
 
             ${data.recommendation
-                ? `<div class="ai-recommendation">🤖 AI Recommendation: ${data.recommendation}</div>`
+                ? `<div class="ai-recommendation">🤖 ${data.recommendation}</div>`
                 : ""}
         </div>
     `;
@@ -761,7 +772,7 @@ function showRouteDetails(route) {
                        You'll receive alerts during navigation.</p>
                    </div>`
                 : '<div class="safe-route-note">✅ This route avoids major danger zones</div>'}
-            <button class="start-navigation-btn" onclick="startNavigationWithSelected()">
+            <button id="start-navigation-btn" class="start-navigation-btn" onclick="startNavigationWithSelected()">
                 🚗 Start Navigation
             </button>
             <button class="change-route-btn" onclick="changeRoute()">
@@ -774,6 +785,9 @@ function showRouteDetails(route) {
     const existing = document.querySelector(".selected-route-details");
     if (existing) existing.remove();
     if (container) container.insertAdjacentHTML("beforeend", detailsHTML);
+
+    // Fix 6: transition to state 3 and scroll sheet to Start Navigation button
+    setSheetState(3);
 }
 
 function changeRoute() {
@@ -792,6 +806,9 @@ function changeRoute() {
 
     const details = document.querySelector(".selected-route-details");
     if (details) details.remove();
+
+    // Fix 6: go back to route comparison state
+    setSheetState(2);
 }
 
 async function startNavigationWithSelected() {
@@ -1661,6 +1678,9 @@ document.addEventListener("DOMContentLoaded", () => {
             }
         });
     }
+
+    // Fix 6: start in input state
+    setSheetState(1);
 });
 
 // === AUTO-REFRESH DEMO ROUTES ON STARTUP ===
@@ -1708,6 +1728,46 @@ window.addEventListener("online", () => {
 });
 
 // ===== BOLT-STYLE SHEET HELPERS =====
+
+// ===== FIX 6: SHEET STATE MACHINE =====
+// STATE 1 — inputs + demo chips + find button
+// STATE 2 — route comparison cards
+// STATE 3 — selected route details + start navigation
+
+function setSheetState(state) {
+    const inputs  = document.getElementById("sheet-section-inputs");
+    const results = document.getElementById("route-results");
+    const preview = document.getElementById("route-preview");
+
+    // Hide all sections
+    [inputs, results, preview].forEach((el) => {
+        if (el) el.classList.add("hidden");
+    });
+
+    const sheet = document.getElementById("planner-sheet");
+
+    if (state === 1) {
+        if (inputs) inputs.classList.remove("hidden");
+        collapseSheet();
+    } else if (state === 2) {
+        if (results) results.classList.remove("hidden");
+        expandSheet();
+        // Fix 2: scroll sheet to top so cards are immediately visible
+        setTimeout(() => {
+            if (sheet) sheet.scrollTop = 0;
+        }, 150);
+    } else if (state === 3) {
+        if (results) results.classList.remove("hidden");
+        expandSheet();
+        // Fix 3: scroll sheet so Start Navigation button is visible
+        setTimeout(() => {
+            const btn = document.getElementById("start-navigation-btn");
+            if (sheet && btn) {
+                sheet.scrollTop = btn.offsetTop - 20;
+            }
+        }, 200);
+    }
+}
 
 function expandSheet() {
     const sheet = document.getElementById("planner-sheet");

@@ -35,6 +35,9 @@ main, .container, .container-fluid, .container-lg,
 <div id="planner-sheet" class="planner-sheet collapsed">
     <div class="sheet-handle-bar" id="sheet-handle" role="button" aria-label="Expand or collapse panel"></div>
 
+    <!-- ── Fix 6 STATE 1: inputs + demo chips + find button ── -->
+    <div id="sheet-section-inputs">
+
     <!-- ── Step 4: Dark input fields with vertical connector ── -->
     <div class="sheet-inputs">
         <div class="location-connector">
@@ -111,6 +114,8 @@ main, .container, .container-fluid, .container-lg,
             <button onclick="hideElement('route-error')" style="background:none;border:none;font-size:16px;cursor:pointer;color:#fcd34d;padding:0;">&times;</button>
         </div>
     </div>
+
+    </div><!-- end #sheet-section-inputs -->
 
     <!-- Route preview (single-route legacy path) -->
     <div id="route-preview" class="route-preview" style="display:none;">
