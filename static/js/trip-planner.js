@@ -290,8 +290,7 @@ function detectMyLocation() {
         gpsBtn.disabled = true;
     }
 
-    navigator.geolocation.getCurrentPosition(
-        (position) => {
+    const onSuccess = (position) => {
             const lat = position.coords.latitude;
             const lon = position.coords.longitude;
 
@@ -335,8 +334,9 @@ function detectMyLocation() {
                         setPreviewMarker(lat, lon, true, 15);
                     });
             }
-        },
-        (error) => {
+    };
+
+    const onError = (error) => {
             // Restore button
             if (gpsBtn) {
                 gpsBtn.textContent = "GPS";
@@ -360,8 +360,25 @@ function detectMyLocation() {
             window.startLon = DEFAULT_START.lon;
             startInput.placeholder = `GPS failed: ${reason}. Using default.`;
             updateFindSaferRouteButton();
+    };
+
+    // Try low-accuracy first (WiFi/cell — fast on Safari/mobile).
+    // On success, also fire a high-accuracy request to refine the position.
+    navigator.geolocation.getCurrentPosition(
+        (position) => {
+            onSuccess(position);
+            // Silently upgrade to GPS accuracy in the background
+            navigator.geolocation.getCurrentPosition(onSuccess, () => {}, {
+                enableHighAccuracy: true, timeout: 20000, maximumAge: 0,
+            });
         },
-        { enableHighAccuracy: true, timeout: 10000, maximumAge: 60000 }
+        (err) => {
+            // Low-accuracy failed — try once more with high accuracy + longer timeout
+            navigator.geolocation.getCurrentPosition(onSuccess, onError, {
+                enableHighAccuracy: true, timeout: 30000, maximumAge: 0,
+            });
+        },
+        { enableHighAccuracy: false, timeout: 8000, maximumAge: 30000 }
     );
 }
 
