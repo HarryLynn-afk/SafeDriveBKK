@@ -3,7 +3,7 @@
 {% block title %}Plan Your Trip{% endblock %}
 
 {% block extra_css %}
-<link rel="stylesheet" href="{{ url_for('static', filename='css/trip-planner.css', v='20260320') }}">
+<link rel="stylesheet" href="{{ url_for('static', filename='css/trip-planner.css', v='20260320c') }}">
 <style>
 /* ── Trip planner page: break out of base layout ── */
 .rr-navbar, .rr-footer, footer { display: none !important; }
@@ -13,6 +13,8 @@ main, .container, .container-fluid, .container-lg,
 [class*="py-"], [class*="px-"] { padding: 0 !important; margin: 0 !important; max-width: none !important; }
 /* Ensure main doesn't block the fixed-position map */
 main { background: transparent !important; position: relative; z-index: auto; }
+/* Hide floating chat widget on trip planner */
+.chat-fab, #chatFab, #chatWindow { display: none !important; }
 </style>
 {% endblock %}
 
@@ -38,7 +40,6 @@ main { background: transparent !important; position: relative; z-index: auto; }
         <div id="planner-menu-dropdown" class="planner-menu-dropdown" style="display:none;">
             <a href="/" class="planner-menu-item">Dashboard</a>
             <a href="/analytics" class="planner-menu-item">Analytics</a>
-            <a href="/nlp" class="planner-menu-item">Safety Assistant</a>
             <a href="/about" class="planner-menu-item">About</a>
         </div>
     </div>
@@ -210,17 +211,22 @@ main { background: transparent !important; position: relative; z-index: auto; }
 
 <!-- Navigation Fullscreen Mode -->
 <div id="navigation-fullscreen" class="navigation-fullscreen">
-    <div class="nav-header">
-        <button class="nav-exit-btn" onclick="exitNavigation()">← Exit</button>
-        <div class="nav-info">
-            <span id="nav-eta">-- min</span>
-            <span class="nav-separator">•</span>
-            <span id="nav-distance">-- km</span>
+
+    <!-- Map: full-screen background -->
+    <div id="navigation-map" style="position:absolute;top:0;left:0;width:100%;height:100%;"></div>
+
+    <!-- Top banner: what's ahead on the route -->
+    <div id="nav-top-banner" class="nav-top-banner">
+        <div class="nav-banner-content">
+            <div id="nav-banner-icon" class="nav-banner-icon">🔮</div>
+            <div>
+                <div id="nav-banner-title" class="nav-banner-title">Scanning route...</div>
+                <div id="nav-banner-subtitle" class="nav-banner-subtitle">No hazards detected ahead</div>
+            </div>
         </div>
     </div>
-    <div class="nav-map-container">
-        <div id="navigation-map" style="height: 100%;"></div>
-    </div>
+
+    <!-- Alert box: current zone status (floating above bottom bar) -->
     <div id="nav-alert-box" class="nav-alert-box safe" role="alert" aria-live="assertive">
         <div class="alert-content">
             <div class="alert-icon" id="nav-alert-icon" aria-hidden="true">✓</div>
@@ -230,25 +236,111 @@ main { background: transparent !important; position: relative; z-index: auto; }
             </div>
         </div>
     </div>
-    <div class="nav-stats">
-        <div class="nav-stat">
-            <div class="nav-stat-value" id="nav-current-km">0.0</div>
-            <div class="nav-stat-label">Current (km)</div>
-        </div>
-        <div class="nav-stat">
-            <div class="nav-stat-value" id="nav-speed">--</div>
-            <div class="nav-stat-label">Speed (km/h)</div>
-        </div>
-        <div class="nav-stat">
-            <div class="nav-stat-value" id="nav-total-km">0.0</div>
-            <div class="nav-stat-label">Total (km)</div>
+
+    <!-- Bottom bar: Google Maps style controls -->
+    <div class="nav-bottom-bar">
+        <button class="nav-exit-btn" onclick="exitNavigation()" aria-label="Exit navigation">✕</button>
+        <div class="nav-bottom-info">
+            <div>
+                <div id="nav-eta" class="nav-bottom-value">--</div>
+                <div class="nav-bottom-label">min left</div>
+            </div>
+            <div class="nav-bottom-divider"></div>
+            <div>
+                <div id="nav-distance" class="nav-bottom-value">--</div>
+                <div class="nav-bottom-label">km total</div>
+            </div>
+            <div class="nav-bottom-divider"></div>
+            <div>
+                <div id="nav-current-km" class="nav-bottom-value">0.0</div>
+                <div class="nav-bottom-label">km done</div>
+            </div>
         </div>
     </div>
-    <div class="nav-progress-container">
-        <div class="nav-progress-bar">
-            <div class="nav-progress-fill" id="nav-progress-fill" style="width: 0%"></div>
+
+    <!-- Thin progress strip pinned to very bottom -->
+    <div class="nav-progress-bar-wrap">
+        <div id="nav-progress-fill" class="nav-progress-fill" style="width:0%;"></div>
+    </div>
+
+    <!-- Hidden elements kept for JS compatibility -->
+    <span id="nav-speed" style="display:none;"></span>
+    <span id="nav-total-km" style="display:none;"></span>
+    <span id="nav-progress-text" style="display:none;"></span>
+</div>
+
+<!-- Trip Summary Modal -->
+<div id="nav-summary-modal" class="nav-summary-modal" style="display:none;">
+    <div class="nav-summary-card">
+
+        <!-- Stage 1: Arrival checkmark -->
+        <div class="summary-s1">
+            <svg class="check-svg" viewBox="0 0 80 80" fill="none" aria-hidden="true">
+                <circle class="check-bg" cx="40" cy="40" r="36"/>
+                <circle class="check-ring" cx="40" cy="40" r="36"
+                    stroke="#22c55e" stroke-width="3" fill="none" stroke-linecap="round"
+                    stroke-dasharray="226" stroke-dashoffset="226"/>
+                <polyline class="check-mark" points="24,42 35,53 56,28"
+                    stroke="#22c55e" stroke-width="3.5" fill="none" stroke-linecap="round" stroke-linejoin="round"
+                    stroke-dasharray="50" stroke-dashoffset="50"/>
+            </svg>
+            <p class="summary-arrived">Arrived safely</p>
         </div>
-        <div class="nav-progress-text" id="nav-progress-text">0%</div>
+
+        <!-- Stage 2: Stats count up -->
+        <div class="summary-s2">
+            <div class="s2-stats">
+                <div class="s2-stat">
+                    <span class="s2-num" id="s-avoided">0</span>
+                    <span class="s2-label">danger zones<br>avoided</span>
+                </div>
+                <div class="s2-stat">
+                    <div class="arc-wrap">
+                        <svg class="arc-svg" viewBox="0 0 100 60" fill="none">
+                            <path class="arc-bg-path" d="M 5 55 A 45 45 0 0 1 95 55"
+                                stroke="rgba(255,255,255,0.10)" stroke-width="6" stroke-linecap="round" fill="none"/>
+                            <path id="s-gauge-arc" d="M 5 55 A 45 45 0 0 1 95 55"
+                                stroke="#22c55e" stroke-width="6" stroke-linecap="round" fill="none"
+                                stroke-dasharray="141" stroke-dashoffset="141"/>
+                        </svg>
+                        <div class="arc-label-wrap">
+                            <span class="s2-num" id="s-safer-pct">0</span><span class="arc-pct-sign">%</span>
+                        </div>
+                    </div>
+                    <span class="s2-label">safer route</span>
+                </div>
+                <div class="s2-stat">
+                    <span class="s2-num time-cost-num" id="s-time-cost">+0</span>
+                    <span class="s2-label">min extra<br>well spent</span>
+                </div>
+            </div>
+        </div>
+
+        <!-- Stage 3: Comparison bars + verdict + actions -->
+        <div class="summary-s3">
+            <div class="compare-section">
+                <div class="compare-row">
+                    <span class="compare-label">Fast route</span>
+                    <div class="compare-track">
+                        <div class="compare-bar fast-bar" id="s-fast-bar" style="width:0%;"></div>
+                    </div>
+                    <span class="compare-tag fast-tag" id="s-fast-zones">-- · HIGH</span>
+                </div>
+                <div class="compare-row">
+                    <span class="compare-label">Your route</span>
+                    <div class="compare-track">
+                        <div class="compare-bar your-bar" id="s-safe-bar" style="width:0%;"></div>
+                    </div>
+                    <span class="compare-tag your-tag" id="s-safe-zones">-- · MED</span>
+                </div>
+            </div>
+            <p class="summary-verdict" id="s-verdict">+4 min kept you out of 22 danger zones</p>
+            <div class="summary-actions">
+                <button class="nav-summary-btn-primary" onclick="closeSummaryAndFindRoute()">Try another route</button>
+                <button class="nav-summary-btn-secondary" onclick="closeSummaryModal()">Back to dashboard</button>
+            </div>
+        </div>
+
     </div>
 </div>
 
@@ -258,7 +350,7 @@ main { background: transparent !important; position: relative; z-index: auto; }
 {% if google_maps_api_key %}
 <script>window.__GMAPS_KEY__ = "{{ google_maps_api_key }}";</script>
 {% endif %}
-<script src="{{ url_for('static', filename='js/trip-planner.js', v='20260322') }}"></script>
+<script src="{{ url_for('static', filename='js/trip-planner.js', v='20260320c') }}"></script>
 {% if google_maps_api_key %}
 <script src="https://maps.googleapis.com/maps/api/js?key={{ google_maps_api_key }}&libraries=places,geometry&loading=async&callback=initGooglePlaces" async></script>
 {% endif %}

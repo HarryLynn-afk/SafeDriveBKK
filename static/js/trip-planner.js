@@ -23,12 +23,10 @@ let spokenAlerts = new Set();
 let lastAlertTime = 0;
 let safeAlertFadeTimeout = null;
 const ALERT_COOLDOWN = 5000; // 5 seconds between alerts minimum
-const TRIP_PLANNER_JS_VERSION = "2026-02-19.1";
+const TRIP_PLANNER_JS_VERSION = "2026-03-20.2";
 // Animation speed: adaptive so all routes finish in ~18 seconds
-// (+ pauses on danger/warning alerts for judges to read)
 const SIMULATION_TARGET_SECONDS = 18;
 const SIMULATION_TICK_MS = 100;
-const ALERT_PAUSE_MS = 2500;  // pause animation 2.5s when danger/warning alert appears
 let simulationPaused = false;
 const DEMO_ROUTE_NAMES = {
     "Ratchada": "ratchada",
@@ -1251,9 +1249,20 @@ function selectDemoRoute(startName, startLat, startLon, endName, endLat, endLon)
     window.endLat = endLat;
     window.endLon = endLon;
     updateFindSaferRouteButton();
-    // Show preview markers immediately — before user clicks Find Safer Route
-    setPreviewMarker(startLat, startLon, true);
-    setPreviewMarker(endLat, endLon, false);
+
+    // Place markers if map is ready
+    if (tripCompareMap) {
+        setPreviewMarker(startLat, startLon, true);
+        setPreviewMarker(endLat, endLon, false);
+    }
+
+    // Auto-trigger route calculation (short delay so map markers render first)
+    setTimeout(() => {
+        const btn = document.getElementById("findSaferRouteBtn");
+        if (btn && !btn.disabled) {
+            calculateRoute(startLat, startLon, endLat, endLon, endName);
+        }
+    }, 200);
 }
 
 function haversineKm(lat1, lon1, lat2, lon2) {
@@ -1411,8 +1420,10 @@ function initializeNavigationMap() {
             mapTypeControl: false,
             streetViewControl: false,
             fullscreenControl: false,
+            gestureHandling: "greedy",
         });
     }
+    google.maps.event.trigger(tripNavigationMap, "resize");
 
     // Clear existing nav polylines and markers
     navPolylines.forEach((p) => p.setMap(null));
@@ -1505,11 +1516,10 @@ function startNavigationSimulation() {
     const waypointTotalKm = tripWaypointCumulativeKm[tripWaypointCumulativeKm.length - 1] || 0;
     const totalDistance = waypointTotalKm > 0 ? waypointTotalKm : tripPlannerRouteData.route.distance_km;
 
-    // Update UI (show backend-reported distance for user display, but simulate with actual)
+    // Update bottom bar with route info
     const displayDistance = tripPlannerRouteData.route.distance_km;
-    document.getElementById("nav-total-km").textContent = displayDistance.toFixed(1);
-    document.getElementById("nav-distance").textContent = displayDistance.toFixed(1) + " km";
-    document.getElementById("nav-eta").textContent = tripPlannerRouteData.route.duration_min + " min";
+    document.getElementById("nav-distance").textContent = displayDistance.toFixed(1);
+    document.getElementById("nav-eta").textContent = tripPlannerRouteData.route.duration_min;
 
     // Create moving arrow marker
     if (tripMovingMarker) { tripMovingMarker.setMap(null); }
@@ -1529,8 +1539,9 @@ function startNavigationSimulation() {
         zIndex: 999,
     });
 
-    // Show initial safe alert
+    // Show initial safe alert and initialize top banner
     showNavigationAlert("safe", "✓", "Ready to Navigate", "Drive safely");
+    updateNavTopBanner();
     // console.log(`[TripPlanner ${TRIP_PLANNER_JS_VERSION}] simulation active: ${SIMULATION_STEP_KM.toFixed(2)} km per ${SIMULATION_TICK_MS}ms`);
 
     // Adaptive step: route finishes in ~SIMULATION_TARGET_SECONDS regardless of length
@@ -1541,10 +1552,7 @@ function startNavigationSimulation() {
     if (tripNavigationInterval) {
         clearInterval(tripNavigationInterval);
     }
-    simulationPaused = false;
     tripNavigationInterval = setInterval(() => {
-        if (simulationPaused) return;  // skip tick while paused on alert
-
         tripPreviousDistance = tripCurrentDistance;
         tripCurrentDistance = Math.min(totalDistance, tripCurrentDistance + simStepKm);
 
@@ -1559,8 +1567,8 @@ function startNavigationSimulation() {
             showNavigationAlert("safe", "🎉", "Destination Reached!", "You have arrived safely");
 
             setTimeout(() => {
-                exitNavigation();
-            }, 3000);
+                showTripSummaryModal();
+            }, 1500);
         }
     }, SIMULATION_TICK_MS);
 }
@@ -1568,21 +1576,18 @@ function startNavigationSimulation() {
 function updateNavigationUI(totalDistance, waypoints) {
     const progress = Math.min(100, (tripCurrentDistance / totalDistance) * 100);
 
-    // Update stats
-    document.getElementById("nav-current-km").textContent = tripCurrentDistance.toFixed(2);
+    // Update bottom bar
+    document.getElementById("nav-current-km").textContent = tripCurrentDistance.toFixed(1);
     document.getElementById("nav-progress-fill").style.width = progress + "%";
-    document.getElementById("nav-progress-text").textContent = Math.round(progress) + "%";
-
-    // Update speed (simulate variation)
-    const baseSpeed = 58;
-    const variation = Math.random() * 12 - 6;
-    const speed = Math.max(35, Math.min(75, baseSpeed + variation));
-    document.getElementById("nav-speed").textContent = Math.round(speed);
 
     // Update remaining time
+    const baseSpeed = 58;
     const remainingDistance = Math.max(0, totalDistance - tripCurrentDistance);
     const remainingMinutes = Math.ceil((remainingDistance / baseSpeed) * 60);
-    document.getElementById("nav-eta").textContent = remainingMinutes + " min";
+    document.getElementById("nav-eta").textContent = remainingMinutes;
+
+    // Update top banner with next risk zone ahead
+    updateNavTopBanner();
 
     // Move marker using interpolated position for smooth movement
     const prevPosition = tripMovingMarker ? tripMovingMarker.getPosition() : null;
@@ -1622,44 +1627,32 @@ function checkNavigationAlerts() {
     const prevSeverity = lastAlertSeverity;
     lastAlertSeverity = severity;
 
-    // Update background colour for current severity
-    const navScreen = document.getElementById("navigation-fullscreen");
-    navScreen.className = "navigation-fullscreen active " + severity;
-
     let icon;
     let title;
     let subtitle;
 
     if (severity === "danger") {
         icon = "🔴";
-        title = "🔴 ENTERING HIGH RISK ZONE";
-        subtitle = `Extra caution advised | Risk: ${currentSegment.risk_score}/100`;
+        title = "High risk zone";
+        subtitle = `Risk score ${currentSegment.risk_score}/100 — slow down`;
 
         // Voice alert with cooldown
         const now = Date.now();
         if (now - lastAlertTime >= ALERT_COOLDOWN) {
             lastAlertTime = now;
-            setTimeout(() => speakAlert("Warning: Entering high risk zone. Drive carefully."), 0);
+            setTimeout(() => speakAlert("Warning: high risk zone ahead. Drive carefully."), 0);
         }
     } else if (severity === "warning") {
         icon = "⚠️";
-        title = prevSeverity === "danger"
-            ? "⚠️ RISK DECREASING"
-            : "⚠️ ENTERING MODERATE RISK AREA";
-        subtitle = `Stay alert | Risk: ${currentSegment.risk_score}/100`;
+        title = prevSeverity === "danger" ? "Risk easing" : "Caution zone";
+        subtitle = `Risk score ${currentSegment.risk_score}/100`;
     } else {
-        icon = "✓";
-        title = prevSeverity ? "✅ ENTERING SAFE ZONE" : "✓ SAFE ZONE";
-        subtitle = "Low risk area - maintain safe driving";
+        icon = "✅";
+        title = prevSeverity ? "Safe zone" : "Ready";
+        subtitle = "Clear conditions ahead";
     }
 
     showNavigationAlert(severity, icon, title, subtitle);
-
-    // Pause animation on danger/warning so judges can read the alert
-    if ((severity === "danger" || severity === "warning") && ALERT_PAUSE_MS > 0) {
-        simulationPaused = true;
-        setTimeout(() => { simulationPaused = false; }, ALERT_PAUSE_MS);
-    }
 
     // Clear any pending safe-zone fadeout so it doesn't hide a danger/warning alert
     if (safeAlertFadeTimeout) {
@@ -1759,6 +1752,189 @@ function exitNavigation() {
 
     // Remove moving marker
     if (tripMovingMarker) { tripMovingMarker.setMap(null); tripMovingMarker = null; }
+
+    // Close summary modal if open
+    const summaryModal = document.getElementById("nav-summary-modal");
+    if (summaryModal) summaryModal.style.display = "none";
+}
+
+// ===== NAV TOP BANNER (lookahead) =====
+function updateNavTopBanner() {
+    const banner = document.getElementById("nav-top-banner");
+    const bannerIcon = document.getElementById("nav-banner-icon");
+    const bannerTitle = document.getElementById("nav-banner-title");
+    const bannerSubtitle = document.getElementById("nav-banner-subtitle");
+    if (!banner || !tripPlannerRouteData || !tripPlannerRouteData.segments) return;
+
+    const segments = tripPlannerRouteData.segments;
+    const segIdx = findSegmentIndexForDistance(tripCurrentDistance);
+    const LOOKAHEAD = 4;
+
+    let nextDanger = null;
+    let nextWarning = null;
+    for (let i = segIdx + 1; i < Math.min(segIdx + LOOKAHEAD + 1, segments.length); i++) {
+        const sev = segments[i].ui_severity || getSegmentSeverity(segments[i]);
+        if (sev === "danger" && !nextDanger) nextDanger = segments[i];
+        else if (sev === "warning" && !nextWarning) nextWarning = segments[i];
+    }
+
+    if (nextDanger) {
+        banner.className = "nav-top-banner danger";
+        bannerIcon.textContent = "🔴";
+        bannerTitle.textContent = "HIGH RISK ZONE AHEAD";
+        bannerSubtitle.textContent = `Risk score: ${nextDanger.risk_score}/100 — slow down`;
+    } else if (nextWarning) {
+        banner.className = "nav-top-banner warning";
+        bannerIcon.textContent = "⚠️";
+        bannerTitle.textContent = "Caution zone approaching";
+        bannerSubtitle.textContent = `Moderate risk | Score: ${nextWarning.risk_score}/100`;
+    } else {
+        banner.className = "nav-top-banner";
+        bannerIcon.textContent = "✅";
+        bannerTitle.textContent = "All clear ahead";
+        bannerSubtitle.textContent = "Safe conditions on your route";
+    }
+}
+
+// ===== TRIP SUMMARY MODAL (3-stage animated) =====
+function showTripSummaryModal() {
+    const modal = document.getElementById("nav-summary-modal");
+    if (!modal || !tripPlannerRouteData) return;
+
+    // ── Compute comparison stats ──
+    const myKey = selectedRoute || "safe";
+    const otherKey = myKey === "safe" ? "fast" : "safe";
+    const myRO = routeOptions[myKey] || {};
+    const otherRO = routeOptions[otherKey] || {};
+
+    const myZones   = Math.round(myRO.high_risk_zones   || 0);
+    const fastZones = Math.round((routeOptions.fast || {}).high_risk_zones || Math.max(myZones + 3, otherRO.high_risk_zones || 0));
+    const safeZones = Math.round((routeOptions.safe || {}).high_risk_zones || myZones);
+    const avoided   = Math.max(0, fastZones - safeZones);
+
+    const myRisk    = Math.round(myRO.risk_score    || tripPlannerRouteData.route.risk_score || 30);
+    const otherRisk = Math.round(otherRO.risk_score || myRisk + 20);
+    const saferPct  = otherRisk > 0 ? Math.min(99, Math.max(0, Math.round((otherRisk - myRisk) / otherRisk * 100))) : 0;
+
+    const myTime    = Math.round(myRO.time_min    || tripPlannerRouteData.route.duration_min || 0);
+    const otherTime = Math.round(otherRO.time_min || Math.max(1, myTime - 5));
+    const timeCost  = Math.max(0, myTime - otherTime);
+
+    const fastLevel = ((routeOptions.fast || {}).risk_level || "high").toUpperCase();
+    const safeLevel = ((routeOptions.safe || {}).risk_level || "medium").toUpperCase().replace("MEDIUM", "MED");
+
+    // Verdict
+    const verdictEl = document.getElementById("s-verdict");
+    if (verdictEl) {
+        if (avoided > 0 && timeCost > 0) {
+            verdictEl.textContent = `+${timeCost} min kept you out of ${avoided} danger zone${avoided !== 1 ? "s" : ""}`;
+        } else if (avoided > 0) {
+            verdictEl.textContent = `You avoided ${avoided} danger zone${avoided !== 1 ? "s" : ""}`;
+        } else {
+            verdictEl.textContent = "You chose the safer path";
+        }
+    }
+
+    const fZoneEl = document.getElementById("s-fast-zones");
+    const sZoneEl = document.getElementById("s-safe-zones");
+    if (fZoneEl) fZoneEl.textContent = `${fastZones} zones · ${fastLevel}`;
+    if (sZoneEl) sZoneEl.textContent = `${safeZones} zones · ${safeLevel}`;
+
+    // ── Reset all animated elements ──
+    const ring = modal.querySelector(".check-ring");
+    const mark = modal.querySelector(".check-mark");
+    const stage2 = modal.querySelector(".summary-s2");
+    const stage3 = modal.querySelector(".summary-s3");
+    const arc    = document.getElementById("s-gauge-arc");
+    const fBar   = document.getElementById("s-fast-bar");
+    const sBar   = document.getElementById("s-safe-bar");
+
+    if (ring) ring.style.strokeDashoffset = "226";
+    if (mark) mark.style.strokeDashoffset = "50";
+    if (arc)  arc.style.strokeDashoffset  = "141";
+    if (fBar) fBar.style.width = "0%";
+    if (sBar) sBar.style.width = "0%";
+    if (stage2) stage2.classList.remove("visible");
+    if (stage3) stage3.classList.remove("visible");
+
+    const avoided0  = document.getElementById("s-avoided");
+    const safer0    = document.getElementById("s-safer-pct");
+    const timeCost0 = document.getElementById("s-time-cost");
+    if (avoided0)  avoided0.textContent  = "0";
+    if (safer0)    safer0.textContent    = "0";
+    if (timeCost0) timeCost0.textContent = "+0";
+
+    // ── Show modal ──
+    modal.style.display = "flex";
+
+    // ── Stage 1: SVG checkmark draws (CSS transition) ──
+    requestAnimationFrame(() => {
+        requestAnimationFrame(() => {
+            if (ring) ring.style.strokeDashoffset = "0";
+            if (mark) mark.style.strokeDashoffset = "0";
+        });
+    });
+
+    // ── Stage 2: Stats count up (0.6s delay) ──
+    setTimeout(() => {
+        if (stage2) stage2.classList.add("visible");
+        _summaryCountUp("s-avoided",   0, avoided,   700);
+        _summaryCountUp("s-safer-pct", 0, saferPct,  700);
+        _summaryCountUp("s-time-cost", 0, timeCost,  700, "+");
+        _summaryArcAnimate(saferPct, 700);
+    }, 600);
+
+    // ── Stage 3: Comparison bars slide in (1.4s delay) ──
+    setTimeout(() => {
+        if (stage3) stage3.classList.add("visible");
+        const maxZ = Math.max(fastZones, safeZones, 1);
+        setTimeout(() => {
+            if (fBar) fBar.style.width = Math.round((fastZones / maxZ) * 100) + "%";
+            if (sBar) sBar.style.width = Math.round((safeZones / maxZ) * 100) + "%";
+        }, 120);
+    }, 1400);
+}
+
+function _summaryCountUp(id, from, to, duration, prefix = "") {
+    const el = document.getElementById(id);
+    if (!el) return;
+    if (to === from) { el.textContent = prefix + to; return; }
+    const start = performance.now();
+    function step(now) {
+        const t = Math.min(1, (now - start) / duration);
+        const e = 1 - Math.pow(1 - t, 3);
+        el.textContent = prefix + Math.round(from + (to - from) * e);
+        if (t < 1) requestAnimationFrame(step);
+    }
+    requestAnimationFrame(step);
+}
+
+function _summaryArcAnimate(pct, duration) {
+    const arc = document.getElementById("s-gauge-arc");
+    if (!arc) return;
+    const total  = 141;
+    const target = total * (1 - Math.min(1, pct / 100));
+    const start  = performance.now();
+    function step(now) {
+        const t = Math.min(1, (now - start) / duration);
+        const e = 1 - Math.pow(1 - t, 3);
+        arc.style.strokeDashoffset = total - (total - target) * e;
+        if (t < 1) requestAnimationFrame(step);
+    }
+    requestAnimationFrame(step);
+}
+
+function closeSummaryModal() {
+    const modal = document.getElementById("nav-summary-modal");
+    if (modal) modal.style.display = "none";
+    exitNavigation();
+}
+
+function closeSummaryAndFindRoute() {
+    const modal = document.getElementById("nav-summary-modal");
+    if (modal) modal.style.display = "none";
+    exitNavigation();
+    setSheetState(1);
 }
 
 // ===== DEMO MODE TOGGLE =====
