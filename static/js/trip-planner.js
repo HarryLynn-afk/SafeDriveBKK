@@ -646,10 +646,10 @@ function drawStraightPreviewLine() {
     const s = previewStartMarker.getLatLng();
     const e = previewEndMarker.getLatLng();
     previewRouteLine = L.polyline([[s.lat, s.lng], [e.lat, e.lng]], {
-        color: "#9CA3AF",
-        weight: 3,
-        opacity: 0.6,
-        dashArray: "8 6",
+        color: "#6366F1",
+        weight: 4,
+        opacity: 0.7,
+        dashArray: "10 8",
         interactive: false,
     }).addTo(tripCompareMap);
 }
@@ -672,10 +672,9 @@ async function fetchAndDrawPreviewRoute() {
         if (previewRouteLine) { tripCompareMap.removeLayer(previewRouteLine); }
         const coords = data.routes[0].geometry.coordinates.map(([lng, lat]) => [lat, lng]);
         previewRouteLine = L.polyline(coords, {
-            color: "#9CA3AF",
-            weight: 3,
-            opacity: 0.6,
-            dashArray: "8 6",
+            color: "#6366F1",
+            weight: 5,
+            opacity: 0.8,
             interactive: false,
         }).addTo(tripCompareMap);
         fitBoundsAboveSheet([previewStartMarker, previewEndMarker, previewRouteLine]);
@@ -1217,6 +1216,7 @@ function selectQuickDestination(name, lat, lon) {
     window.endLat = lat;
     window.endLon = lon;
     updateFindSaferRouteButton();
+    setPreviewMarker(lat, lon, false);
 }
 
 function selectDemoRoute(startName, startLat, startLon, endName, endLat, endLon) {
