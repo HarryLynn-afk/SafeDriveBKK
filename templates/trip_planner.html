@@ -4,167 +4,164 @@
 
 {% block extra_css %}
 <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
-<link rel="stylesheet" href="{{ url_for('static', filename='css/trip-planner.css', v='20260226-2') }}">
+<link rel="stylesheet" href="{{ url_for('static', filename='css/trip-planner.css', v='20260320') }}">
+<style>
+/* ── Trip planner page: break out of base layout ── */
+.rr-navbar, .rr-footer, footer { display: none !important; }
+body { overflow: hidden !important; background: #0f172a !important; }
+/* Nuke any container padding injected by base.html */
+main, .container, .container-fluid, .container-lg,
+[class*="py-"], [class*="px-"] { padding: 0 !important; margin: 0 !important; max-width: none !important; }
+</style>
 {% endblock %}
 
 {% block content %}
-<div class="trip-planner-container">
-    <!-- Main Trip Planner Card -->
-    <div class="trip-planner-card">
-        <div class="trip-header">
-            <h2>🚗 Where are you going?</h2>
-            <p class="text-muted">Plan your route and see safety risk zones</p>
+
+<!-- ── Step 2: Full-screen background map ── -->
+<div id="main-planner-map" class="planner-bg-map"></div>
+
+<!-- ── Step 7: Dark top bar ── -->
+<div class="planner-topbar">
+    <span class="planner-brand">🛡️ RoadRisk</span>
+    <button class="planner-icon-btn" onclick="togglePlannerLayers()" title="Map style" aria-label="Toggle map layers">⊞</button>
+</div>
+
+<!-- Network status (above sheet) -->
+<div id="network-status" class="network-status-bar" style="display:none;">
+    ⚠️ Network limited — using offline routes.
+</div>
+
+<!-- ── Step 3: Bottom sheet ── -->
+<div id="planner-sheet" class="planner-sheet collapsed">
+    <div class="sheet-handle-bar" id="sheet-handle" role="button" aria-label="Expand or collapse panel"></div>
+
+    <!-- ── Step 4: Dark input fields with vertical connector ── -->
+    <div class="sheet-inputs">
+        <div class="location-connector">
+            <div class="conn-dot conn-green"></div>
+            <div class="conn-line"></div>
+            <div class="conn-dot conn-red"></div>
         </div>
-        <div id="network-status" style="display:none; background: #ffc107; color: #000; padding: 8px 16px; text-align: center; font-size: 14px; border-radius: 8px; margin-bottom: 16px;">
-            ⚠️ Network connection may be limited. Using offline mode with pre-loaded routes.
-        </div>
-
-        <!-- Location Inputs -->
-        <div class="location-inputs">
-            <!-- Start Location -->
-            <div class="input-group">
-                <div class="input-icon start-icon">🟢</div>
-                <input
-                    type="text"
-                    id="start-location"
-                    class="location-input"
-                    placeholder="Search start location..."
-                    autocomplete="off"
-                    oninput="searchStartLocations(this.value)"
-                >
-                <button class="gps-button" onclick="detectMyLocation()" title="Use my GPS" aria-label="Detect my GPS location">
-                    📍
-                </button>
-            </div>
-
-            <!-- Start Suggestions Dropdown -->
-            <div id="start-suggestions-dropdown" class="suggestions-dropdown" style="display:none;">
-                <!-- Populated by JavaScript -->
-            </div>
-
-            <!-- Destination Input -->
-            <div class="input-group">
-                <div class="input-icon dest-icon">🔴</div>
-                <input
-                    type="text"
-                    id="destination"
-                    class="location-input"
-                    placeholder="Where to?"
-                    autocomplete="off"
-                    oninput="searchDestinations(this.value)"
-                >
-            </div>
-
-            <!-- Suggestions Dropdown -->
-            <div id="suggestions-dropdown" class="suggestions-dropdown" style="display:none;">
-                <!-- Populated by JavaScript -->
-            </div>
-        </div>
-
-        <!-- Demo Routes -->
-        <div class="quick-destinations">
-            <p class="quick-label">Try these demo routes:</p>
-            <div class="quick-chips">
-                <button class="quick-chip" style="border-color:#ef4444;color:#ef4444" onclick="selectDemoRoute('Thong Lo', 13.7244, 100.5787, 'Pinklao', 13.7769, 100.4735)">
-                    &#x26A0;&#xFE0F; Dramatic Tradeoff
-                </button>
-                <button class="quick-chip" style="border-color:#f97316;color:#f97316" onclick="selectDemoRoute('Bearing', 13.6680, 100.6048, 'Minburi', 13.7918, 100.7316)">
-                    &#x1F6A8; High-Risk Commute
-                </button>
-                <button class="quick-chip" style="border-color:#eab308;color:#eab308" onclick="selectDemoRoute('Silom', 13.7260, 100.5233, 'Chatuchak', 13.7999, 100.5537)">
-                    &#x2696;&#xFE0F; Balanced Choice
-                </button>
-                <button class="quick-chip" style="border-color:#22c55e;color:#22c55e" onclick="selectDemoRoute('Siam Paragon', 13.7467, 100.5348, 'Grand Palace', 13.7500, 100.4914)">
-                    &#x2705; Safe Tourist Route
-                </button>
-            </div>
-        </div>
-
-        <!-- Find Safer Route Button -->
-        <button
-            id="findSaferRouteBtn"
-            class="find-safer-route-btn"
-            disabled
-            onclick="onFindSaferRouteClick()"
-        >
-            Find Safer Route
-        </button>
-
-        <!-- Route Error Card -->
-        <div id="route-error" style="display:none; margin-top:16px; background:#fff3cd; border:1px solid #ffc107; border-radius:10px; padding:14px 16px;">
-            <div style="display:flex; align-items:flex-start; gap:10px;">
-                <span style="font-size:20px; flex-shrink:0; line-height:1.3;">⚠️</span>
-                <div style="flex:1;">
-                    <p id="route-error-message" style="margin:0 0 3px; font-weight:600; color:#856404; font-size:14px;"></p>
-                    <p style="margin:0; font-size:12px; color:#856404;">Try a demo route above, or check your internet connection.</p>
-                </div>
-                <button onclick="hideElement('route-error')" style="background:none;border:none;font-size:18px;cursor:pointer;color:#856404;padding:0;line-height:1;">&times;</button>
-            </div>
-        </div>
-
-        <!-- Route Preview (Hidden until route calculated) -->
-        <div id="route-preview" class="route-preview" style="display:none;">
-            <div class="preview-header">
-                <h4 id="preview-title">Route to destination</h4>
-            </div>
-
-            <div class="route-stats">
-                <div class="stat-box">
-                    <div class="stat-icon">⏱️</div>
-                    <div class="stat-content">
-                        <div class="stat-value" id="preview-time">--</div>
-                        <div class="stat-label">minutes</div>
-                    </div>
-                </div>
-                <div class="stat-box">
-                    <div class="stat-icon">🛣️</div>
-                    <div class="stat-content">
-                        <div class="stat-value" id="preview-distance">--</div>
-                        <div class="stat-label">kilometers</div>
-                    </div>
+        <div class="sheet-input-fields">
+            <div class="dark-input-wrap">
+                <div class="dark-input-label">From</div>
+                <div class="dark-input-row">
+                    <input
+                        type="text"
+                        id="start-location"
+                        class="dark-input"
+                        placeholder="Search start location..."
+                        autocomplete="off"
+                        oninput="searchStartLocations(this.value)"
+                    >
+                    <button class="gps-button" onclick="detectMyLocation()" title="Use my GPS" aria-label="Detect my GPS location">📍</button>
                 </div>
             </div>
+            <div id="start-suggestions-dropdown" class="suggestions-dropdown" style="display:none;"></div>
 
-            <div class="risk-indicator" id="risk-indicator" role="status" aria-live="polite">
-                <div class="risk-badge" id="risk-badge">
-                    <span class="risk-icon" aria-hidden="true">⚠️</span>
-                    <span class="risk-text" id="risk-text">CALCULATING...</span>
-                </div>
-                <div class="risk-details" id="risk-details">
-                    Analyzing route safety...
+            <div class="dark-input-wrap">
+                <div class="dark-input-label">To</div>
+                <div class="dark-input-row">
+                    <input
+                        type="text"
+                        id="destination"
+                        class="dark-input"
+                        placeholder="Where to?"
+                        autocomplete="off"
+                        oninput="searchDestinations(this.value)"
+                    >
                 </div>
             </div>
+            <div id="suggestions-dropdown" class="suggestions-dropdown" style="display:none;"></div>
+        </div>
+    </div>
 
-            <!-- Danger Zones List -->
-            <div id="danger-zones-list" class="danger-zones-list" style="display:none;">
-                <p class="zones-header">⚠️ Danger zones on this route:</p>
-                <div id="zones-content"></div>
-            </div>
-
-            <button class="start-nav-button" onclick="startNavigation()">
-                🟢 Start Navigation
+    <!-- Demo routes -->
+    <div class="quick-destinations">
+        <p class="quick-label">Try a demo route:</p>
+        <div class="quick-chips">
+            <button class="quick-chip" style="border-color:#ef4444;color:#ef4444" onclick="selectDemoRoute('Thong Lo', 13.7244, 100.5787, 'Pinklao', 13.7769, 100.4735)">
+                &#x26A0;&#xFE0F; Dramatic Tradeoff
+            </button>
+            <button class="quick-chip" style="border-color:#f97316;color:#f97316" onclick="selectDemoRoute('Bearing', 13.6680, 100.6048, 'Minburi', 13.7918, 100.7316)">
+                &#x1F6A8; High-Risk Commute
+            </button>
+            <button class="quick-chip" style="border-color:#eab308;color:#eab308" onclick="selectDemoRoute('Silom', 13.7260, 100.5233, 'Chatuchak', 13.7999, 100.5537)">
+                &#x2696;&#xFE0F; Balanced Choice
+            </button>
+            <button class="quick-chip" style="border-color:#22c55e;color:#22c55e" onclick="selectDemoRoute('Siam Paragon', 13.7467, 100.5348, 'Grand Palace', 13.7500, 100.4914)">
+                &#x2705; Safe Tourist Route
             </button>
         </div>
+    </div>
 
-        <!-- Multi-Route Selection (populated by JS after /api/compare-routes call) -->
-        <div id="route-results" style="display:none;">
-            <div id="route-compare-map" style="height: 260px; border-radius: 12px; overflow: hidden; margin-bottom: 16px;"></div>
-            <div id="route-selection-content"></div>
+    <!-- Find route CTA -->
+    <button id="findSaferRouteBtn" class="find-safer-route-btn" disabled onclick="onFindSaferRouteClick()">
+        Find Safer Route
+    </button>
+
+    <!-- Route error -->
+    <div id="route-error" style="display:none; margin-top:12px; background:#422006; border:1px solid #92400e; border-radius:10px; padding:12px 14px;">
+        <div style="display:flex; align-items:flex-start; gap:10px;">
+            <span style="font-size:18px; flex-shrink:0;">⚠️</span>
+            <div style="flex:1;">
+                <p id="route-error-message" style="margin:0 0 2px; font-weight:600; color:#fde68a; font-size:13px;"></p>
+                <p style="margin:0; font-size:12px; color:#fcd34d;">Try a demo route above or check your connection.</p>
+            </div>
+            <button onclick="hideElement('route-error')" style="background:none;border:none;font-size:16px;cursor:pointer;color:#fcd34d;padding:0;">&times;</button>
         </div>
+    </div>
+
+    <!-- Route preview (single-route legacy path) -->
+    <div id="route-preview" class="route-preview" style="display:none;">
+        <div class="preview-header">
+            <h4 id="preview-title">Route to destination</h4>
+        </div>
+        <div class="route-stats">
+            <div class="stat-box">
+                <div class="stat-icon">⏱️</div>
+                <div class="stat-content">
+                    <div class="stat-value" id="preview-time">--</div>
+                    <div class="stat-label">minutes</div>
+                </div>
+            </div>
+            <div class="stat-box">
+                <div class="stat-icon">🛣️</div>
+                <div class="stat-content">
+                    <div class="stat-value" id="preview-distance">--</div>
+                    <div class="stat-label">kilometers</div>
+                </div>
+            </div>
+        </div>
+        <div class="risk-indicator" id="risk-indicator" role="status" aria-live="polite">
+            <div class="risk-badge" id="risk-badge">
+                <span class="risk-icon" aria-hidden="true">⚠️</span>
+                <span class="risk-text" id="risk-text">CALCULATING...</span>
+            </div>
+            <div class="risk-details" id="risk-details">Analyzing route safety...</div>
+        </div>
+        <div id="danger-zones-list" class="danger-zones-list" style="display:none;">
+            <p class="zones-header">⚠️ Danger zones on this route:</p>
+            <div id="zones-content"></div>
+        </div>
+        <button class="start-nav-button" onclick="startNavigation()">🟢 Start Navigation</button>
+    </div>
+
+    <!-- ── Step 5: Multi-route results (cards only — map is the background) ── -->
+    <div id="route-results" style="display:none;">
+        <div id="route-selection-content"></div>
     </div>
 </div>
 
-<!-- AI Analyzing Overlay (shown while /api/compare-routes is in-flight) -->
+<!-- AI Analyzing Overlay -->
 <div id="ai-analyzing-overlay" class="ai-analyzing-overlay" style="display:none;">
     <div class="ai-analyzing-content">
         <div class="ai-spinner">
             <div class="spinner-ring"></div>
             <div class="ai-icon">🤖</div>
         </div>
-
         <h3>AI Analyzing Routes</h3>
         <p id="analysis-status">Requesting route alternatives from OSRM...</p>
-
         <div class="analysis-progress">
             <div class="progress-step" id="step-1">
                 <div class="step-icon">📍</div>
@@ -182,7 +179,6 @@
                 <div class="step-status">⏳</div>
             </div>
         </div>
-
         <div class="analysis-stats">
             <span id="routes-analyzed">0</span> routes analyzed
         </div>
@@ -192,21 +188,16 @@
 <!-- Navigation Fullscreen Mode -->
 <div id="navigation-fullscreen" class="navigation-fullscreen">
     <div class="nav-header">
-        <button class="nav-exit-btn" onclick="exitNavigation()">
-            ← Exit
-        </button>
+        <button class="nav-exit-btn" onclick="exitNavigation()">← Exit</button>
         <div class="nav-info">
             <span id="nav-eta">-- min</span>
             <span class="nav-separator">•</span>
             <span id="nav-distance">-- km</span>
         </div>
     </div>
-
     <div class="nav-map-container">
         <div id="navigation-map" style="height: 100%;"></div>
     </div>
-
-    <!-- Navigation Alert Box -->
     <div id="nav-alert-box" class="nav-alert-box safe" role="alert" aria-live="assertive">
         <div class="alert-content">
             <div class="alert-icon" id="nav-alert-icon" aria-hidden="true">✓</div>
@@ -216,8 +207,6 @@
             </div>
         </div>
     </div>
-
-    <!-- Navigation Stats -->
     <div class="nav-stats">
         <div class="nav-stat">
             <div class="nav-stat-value" id="nav-current-km">0.0</div>
@@ -232,8 +221,6 @@
             <div class="nav-stat-label">Total (km)</div>
         </div>
     </div>
-
-    <!-- Progress Bar -->
     <div class="nav-progress-container">
         <div class="nav-progress-bar">
             <div class="nav-progress-fill" id="nav-progress-fill" style="width: 0%"></div>
@@ -241,6 +228,7 @@
         <div class="nav-progress-text" id="nav-progress-text">0%</div>
     </div>
 </div>
+
 {% endblock %}
 
 {% block extra_js %}
@@ -248,5 +236,5 @@
 {% if google_maps_api_key %}
 <script src="https://maps.googleapis.com/maps/api/js?key={{ google_maps_api_key }}&libraries=places&callback=initGooglePlaces" async defer></script>
 {% endif %}
-<script src="{{ url_for('static', filename='js/trip-planner.js', v='20260318') }}"></script>
+<script src="{{ url_for('static', filename='js/trip-planner.js', v='20260320') }}"></script>
 {% endblock %}

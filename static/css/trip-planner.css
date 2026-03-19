@@ -1530,3 +1530,418 @@ body.demo-mode .start-nav-button {
 .pac-logo::after {
     margin: 6px 12px;
 }
+
+/* ==========================================================
+   BOLT-STYLE MAP-FIRST LAYOUT
+   Steps 2–7: full-screen map + dark bottom sheet
+   ========================================================== */
+
+/* ── Step 2: Full-screen background map ── */
+.planner-bg-map {
+    position: fixed;
+    inset: 0;
+    z-index: 1;
+}
+
+/* ── Step 7: Dark top bar ── */
+.planner-topbar {
+    position: fixed;
+    top: 0; left: 0; right: 0;
+    z-index: 20;
+    height: 56px;
+    background: linear-gradient(to bottom, rgba(0,0,0,0.65) 0%, transparent 100%);
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 0 20px;
+    pointer-events: none;
+}
+
+.planner-topbar * { pointer-events: auto; }
+
+.planner-brand {
+    color: #ffffff;
+    font-weight: 700;
+    font-size: 15px;
+    letter-spacing: 0.3px;
+}
+
+.planner-icon-btn {
+    background: rgba(255,255,255,0.15);
+    border: 1px solid rgba(255,255,255,0.2);
+    color: white;
+    width: 36px; height: 36px;
+    border-radius: 50%;
+    font-size: 15px;
+    cursor: pointer;
+    display: flex; align-items: center; justify-content: center;
+    backdrop-filter: blur(4px);
+    transition: background 0.2s;
+}
+
+.planner-icon-btn:hover { background: rgba(255,255,255,0.25); }
+
+/* Network status bar (floats above sheet) */
+.network-status-bar {
+    position: fixed;
+    bottom: 240px; left: 16px; right: 16px;
+    z-index: 25;
+    background: #78350f;
+    color: #fde68a;
+    padding: 8px 14px;
+    border-radius: 8px;
+    font-size: 13px;
+    text-align: center;
+}
+
+/* ── Step 3: Bottom sheet ── */
+.planner-sheet {
+    position: fixed;
+    bottom: 0; left: 0; right: 0;
+    z-index: 20;
+    background: #111827;
+    border-radius: 24px 24px 0 0;
+    padding: 0 16px 32px;
+    transition: height 0.38s cubic-bezier(0.4, 0, 0.2, 1);
+    overflow: hidden;
+}
+
+.planner-sheet.collapsed { height: 230px; }
+.planner-sheet.expanded  { height: 72vh; overflow-y: auto; }
+
+/* Drag handle */
+.sheet-handle-bar {
+    width: 36px; height: 4px;
+    background: rgba(255,255,255,0.22);
+    border-radius: 2px;
+    margin: 12px auto 16px;
+    cursor: pointer;
+    flex-shrink: 0;
+    transition: background 0.2s;
+}
+.sheet-handle-bar:hover { background: rgba(255,255,255,0.4); }
+
+/* ── Step 4: Input connector + dark fields ── */
+.sheet-inputs {
+    display: flex;
+    gap: 12px;
+    margin-bottom: 14px;
+}
+
+.location-connector {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    padding-top: 22px;
+    flex-shrink: 0;
+}
+
+.conn-dot {
+    width: 10px; height: 10px;
+    border-radius: 50%;
+    flex-shrink: 0;
+}
+.conn-green { background: #34D399; }
+.conn-red   { background: #F87171; }
+.conn-line  {
+    width: 2px;
+    flex: 1;
+    min-height: 18px;
+    background: #374151;
+    margin: 4px 0;
+}
+
+.sheet-input-fields {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+}
+
+.dark-input-wrap {
+    display: flex;
+    flex-direction: column;
+    gap: 3px;
+}
+
+.dark-input-label {
+    font-size: 10px;
+    font-weight: 700;
+    color: #6B7280;
+    text-transform: uppercase;
+    letter-spacing: 0.6px;
+    padding-left: 2px;
+}
+
+.dark-input-row {
+    display: flex;
+    align-items: center;
+    background: #1F2937;
+    border-radius: 10px;
+    padding: 10px 12px;
+    gap: 8px;
+    border: 1.5px solid transparent;
+    transition: border-color 0.2s;
+}
+.dark-input-row:focus-within { border-color: #34D399; }
+
+.dark-input {
+    flex: 1;
+    background: transparent;
+    border: none;
+    outline: none;
+    color: #F9FAFB;
+    font-size: 15px;
+    font-family: inherit;
+    min-width: 0;
+}
+.dark-input::placeholder { color: #4B5563; }
+
+/* GPS button inside dark input */
+.planner-sheet .gps-button {
+    background: #374151;
+    border: none;
+    border-radius: 6px;
+    padding: 5px 8px;
+    font-size: 15px;
+    cursor: pointer;
+    color: white;
+    line-height: 1;
+    transition: background 0.2s;
+    flex-shrink: 0;
+}
+.planner-sheet .gps-button:hover { background: #4B5563; }
+
+/* ── Demo chips — dark ── */
+.planner-sheet .quick-destinations { margin: 0 0 12px; }
+.planner-sheet .quick-label {
+    color: #6B7280; font-size: 11px; font-weight: 600;
+    margin-bottom: 8px; text-transform: uppercase; letter-spacing: 0.4px;
+}
+.planner-sheet .quick-chips { display: flex; flex-wrap: wrap; gap: 6px; }
+.planner-sheet .quick-chip {
+    background: #1F2937;
+    border-width: 1px;
+    border-style: solid;
+    border-radius: 20px;
+    padding: 6px 13px;
+    font-size: 12px;
+    cursor: pointer;
+    transition: all 0.2s;
+    white-space: nowrap;
+}
+.planner-sheet .quick-chip:hover {
+    filter: brightness(1.3);
+    transform: translateY(-1px);
+}
+
+/* ── Find Safer Route CTA ── */
+.planner-sheet .find-safer-route-btn {
+    width: 100%;
+    padding: 14px;
+    font-size: 16px;
+    font-weight: 700;
+    color: #064E3B;
+    border: none;
+    border-radius: 14px;
+    cursor: pointer;
+    background: #34D399;
+    transition: all 0.2s;
+    letter-spacing: 0.2px;
+    margin-bottom: 0;
+    margin-top: 4px;
+}
+.planner-sheet .find-safer-route-btn:hover:not(:disabled) {
+    background: #10B981;
+    transform: translateY(-1px);
+    box-shadow: 0 4px 16px rgba(52,211,153,0.4);
+}
+.planner-sheet .find-safer-route-btn:disabled {
+    background: #1F2937;
+    color: #4B5563;
+    cursor: not-allowed;
+    border: 1.5px solid #374151;
+}
+
+/* ── Suggestions dropdown — dark ── */
+.planner-sheet .suggestions-dropdown {
+    background: #1F2937;
+    border-radius: 10px;
+    box-shadow: 0 8px 24px rgba(0,0,0,0.5);
+    max-height: 200px;
+    overflow-y: auto;
+    z-index: 100;
+    position: relative;
+    margin-top: 4px;
+    border: 1px solid #374151;
+}
+.planner-sheet .suggestion-item {
+    padding: 11px 14px;
+    cursor: pointer;
+    border-bottom: 1px solid #374151;
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    transition: background 0.15s;
+}
+.planner-sheet .suggestion-item:hover { background: #374151; }
+.planner-sheet .suggestion-item:last-child { border-bottom: none; }
+.planner-sheet .suggestion-name { color: #F9FAFB; font-size: 14px; font-weight: 500; }
+.planner-sheet .suggestion-address { color: #9CA3AF; font-size: 12px; }
+
+/* ── Step 5: Route selection container — dark ── */
+.planner-sheet .route-selection-container {
+    background: transparent;
+    border: none;
+    box-shadow: none;
+    padding: 4px 0 0;
+    margin-top: 12px;
+}
+.planner-sheet .route-selection-container h3 { color: #F9FAFB; margin-bottom: 4px; }
+.planner-sheet .subtitle { color: #6B7280; }
+
+.planner-sheet .ml-analysis-badge {
+    background: rgba(102,126,234,0.12);
+    border: 1px solid rgba(102,126,234,0.25);
+    box-shadow: none;
+}
+
+/* ── Step 5: Dark route cards ── */
+.planner-sheet .route-card {
+    background: #1F2937;
+    border: 1.5px solid #374151;
+    border-radius: 12px;
+}
+.planner-sheet .route-card:hover {
+    border-color: #4B5563;
+    box-shadow: 0 4px 16px rgba(0,0,0,0.4);
+    transform: translateY(-1px);
+    background: #1F2937;
+}
+.planner-sheet .route-card.selected {
+    border-color: #34D399;
+    background: rgba(52,211,153,0.06);
+    box-shadow: 0 0 0 2px rgba(52,211,153,0.15);
+}
+.planner-sheet .route-card.recommended { border-color: #34D399; }
+.planner-sheet .route-card.recommended.selected {
+    border-color: #10B981;
+    background: rgba(52,211,153,0.08);
+}
+
+.planner-sheet .route-badge.fastest { background: rgba(59,130,246,0.15); color: #93C5FD; }
+.planner-sheet .route-badge.safest  { background: rgba(52,211,153,0.15); color: #34D399; }
+.planner-sheet .recommended-badge   { background: rgba(252,211,77,0.12); color: #FCD34D; }
+
+.planner-sheet .route-time     { color: #F9FAFB; }
+.planner-sheet .route-distance { color: #9CA3AF; }
+
+/* ── Step 5: Dark risk pills ── */
+.planner-sheet .route-card-risk.high   { background: rgba(239,68,68,0.15);  color: #F87171; }
+.planner-sheet .route-card-risk.medium { background: rgba(245,158,11,0.15); color: #FCD34D; }
+.planner-sheet .route-card-risk.low    { background: rgba(52,211,153,0.15); color: #34D399; }
+
+.planner-sheet .warning-note { background: rgba(245,158,11,0.1);  color: #FCD34D; }
+.planner-sheet .safe-note    { background: rgba(52,211,153,0.1);  color: #34D399; }
+.planner-sheet .tradeoff-headline { background: rgba(52,211,153,0.12); color: #34D399; }
+
+/* ── Step 6: CTA buttons — dark ── */
+.planner-sheet .select-route-btn {
+    background: transparent;
+    border: 1.5px solid #374151;
+    color: #9CA3AF;
+}
+.planner-sheet .select-route-btn:hover {
+    background: #374151;
+    color: #F9FAFB;
+}
+.planner-sheet .select-route-btn.primary {
+    background: #34D399;
+    border-color: #34D399;
+    color: #064E3B;
+    font-weight: 700;
+}
+.planner-sheet .select-route-btn.primary:hover {
+    background: #10B981;
+    border-color: #10B981;
+}
+
+.planner-sheet .ai-recommendation {
+    background: rgba(102,126,234,0.12);
+    border: 1px solid rgba(102,126,234,0.25);
+    color: #C7D2FE;
+}
+
+/* ── Selected route details panel — dark ── */
+.planner-sheet .selected-route-details {
+    background: #1F2937;
+    border: 1.5px solid #34D399;
+}
+.planner-sheet .selected-route-details h3 { color: #F9FAFB; }
+.planner-sheet .summary-item .label { color: #9CA3AF; }
+.planner-sheet .summary-item .value { color: #F9FAFB; }
+.planner-sheet .summary-item .value.high   { color: #F87171; }
+.planner-sheet .summary-item .value.medium { color: #FCD34D; }
+.planner-sheet .summary-item .value.low    { color: #34D399; }
+
+.planner-sheet .start-navigation-btn {
+    background: #34D399;
+    color: #064E3B;
+    box-shadow: 0 4px 12px rgba(52,211,153,0.3);
+}
+.planner-sheet .start-navigation-btn:hover:not(:disabled) {
+    background: #10B981;
+}
+.planner-sheet .change-route-btn {
+    background: transparent;
+    border-color: #374151;
+    color: #9CA3AF;
+}
+.planner-sheet .change-route-btn:hover {
+    border-color: #6B7280;
+    color: #D1D5DB;
+}
+
+.planner-sheet .danger-zones-preview {
+    background: rgba(245,158,11,0.1);
+    border-left-color: #F59E0B;
+}
+.planner-sheet .danger-zones-preview h4 { color: #FCD34D; }
+.planner-sheet .danger-zones-preview p  { color: #FDE68A; }
+.planner-sheet .safe-route-note {
+    background: rgba(52,211,153,0.1);
+    color: #34D399;
+}
+
+/* Google Places autocomplete — dark theme override */
+.planner-sheet ~ .pac-container,
+body .pac-container {
+    background: #1F2937;
+    border: 1px solid #374151;
+    border-radius: 10px;
+    box-shadow: 0 8px 24px rgba(0,0,0,0.5);
+}
+body .pac-item {
+    background: #1F2937;
+    color: #F9FAFB;
+    border-top-color: #374151;
+}
+body .pac-item:hover,
+body .pac-item-selected { background: #374151 !important; }
+body .pac-item-query { color: #F9FAFB; }
+body .pac-matched { color: #34D399; }
+
+/* Leaflet attribution — keep readable on dark map */
+.planner-bg-map .leaflet-control-attribution {
+    background: rgba(17,24,39,0.75) !important;
+    color: #9CA3AF !important;
+    font-size: 10px;
+}
+.planner-bg-map .leaflet-control-attribution a { color: #6B7280; }
+
+/* Mobile — taller collapsed sheet so chips are visible */
+@media (max-width: 480px) {
+    .planner-sheet.collapsed { height: 260px; }
+    .planner-sheet.expanded  { height: 82vh; }
+    .planner-sheet { padding: 0 12px 24px; }
+}

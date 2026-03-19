@@ -516,9 +516,10 @@ function sleep(ms) {
 
 function initCompareMap() {
     if (!tripCompareMap) {
-        tripCompareMap = L.map("route-compare-map", {
+        // Fallback: init on main-planner-map if not yet done
+        tripCompareMap = L.map("main-planner-map", {
             zoomControl: true,
-            scrollWheelZoom: false
+            scrollWheelZoom: true
         }).setView([13.75, 100.53], 12);
 
         L.tileLayer("https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png", {
@@ -537,32 +538,31 @@ function displayMultipleRoutes(data) {
     };
     selectedRoute = null;
 
-    // Reveal results container (map + selection cards are inside)
+    // Reveal results container (cards only — map is the full-screen background)
     showElement("route-results");
 
-    // Render route selection cards immediately (doesn't depend on map)
+    // Render route selection cards
     showRouteSelectionUI(data);
 
-    // Defer Leaflet map init so the browser has time to paint the container
-    // before Leaflet measures its dimensions. Without this delay the map
-    // renders as a grey box because the element reports 0×0 size.
+    // Expand the bottom sheet to show route cards
+    expandSheet();
+
+    // Draw routes on the background map
     setTimeout(() => {
-        initCompareMap();
         clearPreviewMap();
 
         // Draw both routes: blue = fast, green = safe
         displayRouteOnMap(data.fast_route, "fast", "#3B82F6", 0.75);
         displayRouteOnMap(data.safe_route, "safe", "#10B981", 0.75);
 
-        // Fit map bounds to encompass both routes
+        // Fit background map bounds to encompass both routes
         const allLayers = Object.values(routeLayers);
-        if (allLayers.length > 0) {
+        if (allLayers.length > 0 && tripCompareMap) {
             const group = L.featureGroup(allLayers);
             tripCompareMap.fitBounds(group.getBounds(), { padding: [50, 50] });
         }
 
-        // Second invalidateSize after fitBounds for reliable tile loading
-        setTimeout(() => tripCompareMap.invalidateSize(), 100);
+        if (tripCompareMap) setTimeout(() => tripCompareMap.invalidateSize(), 100);
     }, 50);
 }
 
@@ -1631,6 +1631,36 @@ document.addEventListener("DOMContentLoaded", () => {
             startInput.value = DEFAULT_START.name;
         }
     }
+
+    // ── Bolt-style: pre-initialize the full-screen background map ──
+    const mapEl = document.getElementById("main-planner-map");
+    if (mapEl && !tripCompareMap) {
+        tripCompareMap = L.map("main-planner-map", {
+            zoomControl: true,
+            scrollWheelZoom: true,
+            attributionControl: true,
+        }).setView([13.75, 100.53], 12);
+
+        L.tileLayer("https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png", {
+            attribution: "© OpenStreetMap contributors",
+            maxZoom: 19,
+        }).addTo(tripCompareMap);
+    }
+
+    // ── Bottom sheet handle: toggle expanded/collapsed on tap ──
+    const handle = document.getElementById("sheet-handle");
+    if (handle) {
+        handle.addEventListener("click", () => {
+            const sheet = document.getElementById("planner-sheet");
+            if (sheet) {
+                if (sheet.classList.contains("collapsed")) {
+                    expandSheet();
+                } else {
+                    collapseSheet();
+                }
+            }
+        });
+    }
 });
 
 // === AUTO-REFRESH DEMO ROUTES ON STARTUP ===
@@ -1676,3 +1706,48 @@ window.addEventListener("online", () => {
     // Try refreshing demo routes when coming back online
     tryRefreshDemoRoutes();
 });
+
+// ===== BOLT-STYLE SHEET HELPERS =====
+
+function expandSheet() {
+    const sheet = document.getElementById("planner-sheet");
+    if (sheet) {
+        sheet.classList.remove("collapsed");
+        sheet.classList.add("expanded");
+    }
+    // Invalidate map after transition so tiles render correctly
+    setTimeout(() => {
+        if (tripCompareMap) tripCompareMap.invalidateSize();
+    }, 400);
+}
+
+function collapseSheet() {
+    const sheet = document.getElementById("planner-sheet");
+    if (sheet) {
+        sheet.classList.remove("expanded");
+        sheet.classList.add("collapsed");
+    }
+    setTimeout(() => {
+        if (tripCompareMap) tripCompareMap.invalidateSize();
+    }, 400);
+}
+
+function togglePlannerLayers() {
+    // Cycle between standard and CartoDB dark tile layer
+    if (!tripCompareMap) return;
+    const currentLayers = [];
+    tripCompareMap.eachLayer((l) => { if (l instanceof L.TileLayer) currentLayers.push(l); });
+    const isDark = currentLayers.some((l) => l._url && l._url.includes("cartocdn"));
+
+    currentLayers.forEach((l) => tripCompareMap.removeLayer(l));
+
+    if (isDark) {
+        L.tileLayer("https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png", {
+            attribution: "© OpenStreetMap contributors", maxZoom: 19,
+        }).addTo(tripCompareMap);
+    } else {
+        L.tileLayer("https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png", {
+            attribution: "© OpenStreetMap contributors © CARTO", maxZoom: 19,
+        }).addTo(tripCompareMap);
+    }
+}
