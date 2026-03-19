@@ -6,9 +6,10 @@ let tripNavigationMap = null;
 let routeOptions = {};   // { fast: routeObj, safe: routeObj }
 let routeLayers = {};    // { fast: L.Polyline, safe: L.Polyline }
 let selectedRoute = null;
-// Preview markers shown before the user hits "Find Safer Route"
+// Preview markers + route line shown before the user hits "Find Safer Route"
 let previewStartMarker = null;
 let previewEndMarker = null;
+let previewRouteLine = null;
 let tripCompareMap = null;
 let tripNavigationInterval = null;
 let tripCurrentDistance = 0;
@@ -621,10 +622,51 @@ function clearPreviewMarkers() {
         tripCompareMap.removeLayer(previewEndMarker);
         previewEndMarker = null;
     }
+    if (previewRouteLine && tripCompareMap) {
+        tripCompareMap.removeLayer(previewRouteLine);
+        previewRouteLine = null;
+    }
+}
+
+// Draw a thin dashed grey preview line using OSRM — no backend call needed.
+// Called automatically once both markers are set.
+async function fetchAndDrawPreviewRoute() {
+    if (!tripCompareMap || !previewStartMarker || !previewEndMarker) return;
+    const sLatLng = previewStartMarker.getLatLng();
+    const eLatLng = previewEndMarker.getLatLng();
+    const url = `https://router.project-osrm.org/route/v1/driving/`
+        + `${sLatLng.lng},${sLatLng.lat};${eLatLng.lng},${eLatLng.lat}`
+        + `?overview=full&geometries=geojson`;
+    try {
+        const res = await fetch(url);
+        if (!res.ok) return;
+        const data = await res.json();
+        if (!data.routes || !data.routes[0]) return;
+        // Remove old preview line
+        if (previewRouteLine && tripCompareMap) {
+            tripCompareMap.removeLayer(previewRouteLine);
+            previewRouteLine = null;
+        }
+        // Still valid? (user may have already clicked Find Safer Route)
+        if (!previewStartMarker || !previewEndMarker) return;
+        const coords = data.routes[0].geometry.coordinates.map(([lng, lat]) => [lat, lng]);
+        previewRouteLine = L.polyline(coords, {
+            color: "#9CA3AF",
+            weight: 3,
+            opacity: 0.55,
+            dashArray: "8 6",
+            interactive: false,
+        }).addTo(tripCompareMap);
+        // Re-fit so line is fully visible
+        const group = L.featureGroup([previewStartMarker, previewEndMarker, previewRouteLine]);
+        tripCompareMap.fitBounds(group.getBounds(), { padding: [60, 60] });
+    } catch (_) {
+        // Network failure — markers stay, no line drawn
+    }
 }
 
 // Place a green (start) or red (end) circle marker on the background map.
-// If both markers are present, fit bounds to show both.
+// If both markers are present, fit bounds and fetch a preview route line.
 function setPreviewMarker(lat, lon, isStart, zoom) {
     if (!tripCompareMap) return;
     const color = isStart ? "#34D399" : "#EF4444";
@@ -648,6 +690,7 @@ function setPreviewMarker(lat, lon, isStart, zoom) {
     if (previewStartMarker && previewEndMarker) {
         const group = L.featureGroup([previewStartMarker, previewEndMarker]);
         tripCompareMap.fitBounds(group.getBounds(), { padding: [60, 60] });
+        fetchAndDrawPreviewRoute();
     } else {
         tripCompareMap.setView([lat, lon], zoom || 13);
     }
