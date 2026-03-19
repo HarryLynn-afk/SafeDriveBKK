@@ -631,8 +631,8 @@ function drawStraightPreviewLine() {
     const e = previewEndMarker.getLatLng();
     previewRouteLine = L.polyline([[s.lat, s.lng], [e.lat, e.lng]], {
         color: "#15803D",
-        weight: 4,
-        opacity: 0.7,
+        weight: 7,
+        opacity: 0.8,
         dashArray: "10 8",
         interactive: false,
     }).addTo(tripCompareMap);
@@ -660,8 +660,8 @@ function fetchAndDrawPreviewRoute() {
         );
         previewRouteLine = L.polyline(coords, {
             color: "#15803D",
-            weight: 5,
-            opacity: 0.8,
+            weight: 7,
+            opacity: 0.85,
             interactive: false,
         }).addTo(tripCompareMap);
         fitBoundsAboveSheet([previewStartMarker, previewEndMarker, previewRouteLine]);
