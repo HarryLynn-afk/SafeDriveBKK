@@ -4,7 +4,8 @@ let tripNavigationMap = null;
 
 // ===== MULTI-ROUTE COMPARISON STATE =====
 let routeOptions = {};   // { fast: routeObj, safe: routeObj }
-let routeLayers = {};    // { fast: L.Polyline, safe: L.Polyline }
+let routeLayers = {};    // { fast: google.maps.Polyline, safe: google.maps.Polyline }
+let navPolylines = [];   // navigation map polylines for clearing
 let selectedRoute = null;
 // Preview markers + route line shown before the user hits "Find Safer Route"
 let previewStartMarker = null;
@@ -65,6 +66,21 @@ const DEFAULT_START = { name: "Siam Paragon", lat: 13.7467, lon: 100.5348 };
 // Google Places Autocomplete (used when API key is available)
 // ---------------------------------------------------------------------------
 window.initGooglePlaces = function () {
+    // ── Initialize background map (Google Maps) ──
+    const mapEl = document.getElementById("main-planner-map");
+    if (mapEl && !tripCompareMap) {
+        tripCompareMap = new google.maps.Map(mapEl, {
+            center: { lat: 13.75, lng: 100.53 },
+            zoom: 12,
+            zoomControl: true,
+            mapTypeControl: false,
+            streetViewControl: false,
+            fullscreenControl: false,
+        });
+        // Map is never empty: place default start marker immediately
+        setPreviewMarker(DEFAULT_START.lat, DEFAULT_START.lon, true, 13);
+    }
+
     const startInput = document.getElementById("start-location");
     const destInput = document.getElementById("destination");
     if (!startInput || !destInput) return;
@@ -523,17 +539,18 @@ function sleep(ms) {
 
 function initCompareMap() {
     if (!tripCompareMap) {
-        // Fallback: init on main-planner-map if not yet done
-        tripCompareMap = L.map("main-planner-map", {
+        const el = document.getElementById("main-planner-map");
+        if (!el) return null;
+        tripCompareMap = new google.maps.Map(el, {
+            center: { lat: 13.75, lng: 100.53 },
+            zoom: 12,
+            disableDefaultUI: false,
             zoomControl: true,
-            scrollWheelZoom: true
-        }).setView([13.75, 100.53], 12);
-
-        L.tileLayer("https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png", {
-            attribution: "© OpenStreetMap contributors"
-        }).addTo(tripCompareMap);
+            mapTypeControl: false,
+            streetViewControl: false,
+            fullscreenControl: false,
+        });
     }
-    tripCompareMap.invalidateSize();
     return tripCompareMap;
 }
 
@@ -563,79 +580,73 @@ function displayMultipleRoutes(data) {
         displayRouteOnMap(data.safe_route, "safe", "#10B981", 0.75);
 
         // Fit background map bounds to encompass both routes
-        const allLayers = Object.values(routeLayers);
-        if (allLayers.length > 0 && tripCompareMap) {
-            const group = L.featureGroup(allLayers);
-            tripCompareMap.fitBounds(group.getBounds(), { padding: [50, 50] });
+        if (tripCompareMap) {
+            const bounds = new google.maps.LatLngBounds();
+            Object.values(routeLayers).forEach((poly) => {
+                poly.getPath().forEach((pt) => bounds.extend(pt));
+            });
+            if (!bounds.isEmpty()) tripCompareMap.fitBounds(bounds, { top: 60, right: 60, bottom: 60, left: 60 });
         }
-
-        if (tripCompareMap) setTimeout(() => tripCompareMap.invalidateSize(), 100);
     }, 50);
 }
 
 function displayRouteOnMap(route, routeId, color, opacity) {
     if (!tripCompareMap) return;
 
-    // Waypoints from compare-routes are [[lat, lon], ...] arrays
-    const waypoints = route.waypoints.map((wp) => (Array.isArray(wp) ? [wp[0], wp[1]] : [wp.lat, wp.lon]));
-    if (waypoints.length < 2) return;
+    const path = route.waypoints.map((wp) =>
+        Array.isArray(wp) ? { lat: wp[0], lng: wp[1] } : { lat: wp.lat, lng: wp.lon }
+    );
+    if (path.length < 2) return;
 
-    const routeLine = L.polyline(waypoints, {
-        color: color,
-        weight: 6,
-        opacity: opacity,
-        interactive: true
+    const routeLine = new google.maps.Polyline({
+        path,
+        strokeColor: color,
+        strokeWeight: 6,
+        strokeOpacity: opacity,
+        clickable: true,
+        map: tripCompareMap,
     });
 
-    routeLine.on("click", () => selectRoute(routeId));
-    routeLine.bindTooltip(routeId === "fast" ? "🚀 Fastest Route" : "🛡️ Safest Route", {
-        permanent: false,
-        direction: "center"
-    });
-
-    routeLine.addTo(tripCompareMap);
+    google.maps.event.addListener(routeLine, "click", () => selectRoute(routeId));
     routeLayers[routeId] = routeLine;
 }
 
 function clearPreviewMarkers() {
-    if (previewStartMarker && tripCompareMap) {
-        tripCompareMap.removeLayer(previewStartMarker);
-        previewStartMarker = null;
-    }
-    if (previewEndMarker && tripCompareMap) {
-        tripCompareMap.removeLayer(previewEndMarker);
-        previewEndMarker = null;
-    }
-    if (previewRouteLine && tripCompareMap) {
-        tripCompareMap.removeLayer(previewRouteLine);
-        previewRouteLine = null;
-    }
+    if (previewStartMarker) { previewStartMarker.setMap(null); previewStartMarker = null; }
+    if (previewEndMarker)   { previewEndMarker.setMap(null);   previewEndMarker = null;   }
+    if (previewRouteLine)   { previewRouteLine.setMap(null);   previewRouteLine = null;   }
 }
 
 // Fit bounds accounting for the bottom sheet covering ~300px of the viewport.
 function fitBoundsAboveSheet(layers) {
-    const group = L.featureGroup(layers.filter(Boolean));
-    if (!group.getLayers().length) return;
-    tripCompareMap.fitBounds(group.getBounds(), {
-        paddingTopLeft:     [50, 80],
-        paddingBottomRight: [50, 320],
+    if (!tripCompareMap) return;
+    const bounds = new google.maps.LatLngBounds();
+    layers.filter(Boolean).forEach((layer) => {
+        if (layer.getPosition) {
+            bounds.extend(layer.getPosition());
+        } else if (layer.getPath) {
+            layer.getPath().forEach((pt) => bounds.extend(pt));
+        }
     });
+    if (bounds.isEmpty()) return;
+    tripCompareMap.fitBounds(bounds, { top: 80, right: 50, bottom: 320, left: 50 });
 }
 
 // Draw (or replace) the preview line immediately as a straight dashed segment.
 // This gives instant visual feedback with zero network latency.
 function drawStraightPreviewLine() {
     if (!tripCompareMap || !previewStartMarker || !previewEndMarker) return;
-    if (previewRouteLine) { tripCompareMap.removeLayer(previewRouteLine); }
-    const s = previewStartMarker.getLatLng();
-    const e = previewEndMarker.getLatLng();
-    previewRouteLine = L.polyline([[s.lat, s.lng], [e.lat, e.lng]], {
-        color: "#15803D",
-        weight: 7,
-        opacity: 0.8,
-        dashArray: "10 8",
-        interactive: false,
-    }).addTo(tripCompareMap);
+    if (previewRouteLine) { previewRouteLine.setMap(null); }
+    const s = previewStartMarker.getPosition();
+    const e = previewEndMarker.getPosition();
+    previewRouteLine = new google.maps.Polyline({
+        path: [s, e],
+        strokeColor: "#15803D",
+        strokeWeight: 7,
+        strokeOpacity: 0.8,
+        icons: [{ icon: { path: "M 0,-1 0,1", strokeOpacity: 1, scale: 4 }, offset: "0", repeat: "18px" }],
+        map: tripCompareMap,
+    });
 }
 
 // Async upgrade: replace straight line with real OSRM road geometry.
@@ -652,60 +663,54 @@ function fetchAndDrawPreviewRoute() {
     }, function (result, status) {
         if (status !== "OK") return;
         if (!previewStartMarker || !previewEndMarker) return;
-        if (previewRouteLine) { tripCompareMap.removeLayer(previewRouteLine); }
-        // Decode Google's encoded polyline into Leaflet [lat,lng] pairs
-        const encoded = result.routes[0].overview_polyline;
-        const coords = google.maps.geometry.encoding.decodePath(encoded).map(
-            (p) => [p.lat(), p.lng()]
-        );
-        previewRouteLine = L.polyline(coords, {
-            color: "#15803D",
-            weight: 7,
-            opacity: 0.85,
-            interactive: false,
-        }).addTo(tripCompareMap);
+        if (previewRouteLine) { previewRouteLine.setMap(null); }
+        const path = google.maps.geometry.encoding.decodePath(result.routes[0].overview_polyline);
+        previewRouteLine = new google.maps.Polyline({
+            path,
+            strokeColor: "#15803D",
+            strokeWeight: 7,
+            strokeOpacity: 0.85,
+            map: tripCompareMap,
+        });
         fitBoundsAboveSheet([previewStartMarker, previewEndMarker, previewRouteLine]);
     });
 }
 
 // Place a green (start) or red (end) circle marker on the background map.
-// When both markers exist: draw straight line instantly, then upgrade with OSRM.
+// When both markers exist: draw straight line instantly, then upgrade with Google Directions.
 function setPreviewMarker(lat, lon, isStart, zoom) {
     if (!tripCompareMap) return;
     const color = isStart ? "#34D399" : "#EF4444";
     const existing = isStart ? previewStartMarker : previewEndMarker;
-    if (existing) tripCompareMap.removeLayer(existing);
+    if (existing) existing.setMap(null);
 
-    const marker = L.circleMarker([lat, lon], {
-        radius: 10,
-        fillColor: color,
-        color: "#ffffff",
-        weight: 2,
-        fillOpacity: 1,
-    }).addTo(tripCompareMap);
+    const marker = new google.maps.Marker({
+        position: { lat, lng: lon },
+        map: tripCompareMap,
+        icon: {
+            path: google.maps.SymbolPath.CIRCLE,
+            scale: 10,
+            fillColor: color,
+            fillOpacity: 1,
+            strokeColor: "#ffffff",
+            strokeWeight: 2,
+        },
+    });
 
-    if (isStart) {
-        previewStartMarker = marker;
-    } else {
-        previewEndMarker = marker;
-    }
+    if (isStart) { previewStartMarker = marker; } else { previewEndMarker = marker; }
 
     if (previewStartMarker && previewEndMarker) {
-        // 1. Instant: straight dashed line + fit bounds
         drawStraightPreviewLine();
         fitBoundsAboveSheet([previewStartMarker, previewEndMarker]);
-        // 2. Async upgrade to real road geometry
         fetchAndDrawPreviewRoute();
     } else {
-        // Single marker — just centre the map on it
-        tripCompareMap.setView([lat, lon], zoom || 13);
+        tripCompareMap.setCenter({ lat, lng: lon });
+        tripCompareMap.setZoom(zoom || 13);
     }
 }
 
 function clearPreviewMap() {
-    Object.values(routeLayers).forEach((layer) => {
-        if (tripCompareMap) tripCompareMap.removeLayer(layer);
-    });
+    Object.values(routeLayers).forEach((poly) => poly.setMap(null));
     routeLayers = {};
     clearPreviewMarkers();
 }
@@ -1361,46 +1366,46 @@ function startNavigation() {
 }
 
 function initializeNavigationMap() {
-    // Create map if doesn't exist
-    if (!tripNavigationMap) {
-        tripNavigationMap = L.map("navigation-map", {
-            zoomControl: false
-        }).setView([13.75, 100.53], 12);
+    const el = document.getElementById("navigation-map");
+    if (!el) return;
 
-        L.tileLayer("https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png", {
-            attribution: "© OpenStreetMap contributors"
-        }).addTo(tripNavigationMap);
+    if (!tripNavigationMap) {
+        tripNavigationMap = new google.maps.Map(el, {
+            center: { lat: 13.75, lng: 100.53 },
+            zoom: 12,
+            zoomControl: false,
+            mapTypeControl: false,
+            streetViewControl: false,
+            fullscreenControl: false,
+        });
     }
 
-    // Invalidate size to fix rendering
-    tripNavigationMap.invalidateSize();
+    // Clear existing nav polylines and markers
+    navPolylines.forEach((p) => p.setMap(null));
+    navPolylines = [];
 
-    // Clear existing layers
-    tripNavigationMap.eachLayer((layer) => {
-        if (layer instanceof L.Polyline || (layer instanceof L.Marker && layer !== tripMovingMarker)) {
-            tripNavigationMap.removeLayer(layer);
-        }
-    });
+    function wpToLatLng(wp) {
+        return Array.isArray(wp) ? { lat: wp[0], lng: wp[1] } : { lat: wp.lat, lng: wp.lon };
+    }
 
-    // Draw route segments with colors
+    // Draw route segments with risk colors
     tripPlannerRouteData.segments.forEach((segment) => {
-        L.polyline(segment.waypoints, {
-            color: segment.color,
-            weight: 8,
-            opacity: 0.8
-        }).addTo(tripNavigationMap);
+        const path = segment.waypoints.map(wpToLatLng);
+        const poly = new google.maps.Polyline({
+            path, strokeColor: segment.color, strokeWeight: 8, strokeOpacity: 0.8, map: tripNavigationMap,
+        });
+        navPolylines.push(poly);
     });
 
-    // Fallback: when no segment data exists (compare-routes path), draw the
-    // full route as a single blue polyline so the map isn't blank.
+    // Fallback full route if no segments
     if (tripPlannerRouteData.segments.length === 0) {
         const fallbackWp = tripPlannerRouteData.route.waypoints;
         if (fallbackWp && fallbackWp.length >= 2) {
-            L.polyline(fallbackWp, {
-                color: "#3B82F6",
-                weight: 7,
-                opacity: 0.85
-            }).addTo(tripNavigationMap);
+            const poly = new google.maps.Polyline({
+                path: fallbackWp.map(wpToLatLng),
+                strokeColor: "#3B82F6", strokeWeight: 7, strokeOpacity: 0.85, map: tripNavigationMap,
+            });
+            navPolylines.push(poly);
         }
     }
 
@@ -1410,35 +1415,38 @@ function initializeNavigationMap() {
 
     if (lastSegment && Array.isArray(lastSegment.waypoints) && lastSegment.waypoints.length > 0) {
         const lastSegmentEnd = lastSegment.waypoints[lastSegment.waypoints.length - 1];
-        const connectorColor = String(lastSegment.color || "#28a745");
         const gapDistance = Math.sqrt(
             ((lastSegmentEnd[0] - routeEnd[0]) ** 2) + ((lastSegmentEnd[1] - routeEnd[1]) ** 2)
         );
-
         if (gapDistance > 0.001) {
-            // console.log("Drawing connector segment - gap detected:", gapDistance);
-            L.polyline([lastSegmentEnd, routeEnd], {
-                color: connectorColor,
-                weight: 8,
-                opacity: 0.8
-            }).addTo(tripNavigationMap);
+            const connector = new google.maps.Polyline({
+                path: [wpToLatLng(lastSegmentEnd), wpToLatLng(routeEnd)],
+                strokeColor: String(lastSegment.color || "#28a745"),
+                strokeWeight: 8, strokeOpacity: 0.8, map: tripNavigationMap,
+            });
+            navPolylines.push(connector);
         }
     }
 
-    // Add destination marker
-    L.marker(routeEnd, {
-        icon: L.divIcon({
-            className: "destination-marker",
-            html: '<div style="font-size: 32px;">🏁</div>',
-            iconSize: [32, 32],
-            iconAnchor: [16, 16]
-        })
-    }).addTo(tripNavigationMap);
+    // Destination marker
+    new google.maps.Marker({
+        position: wpToLatLng(routeEnd),
+        map: tripNavigationMap,
+        label: { text: "✦", color: "white", fontSize: "16px" },
+        icon: {
+            path: google.maps.SymbolPath.CIRCLE,
+            scale: 14,
+            fillColor: "#EF4444",
+            fillOpacity: 1,
+            strokeColor: "#ffffff",
+            strokeWeight: 2,
+        },
+    });
 
     // Fit to route bounds
-    tripNavigationMap.fitBounds(L.polyline(allWaypoints).getBounds(), {
-        padding: [50, 50]
-    });
+    const bounds = new google.maps.LatLngBounds();
+    allWaypoints.forEach((wp) => bounds.extend(wpToLatLng(wp)));
+    tripNavigationMap.fitBounds(bounds, { top: 50, right: 50, bottom: 50, left: 50 });
 }
 
 // ===== NAVIGATION SIMULATION =====
@@ -1469,26 +1477,23 @@ function startNavigationSimulation() {
     document.getElementById("nav-distance").textContent = displayDistance.toFixed(1) + " km";
     document.getElementById("nav-eta").textContent = tripPlannerRouteData.route.duration_min + " min";
 
-    // Create moving marker (car icon)
-    if (tripMovingMarker) {
-        tripNavigationMap.removeLayer(tripMovingMarker);
-    }
-
-    const carIcon = L.divIcon({
-        className: "car-marker",
-        html: `<div id="nav-arrow-marker" style="
-            width:36px;height:36px;display:flex;align-items:center;justify-content:center;
-            filter:drop-shadow(0 2px 6px rgba(0,0,0,0.45));transform:rotate(0deg);transition:transform 0.3s ease;">
-            <svg width="36" height="36" viewBox="0 0 36 36" fill="none" xmlns="http://www.w3.org/2000/svg">
-                <circle cx="18" cy="18" r="18" fill="#1a73e8"/>
-                <polygon points="18,6 27,28 18,23 9,28" fill="white"/>
-            </svg>
-        </div>`,
-        iconSize: [36, 36],
-        iconAnchor: [18, 18]
+    // Create moving arrow marker
+    if (tripMovingMarker) { tripMovingMarker.setMap(null); }
+    const startWp = waypoints[0];
+    tripMovingMarker = new google.maps.Marker({
+        position: Array.isArray(startWp) ? { lat: startWp[0], lng: startWp[1] } : { lat: startWp.lat, lng: startWp.lon },
+        map: tripNavigationMap,
+        icon: {
+            path: google.maps.SymbolPath.FORWARD_CLOSED_ARROW,
+            scale: 6,
+            fillColor: "#1a73e8",
+            fillOpacity: 1,
+            strokeColor: "#ffffff",
+            strokeWeight: 2,
+            rotation: 0,
+        },
+        zIndex: 999,
     });
-
-    tripMovingMarker = L.marker(waypoints[0], { icon: carIcon }).addTo(tripNavigationMap);
 
     // Show initial safe alert
     showNavigationAlert("safe", "✓", "Ready to Navigate", "Drive safely");
@@ -1546,24 +1551,22 @@ function updateNavigationUI(totalDistance, waypoints) {
     document.getElementById("nav-eta").textContent = remainingMinutes + " min";
 
     // Move marker using interpolated position for smooth movement
-    const prevPosition = tripMovingMarker ? tripMovingMarker.getLatLng() : null;
+    const prevPosition = tripMovingMarker ? tripMovingMarker.getPosition() : null;
     const newPosition = getInterpolatedPosition(tripCurrentDistance, waypoints);
+    const newLatLng = { lat: newPosition[0], lng: newPosition[1] };
     if (tripMovingMarker) {
-        tripMovingMarker.setLatLng(newPosition);
+        tripMovingMarker.setPosition(newLatLng);
         // Rotate arrow to face direction of travel
         if (prevPosition) {
-            const bearing = calcBearing(prevPosition.lat, prevPosition.lng, newPosition[0], newPosition[1]);
-            const arrowEl = document.getElementById("nav-arrow-marker");
-            if (arrowEl) arrowEl.style.transform = `rotate(${bearing}deg)`;
+            const bearing = calcBearing(prevPosition.lat(), prevPosition.lng(), newPosition[0], newPosition[1]);
+            const icon = tripMovingMarker.getIcon();
+            icon.rotation = bearing;
+            tripMovingMarker.setIcon(icon);
         }
     }
 
     // Pan map to follow marker smoothly
-    tripNavigationMap.panTo(newPosition, {
-        animate: true,
-        duration: 0.3,
-        easeLinearity: 0.5
-    });
+    tripNavigationMap.panTo(newLatLng);
 }
 
 function checkNavigationAlerts() {
@@ -1721,10 +1724,7 @@ function exitNavigation() {
     }
 
     // Remove moving marker
-    if (tripMovingMarker && tripNavigationMap) {
-        tripNavigationMap.removeLayer(tripMovingMarker);
-        tripMovingMarker = null;
-    }
+    if (tripMovingMarker) { tripMovingMarker.setMap(null); tripMovingMarker = null; }
 }
 
 // ===== DEMO MODE TOGGLE =====
@@ -1774,23 +1774,7 @@ document.addEventListener("DOMContentLoaded", () => {
         }
     }
 
-    // ── Bolt-style: pre-initialize the full-screen background map ──
-    const mapEl = document.getElementById("main-planner-map");
-    if (mapEl && !tripCompareMap) {
-        tripCompareMap = L.map("main-planner-map", {
-            zoomControl: true,
-            scrollWheelZoom: true,
-            attributionControl: true,
-        }).setView([13.75, 100.53], 12);
-
-        L.tileLayer("https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png", {
-            attribution: "© OpenStreetMap contributors",
-            maxZoom: 19,
-        }).addTo(tripCompareMap);
-
-        // Map is never empty: place default start marker immediately
-        setPreviewMarker(DEFAULT_START.lat, DEFAULT_START.lon, true, 13);
-    }
+    // Map is initialized in initGooglePlaces (after Google Maps API loads)
 
     // ── Bottom sheet handle: toggle expanded/collapsed on tap ──
     const handle = document.getElementById("sheet-handle");
@@ -1930,9 +1914,8 @@ function expandSheet() {
         sheet.classList.remove("collapsed");
         sheet.classList.add("expanded");
     }
-    // Invalidate map after transition so tiles render correctly
     setTimeout(() => {
-        if (tripCompareMap) tripCompareMap.invalidateSize();
+        if (tripCompareMap) google.maps.event.trigger(tripCompareMap, "resize");
     }, 400);
 }
 
@@ -1943,7 +1926,7 @@ function collapseSheet() {
         sheet.classList.add("collapsed");
     }
     setTimeout(() => {
-        if (tripCompareMap) tripCompareMap.invalidateSize();
+        if (tripCompareMap) google.maps.event.trigger(tripCompareMap, "resize");
     }, 400);
 }
 
@@ -1954,21 +1937,11 @@ function togglePlannerMenu(e) {
 }
 
 function togglePlannerLayers() {
-    // Cycle between standard and CartoDB dark tile layer
     if (!tripCompareMap) return;
-    const currentLayers = [];
-    tripCompareMap.eachLayer((l) => { if (l instanceof L.TileLayer) currentLayers.push(l); });
-    const isDark = currentLayers.some((l) => l._url && l._url.includes("cartocdn"));
-
-    currentLayers.forEach((l) => tripCompareMap.removeLayer(l));
-
-    if (isDark) {
-        L.tileLayer("https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png", {
-            attribution: "© OpenStreetMap contributors", maxZoom: 19,
-        }).addTo(tripCompareMap);
-    } else {
-        L.tileLayer("https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png", {
-            attribution: "© OpenStreetMap contributors © CARTO", maxZoom: 19,
-        }).addTo(tripCompareMap);
-    }
+    const current = tripCompareMap.getMapTypeId();
+    tripCompareMap.setMapTypeId(
+        current === google.maps.MapTypeId.ROADMAP
+            ? google.maps.MapTypeId.SATELLITE
+            : google.maps.MapTypeId.ROADMAP
+    );
 }
