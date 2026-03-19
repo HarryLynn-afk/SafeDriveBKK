@@ -585,13 +585,50 @@ function displayMultipleRoutes(data) {
         displayRouteOnMap(data.fast_route, "fast", "#3B82F6", 0.75);
         displayRouteOnMap(data.safe_route, "safe", "#10B981", 0.75);
 
+        // Add start (green) and end (red) markers using fast_route waypoints
+        if (tripCompareMap && data.fast_route && data.fast_route.waypoints.length >= 2) {
+            const wps = data.fast_route.waypoints;
+            const toLatLng = (wp) => Array.isArray(wp) ? { lat: wp[0], lng: wp[1] } : { lat: wp.lat, lng: wp.lon };
+            const startPos = toLatLng(wps[0]);
+            const endPos   = toLatLng(wps[wps.length - 1]);
+
+            routeLayers._start = new google.maps.Marker({
+                position: startPos,
+                map: tripCompareMap,
+                zIndex: 10,
+                icon: {
+                    path: google.maps.SymbolPath.CIRCLE,
+                    scale: 10,
+                    fillColor: "#34D399",
+                    fillOpacity: 1,
+                    strokeColor: "#ffffff",
+                    strokeWeight: 2,
+                },
+            });
+
+            routeLayers._end = new google.maps.Marker({
+                position: endPos,
+                map: tripCompareMap,
+                zIndex: 10,
+                icon: {
+                    path: google.maps.SymbolPath.CIRCLE,
+                    scale: 10,
+                    fillColor: "#EF4444",
+                    fillOpacity: 1,
+                    strokeColor: "#ffffff",
+                    strokeWeight: 2,
+                },
+            });
+        }
+
         // Fit background map bounds to encompass both routes
         if (tripCompareMap) {
             const bounds = new google.maps.LatLngBounds();
-            Object.values(routeLayers).forEach((poly) => {
-                poly.getPath().forEach((pt) => bounds.extend(pt));
+            Object.values(routeLayers).forEach((layer) => {
+                if (layer.getPath) layer.getPath().forEach((pt) => bounds.extend(pt));
+                else if (layer.getPosition) bounds.extend(layer.getPosition());
             });
-            if (!bounds.isEmpty()) tripCompareMap.fitBounds(bounds, { top: 60, right: 60, bottom: 60, left: 60 });
+            if (!bounds.isEmpty()) tripCompareMap.fitBounds(bounds, { top: 60, right: 60, bottom: 280, left: 60 });
         }
     }, 50);
 }
