@@ -1539,7 +1539,10 @@ body.demo-mode .start-nav-button {
 /* ── Step 2: Full-screen background map ── */
 .planner-bg-map {
     position: fixed;
-    inset: 0;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
     z-index: 1;
 }
 
@@ -1983,13 +1986,6 @@ body .pac-item-selected { background: #374151 !important; }
 body .pac-item-query { color: #F9FAFB; }
 body .pac-matched { color: #34D399; }
 
-/* Leaflet attribution — keep readable on dark map */
-.planner-bg-map .leaflet-control-attribution {
-    background: rgba(17,24,39,0.75) !important;
-    color: #9CA3AF !important;
-    font-size: 10px;
-}
-.planner-bg-map .leaflet-control-attribution a { color: #6B7280; }
 
 /* Mobile — taller collapsed sheet so chips are visible */
 @media (max-width: 480px) {
