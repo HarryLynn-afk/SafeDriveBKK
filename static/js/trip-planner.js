@@ -69,6 +69,9 @@ window.initGooglePlaces = function () {
     // ── Initialize background map (Google Maps) ──
     const mapEl = document.getElementById("main-planner-map");
     if (mapEl && !tripCompareMap) {
+        // Force dimensions so Google Maps renders
+        mapEl.style.width = "100vw";
+        mapEl.style.height = "100vh";
         tripCompareMap = new google.maps.Map(mapEl, {
             center: { lat: 13.75, lng: 100.53 },
             zoom: 12,
@@ -76,6 +79,10 @@ window.initGooglePlaces = function () {
             mapTypeControl: false,
             streetViewControl: false,
             fullscreenControl: false,
+        });
+        // Wait for tiles to load, then place marker
+        google.maps.event.addListenerOnce(tripCompareMap, "tilesloaded", function () {
+            console.log("[GM] Tiles loaded — map is visible");
         });
         setPreviewMarker(DEFAULT_START.lat, DEFAULT_START.lon, true, 13);
     }

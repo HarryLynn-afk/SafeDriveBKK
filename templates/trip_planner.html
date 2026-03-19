@@ -11,6 +11,8 @@ body { overflow: hidden !important; background: #0f172a !important; }
 /* Nuke any container padding injected by base.html */
 main, .container, .container-fluid, .container-lg,
 [class*="py-"], [class*="px-"] { padding: 0 !important; margin: 0 !important; max-width: none !important; }
+/* Ensure main doesn't block the fixed-position map */
+main { background: transparent !important; position: relative; z-index: auto; }
 </style>
 {% endblock %}
 
