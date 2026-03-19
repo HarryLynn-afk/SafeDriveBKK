@@ -66,27 +66,18 @@ const DEFAULT_START = { name: "Siam Paragon", lat: 13.7467, lon: 100.5348 };
 // Google Places Autocomplete (used when API key is available)
 // ---------------------------------------------------------------------------
 window.initGooglePlaces = function () {
-    console.log("[GM] initGooglePlaces callback fired");
-
     // ── Initialize background map (Google Maps) ──
     const mapEl = document.getElementById("main-planner-map");
-    console.log("[GM] mapEl:", mapEl, "dimensions:", mapEl && mapEl.offsetWidth, mapEl && mapEl.offsetHeight);
     if (mapEl && !tripCompareMap) {
-        try {
-            tripCompareMap = new google.maps.Map(mapEl, {
-                center: { lat: 13.75, lng: 100.53 },
-                zoom: 12,
-                zoomControl: true,
-                mapTypeControl: false,
-                streetViewControl: false,
-                fullscreenControl: false,
-            });
-            console.log("[GM] Map created successfully");
-            // Map is never empty: place default start marker immediately
-            setPreviewMarker(DEFAULT_START.lat, DEFAULT_START.lon, true, 13);
-        } catch (err) {
-            console.error("[GM] Map creation failed:", err);
-        }
+        tripCompareMap = new google.maps.Map(mapEl, {
+            center: { lat: 13.75, lng: 100.53 },
+            zoom: 12,
+            zoomControl: true,
+            mapTypeControl: false,
+            streetViewControl: false,
+            fullscreenControl: false,
+        });
+        setPreviewMarker(DEFAULT_START.lat, DEFAULT_START.lon, true, 13);
     }
 
     const startInput = document.getElementById("start-location");
