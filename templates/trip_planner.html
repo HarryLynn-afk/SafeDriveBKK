@@ -256,7 +256,7 @@ main, .container, .container-fluid, .container-lg,
 {% block extra_js %}
 <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
 {% if google_maps_api_key %}
-<script src="https://maps.googleapis.com/maps/api/js?key={{ google_maps_api_key }}&libraries=places&callback=initGooglePlaces" async defer></script>
+<script src="https://maps.googleapis.com/maps/api/js?key={{ google_maps_api_key }}&libraries=places,geometry&callback=initGooglePlaces" async defer></script>
 {% endif %}
 <script src="{{ url_for('static', filename='js/trip-planner.js', v='20260320') }}"></script>
 {% endblock %}

@@ -655,22 +655,25 @@ function drawStraightPreviewLine() {
 }
 
 // Async upgrade: replace straight line with real OSRM road geometry.
-async function fetchAndDrawPreviewRoute() {
+function fetchAndDrawPreviewRoute() {
     if (!tripCompareMap || !previewStartMarker || !previewEndMarker) return;
+    if (typeof google === "undefined" || !google.maps || !google.maps.DirectionsService) return;
     const sLatLng = previewStartMarker.getLatLng();
     const eLatLng = previewEndMarker.getLatLng();
-    const url = `https://router.project-osrm.org/route/v1/driving/`
-        + `${sLatLng.lng},${sLatLng.lat};${eLatLng.lng},${eLatLng.lat}`
-        + `?overview=full&geometries=geojson`;
-    try {
-        const res = await fetch(url);
-        if (!res.ok) return;
-        const data = await res.json();
-        if (!data.routes || !data.routes[0]) return;
-        // Bail if user already triggered a real route calculation
+    const svc = new google.maps.DirectionsService();
+    svc.route({
+        origin:      new google.maps.LatLng(sLatLng.lat, sLatLng.lng),
+        destination: new google.maps.LatLng(eLatLng.lat, eLatLng.lng),
+        travelMode:  google.maps.TravelMode.DRIVING,
+    }, function (result, status) {
+        if (status !== "OK") return;
         if (!previewStartMarker || !previewEndMarker) return;
         if (previewRouteLine) { tripCompareMap.removeLayer(previewRouteLine); }
-        const coords = data.routes[0].geometry.coordinates.map(([lng, lat]) => [lat, lng]);
+        // Decode Google's encoded polyline into Leaflet [lat,lng] pairs
+        const encoded = result.routes[0].overview_polyline;
+        const coords = google.maps.geometry.encoding.decodePath(encoded).map(
+            (p) => [p.lat(), p.lng()]
+        );
         previewRouteLine = L.polyline(coords, {
             color: "#6366F1",
             weight: 5,
@@ -678,9 +681,7 @@ async function fetchAndDrawPreviewRoute() {
             interactive: false,
         }).addTo(tripCompareMap);
         fitBoundsAboveSheet([previewStartMarker, previewEndMarker, previewRouteLine]);
-    } catch (_) {
-        // Network failure — straight line stays, which is fine
-    }
+    });
 }
 
 // Place a green (start) or red (end) circle marker on the background map.
