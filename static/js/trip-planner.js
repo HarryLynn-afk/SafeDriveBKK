@@ -617,6 +617,14 @@ function showRouteSelectionUI(data) {
             ? `${Math.abs(timeDiff)} min faster`
             : "Same time";
 
+    const riskDelta = fastRiskScore - safeRiskScore;
+    const riskDeltaText = riskDelta > 0 ? `${riskDelta} pt lower risk` : "similar risk";
+    const tradeoffHeadline = timeDiff > 0
+        ? `+${timeDiff} min · ${riskDeltaText}`
+        : timeDiff < 0
+            ? `${Math.abs(timeDiff)} min faster · ${riskDeltaText}`
+            : `Same time · ${riskDeltaText}`;
+
     const altCount = data.alternatives_analyzed || 5;
     const fastTrafficSrc = fastRoute.traffic_source || "estimated";
     const safeTrafficSrc = safeRoute.traffic_source || "estimated";
@@ -659,12 +667,12 @@ function showRouteSelectionUI(data) {
                 <div class="route-card recommended" id="route-card-safe" onclick="selectRoute('safe')">
                     <div class="route-badge safest">🛡️ SAFEST</div>
                     ${safeRiskScore < fastRiskScore ? '<div class="recommended-badge">⭐ RECOMMENDED</div>' : ""}
+                    <div class="tradeoff-headline">${tradeoffHeadline}</div>
                     <div class="route-time">${safeTime} min ${trafficBadge(safeTrafficSrc)}</div>
                     <div class="route-distance">${(safeRoute.distance_km || 0).toFixed(1)} km</div>
                     <div class="route-card-risk ${safeRoute.risk_level}">
                         ${getRiskIcon(safeRoute.risk_level)} ${(safeRoute.risk_level || "unknown").toUpperCase()} RISK
                     </div>
-                    <div class="time-difference">${timeDiffText}</div>
                     ${safeHighRisk > 0
                         ? `<div class="warning-note">⚠️ Passes ${safeHighRisk} danger zone${safeHighRisk > 1 ? "s" : ""}</div>`
                         : '<div class="safe-note">✅ No major danger zones</div>'}
@@ -688,10 +696,10 @@ function showRouteSelectionUI(data) {
 
 function getRiskIcon(level) {
     switch (level) {
-        case "high": return "🔴";
-        case "medium": return "🟡";
-        case "low": return "🟢";
-        default: return "⚪";
+        case "high":   return "🔴 ✗";
+        case "medium": return "🟡 !";
+        case "low":    return "🟢 ✓";
+        default:       return "⚪";
     }
 }
 

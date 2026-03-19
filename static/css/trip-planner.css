@@ -551,22 +551,30 @@
 }
 
 .nav-alert-box.danger {
-    border-left: 6px solid var(--danger-red);
-    background: #fef2f2;
+    border: none;
+    border-radius: 0;
+    left: 0;
+    right: 0;
+    background: var(--danger-red);
     animation: slideUp 0.4s ease, dangerPulse 2s ease infinite;
 }
 
 .nav-alert-box.danger .alert-title {
-    color: var(--danger-red);
+    color: #ffffff;
+    font-size: 20px;
+}
+
+.nav-alert-box.danger .alert-subtitle {
+    color: rgba(255, 255, 255, 0.9);
+}
+
+.nav-alert-box.danger .alert-icon {
+    color: #ffffff;
 }
 
 @keyframes dangerPulse {
-    0%, 100% {
-        box-shadow: 0 8px 24px rgba(220, 53, 69, 0.3);
-    }
-    50% {
-        box-shadow: 0 12px 32px rgba(220, 53, 69, 0.5);
-    }
+    0%, 100% { background: var(--danger-red); }
+    50%       { background: #b91c1c; }
 }
 
 /* ===== NAV STATS ===== */
@@ -998,6 +1006,17 @@ body.demo-mode .start-nav-button {
     font-size: 0.85rem;
     text-align: center;
     margin: 8px 0;
+}
+
+.tradeoff-headline {
+    font-size: 1.1rem;
+    font-weight: 700;
+    color: #065F46;
+    background: #D1FAE5;
+    border-radius: 8px;
+    padding: 8px 12px;
+    text-align: center;
+    margin-bottom: 12px;
 }
 
 .select-route-btn {

@@ -52,6 +52,59 @@ DAY_NAME_MAP = {
     6: "Sunday",
 }
 
+# Approximate district centroids for nearest-neighbor display in analytics
+_BKK_DISTRICTS = [
+    ("Chatuchak",       13.8038, 100.5503),
+    ("Din Daeng",       13.7698, 100.5523),
+    ("Don Mueang",      13.9101, 100.5993),
+    ("Dusit",           13.7831, 100.5103),
+    ("Huai Khwang",     13.7747, 100.5733),
+    ("Khan Na Yao",     13.8200, 100.6700),
+    ("Khlong Sam Wa",   13.8715, 100.7130),
+    ("Khlong San",      13.7324, 100.4962),
+    ("Khlong Toei",     13.7186, 100.5601),
+    ("Lak Si",          13.8820, 100.5700),
+    ("Lat Krabang",     13.7250, 100.7490),
+    ("Lat Phrao",       13.8090, 100.5714),
+    ("Min Buri",        13.8018, 100.7482),
+    ("Nong Chok",       13.8580, 100.8440),
+    ("Nong Khaem",      13.6908, 100.4074),
+    ("On Nut",          13.7007, 100.6020),
+    ("Pathum Wan",      13.7440, 100.5297),
+    ("Phasi Charoen",   13.7120, 100.4537),
+    ("Phra Khanong",    13.7071, 100.6010),
+    ("Phra Nakhon",     13.7543, 100.4977),
+    ("Phra Pradaeng",   13.6603, 100.5295),
+    ("Pom Prap",        13.7540, 100.5190),
+    ("Prawet",          13.6779, 100.6534),
+    ("Rat Burana",      13.6757, 100.5066),
+    ("Ratchathewi",     13.7564, 100.5347),
+    ("Sai Mai",         13.9106, 100.6590),
+    ("Saphan Sung",     13.7550, 100.6780),
+    ("Sathon",          13.7195, 100.5267),
+    ("Suan Luang",      13.7336, 100.6266),
+    ("Taling Chan",     13.7709, 100.4445),
+    ("Thawi Watthana",  13.7578, 100.3955),
+    ("Thon Buri",       13.7320, 100.4872),
+    ("Thung Khru",      13.6461, 100.4912),
+    ("Wang Thonglang",  13.7659, 100.5956),
+    ("Watthana",        13.7380, 100.5600),
+    ("Yan Nawa",        13.6974, 100.5310),
+]
+
+
+def _nearest_district(lat: float, lon: float) -> str:
+    """Return the name of the Bangkok district whose centroid is closest to (lat, lon)."""
+    best_name = "Bangkok"
+    best_dist = float("inf")
+    for name, dlat, dlon in _BKK_DISTRICTS:
+        d = (lat - dlat) ** 2 + (lon - dlon) ** 2
+        if d < best_dist:
+            best_dist = d
+            best_name = name
+    return best_name
+
+
 app = Flask(
     __name__,
     template_folder=str(BASE_DIR / "templates"),
@@ -1093,6 +1146,8 @@ def analytics_data():
             .nlargest(10, "total_accidents")[["grid_id", "total_accidents", "risk_level", "center_lat", "center_lon"]]
             .to_dict(orient="records")
         )
+        for zone in top_zones:
+            zone["district"] = _nearest_district(zone["center_lat"], zone["center_lon"])
 
         # Accidents by Bangkok area (derived from lat/lon)
         by_area = {}

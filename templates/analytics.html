@@ -126,6 +126,14 @@
 .chart-wrapper canvas.loaded {
     opacity: 1;
 }
+.chart-section-header {
+    font-size: 18px;
+    font-weight: 700;
+    color: #1d4ed8;
+    border-bottom: 2px solid #dbeafe;
+    padding-bottom: 8px;
+    margin: 8px 0 20px;
+}
 @media (max-width: 768px) {
     .chart-grid { grid-template-columns: 1fr; }
     .summary-row { grid-template-columns: repeat(2, 1fr); }
@@ -162,7 +170,8 @@
         </div>
     </div>
 
-    <!-- Charts Row 1: Temporal patterns -->
+    <!-- Section 1: When accidents happen -->
+    <div class="chart-section-header">⏰ When Accidents Happen</div>
     <div class="chart-grid">
         <div class="chart-card">
             <h3>Accidents by Hour of Day</h3>
@@ -179,8 +188,6 @@
             </div>
         </div>
     </div>
-
-    <!-- Charts Row 2: Monthly trend + Severity -->
     <div class="chart-grid">
         <div class="chart-card">
             <h3>Monthly Accident Trend</h3>
@@ -190,23 +197,17 @@
             </div>
         </div>
         <div class="chart-card">
-            <h3>Severity Breakdown</h3>
+            <h3>Weekend vs Weekday Accidents</h3>
             <div class="chart-wrapper">
                 <div class="skeleton skeleton-chart"></div>
-                <canvas id="chart-severity" aria-label="Doughnut chart showing severity breakdown" role="img"></canvas>
+                <canvas id="chart-weekend" aria-label="Doughnut chart showing weekend vs weekday" role="img"></canvas>
             </div>
         </div>
     </div>
 
-    <!-- Charts Row 3: Vehicle types + Causes -->
+    <!-- Section 2: Where accidents happen -->
+    <div class="chart-section-header">📍 Where Accidents Happen</div>
     <div class="chart-grid">
-        <div class="chart-card">
-            <h3>Vehicle Types Involved</h3>
-            <div class="chart-wrapper">
-                <div class="skeleton skeleton-chart"></div>
-                <canvas id="chart-vehicles" aria-label="Bar chart showing vehicle types" role="img"></canvas>
-            </div>
-        </div>
         <div class="chart-card">
             <h3>Accidents by Bangkok Area</h3>
             <div class="chart-wrapper">
@@ -214,9 +215,14 @@
                 <canvas id="chart-areas" aria-label="Horizontal bar chart showing accidents by Bangkok area" role="img"></canvas>
             </div>
         </div>
+        <div class="chart-card">
+            <h3>Risk Level Distribution</h3>
+            <div class="chart-wrapper">
+                <div class="skeleton skeleton-chart"></div>
+                <canvas id="chart-risk-dist" aria-label="Pie chart showing risk level distribution" role="img"></canvas>
+            </div>
+        </div>
     </div>
-
-    <!-- Top 10 Dangerous Zones Table -->
     <div class="chart-grid">
         <div class="chart-card full-width">
             <h3>Top 10 Most Dangerous Zones</h3>
@@ -226,20 +232,21 @@
         </div>
     </div>
 
-    <!-- Risk Distribution + Weekend/Weekday -->
+    <!-- Section 3: What causes accidents -->
+    <div class="chart-section-header">🚗 What Causes Accidents</div>
     <div class="chart-grid">
         <div class="chart-card">
-            <h3>Risk Level Distribution</h3>
+            <h3>Vehicle Types Involved</h3>
             <div class="chart-wrapper">
                 <div class="skeleton skeleton-chart"></div>
-                <canvas id="chart-risk-dist" aria-label="Pie chart showing risk level distribution" role="img"></canvas>
+                <canvas id="chart-vehicles" aria-label="Bar chart showing vehicle types" role="img"></canvas>
             </div>
         </div>
         <div class="chart-card">
-            <h3>Weekend vs Weekday Accidents</h3>
+            <h3>Severity Breakdown</h3>
             <div class="chart-wrapper">
                 <div class="skeleton skeleton-chart"></div>
-                <canvas id="chart-weekend" aria-label="Doughnut chart showing weekend vs weekday" role="img"></canvas>
+                <canvas id="chart-severity" aria-label="Doughnut chart showing severity breakdown" role="img"></canvas>
             </div>
         </div>
     </div>
@@ -434,7 +441,7 @@ async function loadAnalytics() {
         // Top 10 zones table
         const container = document.getElementById('top-zones-container');
         if (data.top_zones && data.top_zones.length > 0) {
-            let html = '<table class="top-zones-table"><thead><tr><th>#</th><th>Zone ID</th><th>Accidents</th><th>Risk Level</th><th>Location</th></tr></thead><tbody>';
+            let html = '<table class="top-zones-table"><thead><tr><th>#</th><th>Zone ID</th><th>Accidents</th><th>Risk Level</th><th>District</th></tr></thead><tbody>';
             data.top_zones.forEach((zone, i) => {
                 const riskClass = (zone.risk_level || '').toLowerCase();
                 html += `<tr>
@@ -442,7 +449,7 @@ async function loadAnalytics() {
                     <td><strong>${zone.grid_id}</strong></td>
                     <td>${zone.total_accidents}</td>
                     <td><span class="risk-badge ${riskClass}">${zone.risk_level}</span></td>
-                    <td>${Number(zone.center_lat).toFixed(4)}, ${Number(zone.center_lon).toFixed(4)}</td>
+                    <td>${zone.district || (Number(zone.center_lat).toFixed(4) + ', ' + Number(zone.center_lon).toFixed(4))}</td>
                 </tr>`;
             });
             html += '</tbody></table>';
