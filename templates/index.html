@@ -14,22 +14,38 @@
         </p>
         <div class="hero-stats">
             <div class="hero-stat">
-                <span class="hero-stat-value">87.4%</span>
+                <span class="hero-stat-value" data-counter="87.4" data-suffix="%">87.4%</span>
                 <span class="hero-stat-label">Accident Coverage</span>
                 <div style="font-size: 12px; opacity: 0.85; margin-top: 4px;">Top 5% of zones</div>
             </div>
             <div class="hero-stat">
-                <span class="hero-stat-value">17×</span>
+                <span class="hero-stat-value" data-counter="17" data-suffix="×">17×</span>
                 <span class="hero-stat-label">Better Than Random</span>
                 <div style="font-size: 12px; opacity: 0.85; margin-top: 4px;">Proven effectiveness</div>
             </div>
             <div class="hero-stat">
-                <span class="hero-stat-value">83.8%</span>
+                <span class="hero-stat-value" data-counter="83.8" data-suffix="%">83.8%</span>
                 <span class="hero-stat-label">Predictive Accuracy</span>
                 <div style="font-size: 12px; opacity: 0.85; margin-top: 4px;">Holdout validation</div>
             </div>
         </div>
     </section>
+
+    <!-- Trust badges -->
+    <div class="trust-badges mb-4 d-flex flex-wrap gap-2 justify-content-center">
+        <span class="trust-badge">
+            <span>🏛️</span> DDPM Thailand 2024 Data
+        </span>
+        <span class="trust-badge">
+            <span>✅</span> Holdout-Validated ML Model
+        </span>
+        <span class="trust-badge">
+            <span>🔒</span> No Personal Data Collected
+        </span>
+        <span class="trust-badge">
+            <span>🧠</span> Thai NLP + XGBoost
+        </span>
+    </div>
 
     {% if error_message %}
     <div class="alert alert-danger mb-4" role="alert">
@@ -109,4 +125,53 @@
     </section>
 
 </div>
+{% endblock %}
+
+{% block extra_scripts %}
+<script>
+(function () {
+    "use strict";
+
+    // Animate hero stat counters when they enter the viewport
+    function animateCounter(el) {
+        var target = parseFloat(el.dataset.counter);
+        var suffix = el.dataset.suffix || "";
+        var isDecimal = target % 1 !== 0;
+        var duration = 1200;
+        var start = null;
+
+        function step(ts) {
+            if (!start) start = ts;
+            var progress = Math.min((ts - start) / duration, 1);
+            // Ease-out cubic
+            var eased = 1 - Math.pow(1 - progress, 3);
+            var current = target * eased;
+            el.textContent = (isDecimal ? current.toFixed(1) : Math.floor(current)) + suffix;
+            if (progress < 1) requestAnimationFrame(step);
+        }
+
+        requestAnimationFrame(step);
+    }
+
+    // Trigger once when hero stats scroll into view
+    var counters = document.querySelectorAll(".hero-stat-value[data-counter]");
+    if (!counters.length) return;
+
+    if ("IntersectionObserver" in window) {
+        var observer = new IntersectionObserver(function (entries) {
+            entries.forEach(function (entry) {
+                if (entry.isIntersecting) {
+                    animateCounter(entry.target);
+                    observer.unobserve(entry.target);
+                }
+            });
+        }, { threshold: 0.5 });
+
+        counters.forEach(function (el) { observer.observe(el); });
+    } else {
+        // Fallback for old browsers — animate immediately
+        counters.forEach(animateCounter);
+    }
+})();
+</script>
 {% endblock %}

@@ -1,20 +1,8 @@
-/* ===== SAFETY THEME COLORS ===== */
-:root {
-    --danger-red: #DC3545;
-    --warning-yellow: #FFC107;
-    --safe-green: #28A745;
-    --primary-blue: #2563EB;
-
-    --bg-light: #F8F9FA;
-    --surface: #FFFFFF;
-    --text-dark: #212529;
-    --text-light: #6C757D;
-    --border: #E9ECEF;
-
-    --shadow-sm: 0 2px 8px rgba(0,0,0,0.08);
-    --shadow-md: 0 4px 16px rgba(0,0,0,0.12);
-    --shadow-lg: 0 8px 24px rgba(0,0,0,0.16);
-}
+/* ===== Trip Planner Styles =====
+   Color tokens are defined in style.css (:root).
+   This file uses var(--danger-red), var(--primary-blue) etc. which are
+   aliased from the unified --rr-* palette.
+   =============================== */
 
 /* ===== CONTAINER ===== */
 .trip-planner-container {

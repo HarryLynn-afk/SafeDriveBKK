@@ -55,7 +55,7 @@ class FloatingChat {
             suggestions = [
                 { text: 'Most dangerous areas?', question: 'Which areas are most dangerous?' },
                 { text: 'Best time to drive?', question: 'What is the best time to drive?' },
-                { text: 'Is Asok safe?', question: 'Is Asok Intersection safe?' }
+                { text: 'Is Lat Krabang safe?', question: 'Is Lat Krabang safe?' }
             ];
         }
 

@@ -428,16 +428,23 @@ def handle_zone_safety(user_message=""):
             "followup": "Want to see the most dangerous zones? ⚠️",
         }
     else:
-        available = [z["location"] for z in list(data["zones"].values())[:5]]
+        # Show the most dangerous zones as a useful fallback
+        top_zones = list(data["zones"].values())[:5]
+        lines = [
+            f"• **{z['location']}** - {z['total_accidents']} accidents"
+            for z in top_zones
+        ]
         return {
-            "type": "single",
+            "type": "list",
             "message": (
-                f"I don't have data for \"{location_query}\". "
-                f"Try asking about:\n" +
-                "\n".join(f"• {loc}" for loc in available)
+                f"Our data covers Bangkok's outer districts and highways — "
+                f"I don't have a specific entry for \"{location_query}\".\n\n"
+                f"Most dangerous zones in our dataset:\n" +
+                "\n".join(lines) +
+                f"\n\nFor any specific route, the **Trip Planner** can analyse safety along your path."
             ),
-            "data": [],
-            "followup": "Or use the Trip Planner for any route! 🚗",
+            "data": top_zones,
+            "followup": "Want to plan a safe route? 🚗",
         }
 
 

@@ -284,17 +284,19 @@
         }
     });
 
-    // Accordion toggle
-    accordionBtn.addEventListener("click", function () {
-        var icon = accordionBtn.querySelector(".toggle-icon");
-        if (accordionBody.style.display === "none") {
-            accordionBody.style.display = "block";
-            icon.classList.add("open");
-        } else {
-            accordionBody.style.display = "none";
-            icon.classList.remove("open");
-        }
-    });
+    // Accordion toggle (element may not exist on simplified pages)
+    if (accordionBtn) {
+        accordionBtn.addEventListener("click", function () {
+            var icon = accordionBtn.querySelector(".toggle-icon");
+            if (accordionBody.style.display === "none") {
+                accordionBody.style.display = "block";
+                icon.classList.add("open");
+            } else {
+                accordionBody.style.display = "none";
+                icon.classList.remove("open");
+            }
+        });
+    }
 
     // ------------------------------------------------------------------
     // Init
