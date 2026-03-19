@@ -1251,6 +1251,15 @@ function getWaypointIndexForDistance(distanceKm) {
     return tripWaypointCumulativeKm.length - 1;
 }
 
+function calcBearing(lat1, lon1, lat2, lon2) {
+    const toRad = (d) => d * Math.PI / 180;
+    const dLon = toRad(lon2 - lon1);
+    const y = Math.sin(dLon) * Math.cos(toRad(lat2));
+    const x = Math.cos(toRad(lat1)) * Math.sin(toRad(lat2))
+              - Math.sin(toRad(lat1)) * Math.cos(toRad(lat2)) * Math.cos(dLon);
+    return ((Math.atan2(y, x) * 180 / Math.PI) + 360) % 360;
+}
+
 function getInterpolatedPosition(distanceKm, waypoints) {
     if (!tripWaypointCumulativeKm.length || waypoints.length === 0) {
         return waypoints[0] || [0, 0];
@@ -1467,7 +1476,14 @@ function startNavigationSimulation() {
 
     const carIcon = L.divIcon({
         className: "car-marker",
-        html: '<div style="font-size: 36px; text-shadow: 2px 2px 6px rgba(0,0,0,0.3);">🚗</div>',
+        html: `<div id="nav-arrow-marker" style="
+            width:36px;height:36px;display:flex;align-items:center;justify-content:center;
+            filter:drop-shadow(0 2px 6px rgba(0,0,0,0.45));transform:rotate(0deg);transition:transform 0.3s ease;">
+            <svg width="36" height="36" viewBox="0 0 36 36" fill="none" xmlns="http://www.w3.org/2000/svg">
+                <circle cx="18" cy="18" r="18" fill="#1a73e8"/>
+                <polygon points="18,6 27,28 18,23 9,28" fill="white"/>
+            </svg>
+        </div>`,
         iconSize: [36, 36],
         iconAnchor: [18, 18]
     });
@@ -1530,8 +1546,17 @@ function updateNavigationUI(totalDistance, waypoints) {
     document.getElementById("nav-eta").textContent = remainingMinutes + " min";
 
     // Move marker using interpolated position for smooth movement
+    const prevPosition = tripMovingMarker ? tripMovingMarker.getLatLng() : null;
     const newPosition = getInterpolatedPosition(tripCurrentDistance, waypoints);
-    if (tripMovingMarker) tripMovingMarker.setLatLng(newPosition);
+    if (tripMovingMarker) {
+        tripMovingMarker.setLatLng(newPosition);
+        // Rotate arrow to face direction of travel
+        if (prevPosition) {
+            const bearing = calcBearing(prevPosition.lat, prevPosition.lng, newPosition[0], newPosition[1]);
+            const arrowEl = document.getElementById("nav-arrow-marker");
+            if (arrowEl) arrowEl.style.transform = `rotate(${bearing}deg)`;
+        }
+    }
 
     // Pan map to follow marker smoothly
     tripNavigationMap.panTo(newPosition, {
