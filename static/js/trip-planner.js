@@ -628,8 +628,33 @@ function clearPreviewMarkers() {
     }
 }
 
-// Draw a thin dashed grey preview line using OSRM — no backend call needed.
-// Called automatically once both markers are set.
+// Fit bounds accounting for the bottom sheet covering ~300px of the viewport.
+function fitBoundsAboveSheet(layers) {
+    const group = L.featureGroup(layers.filter(Boolean));
+    if (!group.getLayers().length) return;
+    tripCompareMap.fitBounds(group.getBounds(), {
+        paddingTopLeft:     [50, 80],
+        paddingBottomRight: [50, 320],
+    });
+}
+
+// Draw (or replace) the preview line immediately as a straight dashed segment.
+// This gives instant visual feedback with zero network latency.
+function drawStraightPreviewLine() {
+    if (!tripCompareMap || !previewStartMarker || !previewEndMarker) return;
+    if (previewRouteLine) { tripCompareMap.removeLayer(previewRouteLine); }
+    const s = previewStartMarker.getLatLng();
+    const e = previewEndMarker.getLatLng();
+    previewRouteLine = L.polyline([[s.lat, s.lng], [e.lat, e.lng]], {
+        color: "#9CA3AF",
+        weight: 3,
+        opacity: 0.6,
+        dashArray: "8 6",
+        interactive: false,
+    }).addTo(tripCompareMap);
+}
+
+// Async upgrade: replace straight line with real OSRM road geometry.
 async function fetchAndDrawPreviewRoute() {
     if (!tripCompareMap || !previewStartMarker || !previewEndMarker) return;
     const sLatLng = previewStartMarker.getLatLng();
@@ -642,31 +667,25 @@ async function fetchAndDrawPreviewRoute() {
         if (!res.ok) return;
         const data = await res.json();
         if (!data.routes || !data.routes[0]) return;
-        // Remove old preview line
-        if (previewRouteLine && tripCompareMap) {
-            tripCompareMap.removeLayer(previewRouteLine);
-            previewRouteLine = null;
-        }
-        // Still valid? (user may have already clicked Find Safer Route)
+        // Bail if user already triggered a real route calculation
         if (!previewStartMarker || !previewEndMarker) return;
+        if (previewRouteLine) { tripCompareMap.removeLayer(previewRouteLine); }
         const coords = data.routes[0].geometry.coordinates.map(([lng, lat]) => [lat, lng]);
         previewRouteLine = L.polyline(coords, {
             color: "#9CA3AF",
             weight: 3,
-            opacity: 0.55,
+            opacity: 0.6,
             dashArray: "8 6",
             interactive: false,
         }).addTo(tripCompareMap);
-        // Re-fit so line is fully visible
-        const group = L.featureGroup([previewStartMarker, previewEndMarker, previewRouteLine]);
-        tripCompareMap.fitBounds(group.getBounds(), { padding: [60, 60] });
+        fitBoundsAboveSheet([previewStartMarker, previewEndMarker, previewRouteLine]);
     } catch (_) {
-        // Network failure — markers stay, no line drawn
+        // Network failure — straight line stays, which is fine
     }
 }
 
 // Place a green (start) or red (end) circle marker on the background map.
-// If both markers are present, fit bounds and fetch a preview route line.
+// When both markers exist: draw straight line instantly, then upgrade with OSRM.
 function setPreviewMarker(lat, lon, isStart, zoom) {
     if (!tripCompareMap) return;
     const color = isStart ? "#34D399" : "#EF4444";
@@ -688,10 +707,13 @@ function setPreviewMarker(lat, lon, isStart, zoom) {
     }
 
     if (previewStartMarker && previewEndMarker) {
-        const group = L.featureGroup([previewStartMarker, previewEndMarker]);
-        tripCompareMap.fitBounds(group.getBounds(), { padding: [60, 60] });
+        // 1. Instant: straight dashed line + fit bounds
+        drawStraightPreviewLine();
+        fitBoundsAboveSheet([previewStartMarker, previewEndMarker]);
+        // 2. Async upgrade to real road geometry
         fetchAndDrawPreviewRoute();
     } else {
+        // Single marker — just centre the map on it
         tripCompareMap.setView([lat, lon], zoom || 13);
     }
 }
@@ -1755,6 +1777,9 @@ document.addEventListener("DOMContentLoaded", () => {
             attribution: "© OpenStreetMap contributors",
             maxZoom: 19,
         }).addTo(tripCompareMap);
+
+        // Map is never empty: place default start marker immediately
+        setPreviewMarker(DEFAULT_START.lat, DEFAULT_START.lon, true, 13);
     }
 
     // ── Bottom sheet handle: toggle expanded/collapsed on tap ──
