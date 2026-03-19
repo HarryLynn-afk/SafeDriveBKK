@@ -33,14 +33,13 @@
                 "What causes most accidents?",
                 "Which areas are most dangerous?",
                 "What time are accidents most common?",
-                "Where should Bangkok install speed cameras?",
             ]);
         }
     }
 
     function renderSuggestions(items) {
         sugButtonsEl.innerHTML = "";
-        items.forEach(function (text) {
+        items.slice(0, 3).forEach(function (text) {
             var btn = document.createElement("button");
             btn.className = "suggestion-btn";
             btn.textContent = text;

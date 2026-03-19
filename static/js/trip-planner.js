@@ -387,6 +387,20 @@ async function calculateRoute(startLat, startLon, endLat, endLon, destName) {
         findBtn.textContent = "Analyzing Routes...";
     }
 
+    // Fix 19: push shareable URL so route can be bookmarked / shared
+    try {
+        const fromName = (document.getElementById("start-location") || {}).value || "";
+        const params = new URLSearchParams({
+            from: fromName,
+            to: destName || "",
+            slat: startLat,
+            slon: startLon,
+            elat: endLat,
+            elon: endLon,
+        });
+        history.replaceState(null, "", "?" + params.toString());
+    } catch (_) {}
+
     // Hide any stale results and show the AI overlay
     hideElement("route-preview");
     hideElement("route-results");
@@ -484,8 +498,8 @@ function showRouteError(rawMessage) {
         msg = "No route found between these locations.";
     }
     if (msgEl) msgEl.textContent = msg;
-    hideElement("route-results");
-    hideElement("route-preview");
+    // Bug fix: error div lives inside #sheet-section-inputs — ensure state 1 is active
+    setSheetState(1);
     el.style.display = "block";
 }
 
@@ -1241,7 +1255,7 @@ function startNavigation() {
     // Show fullscreen
     const navScreen = document.getElementById("navigation-fullscreen");
     navScreen.classList.add("active");
-    document.body.style.overflow = "hidden";
+    // overflow stays hidden via CSS !important on the trip planner page
 
     // Initialize map after a short delay for rendering
     setTimeout(() => {
@@ -1581,7 +1595,6 @@ function exitNavigation() {
     const navScreen = document.getElementById("navigation-fullscreen");
     navScreen.classList.remove("active");
     navScreen.className = "navigation-fullscreen";
-    document.body.style.overflow = "auto";
 
     // Reset state
     tripCurrentDistance = 0;
@@ -1681,6 +1694,27 @@ document.addEventListener("DOMContentLoaded", () => {
 
     // Fix 6: start in input state
     setSheetState(1);
+
+    // Fix 19: auto-trigger route if URL contains deep-link params
+    const urlParams = new URLSearchParams(window.location.search);
+    const slat = parseFloat(urlParams.get("slat"));
+    const slon = parseFloat(urlParams.get("slon"));
+    const elat = parseFloat(urlParams.get("elat"));
+    const elon = parseFloat(urlParams.get("elon"));
+    const fromName = urlParams.get("from") || "";
+    const toName   = urlParams.get("to")   || "";
+    if (slat && slon && elat && elon) {
+        window.startLat = slat;
+        window.startLon = slon;
+        window.endLat   = elat;
+        window.endLon   = elon;
+        const startInput = document.getElementById("start-location");
+        const destInput  = document.getElementById("destination");
+        if (startInput && fromName) startInput.value = fromName;
+        if (destInput  && toName)   destInput.value  = toName;
+        // short delay so map tiles are ready
+        setTimeout(() => calculateRoute(slat, slon, elat, elon, toName), 800);
+    }
 });
 
 // === AUTO-REFRESH DEMO ROUTES ON STARTUP ===
