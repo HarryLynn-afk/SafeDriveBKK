@@ -274,15 +274,6 @@ function detectMyLocation() {
     const startInput = document.getElementById("start-location");
     const gpsBtn = document.querySelector(".gps-button");
 
-    if (!navigator.geolocation) {
-        startInput.value = DEFAULT_START.name;
-        window.startLat = DEFAULT_START.lat;
-        window.startLon = DEFAULT_START.lon;
-        updateFindSaferRouteButton();
-        alert("Geolocation is not supported by your browser. Using default start location.");
-        return;
-    }
-
     // Show loading state
     startInput.value = "Detecting location...";
     if (gpsBtn) {
@@ -290,85 +281,75 @@ function detectMyLocation() {
         gpsBtn.disabled = true;
     }
 
-    const onSuccess = (position) => {
-            const lat = position.coords.latitude;
-            const lon = position.coords.longitude;
-
-            // Restore button
-            if (gpsBtn) {
-                gpsBtn.textContent = "OK";
-                gpsBtn.disabled = false;
-                setTimeout(() => { gpsBtn.textContent = "GPS"; }, 2000);
-            }
-
-            // Reverse geocode to get place name (try Google first, then Nominatim)
-            if (typeof google !== "undefined" && google.maps && google.maps.Geocoder) {
-                const geocoder = new google.maps.Geocoder();
-                geocoder.geocode({ location: { lat, lng: lon } }, (results, status) => {
-                    if (status === "OK" && results[0]) {
-                        startInput.value = results[0].formatted_address.split(",")[0] || "Current Location";
-                    } else {
-                        startInput.value = "Current Location";
-                    }
-                    window.startLat = lat;
-                    window.startLon = lon;
-                    updateFindSaferRouteButton();
-                    setPreviewMarker(lat, lon, true, 15);
-                });
-            } else {
-                fetch(`https://nominatim.openstreetmap.org/reverse?lat=${lat}&lon=${lon}&format=json`)
-                    .then((response) => response.json())
-                    .then((data) => {
-                        const placeName = data.display_name ? data.display_name.split(",")[0] : "";
-                        startInput.value = placeName || "Current Location";
-                        window.startLat = lat;
-                        window.startLon = lon;
-                        updateFindSaferRouteButton();
-                        setPreviewMarker(lat, lon, true, 15);
-                    })
-                    .catch(() => {
-                        startInput.value = "Current Location";
-                        window.startLat = lat;
-                        window.startLon = lon;
-                        updateFindSaferRouteButton();
-                        setPreviewMarker(lat, lon, true, 15);
-                    });
-            }
-    };
-
-    const onError = (error) => {
-            // Restore button
-            if (gpsBtn) {
-                gpsBtn.textContent = "GPS";
-                gpsBtn.disabled = false;
-            }
-
-            // Tell user what happened and use default
-            let reason = "Unknown error";
-            if (error.code === 1) reason = "Location permission denied";
-            else if (error.code === 2) reason = "Location unavailable";
-            else if (error.code === 3) reason = "Location request timed out";
-
-            // HTTPS is required for geolocation in most browsers
-            if (window.location.protocol === "http:" && window.location.hostname !== "localhost") {
-                reason = "GPS requires HTTPS connection";
-            }
-
-            console.warn("GPS detection failed:", reason);
-            startInput.value = DEFAULT_START.name;
-            window.startLat = DEFAULT_START.lat;
-            window.startLon = DEFAULT_START.lon;
-            startInput.placeholder = `GPS failed: ${reason}. Using default.`;
+    // Called when we have lat/lon from any source
+    function applyLocation(lat, lon) {
+        if (gpsBtn) {
+            gpsBtn.textContent = "OK";
+            gpsBtn.disabled = false;
+            setTimeout(() => { gpsBtn.textContent = "GPS"; }, 2000);
+        }
+        // Reverse geocode to get place name
+        if (typeof google !== "undefined" && google.maps && google.maps.Geocoder) {
+            const geocoder = new google.maps.Geocoder();
+            geocoder.geocode({ location: { lat, lng: lon } }, (results, status) => {
+                if (status === "OK" && results[0]) {
+                    startInput.value = results[0].formatted_address.split(",")[0] || "Current Location";
+                } else {
+                    startInput.value = "Current Location";
+                }
+                window.startLat = lat;
+                window.startLon = lon;
+                updateFindSaferRouteButton();
+                setPreviewMarker(lat, lon, true, 15);
+            });
+        } else {
+            startInput.value = "Current Location";
+            window.startLat = lat;
+            window.startLon = lon;
             updateFindSaferRouteButton();
-    };
+            setPreviewMarker(lat, lon, true, 15);
+        }
+    }
 
-    // Single call: low accuracy (WiFi/cell) with cached position allowed.
-    // This returns almost instantly on mobile — no GPS satellite lock needed.
-    navigator.geolocation.getCurrentPosition(onSuccess, onError, {
-        enableHighAccuracy: false,
-        timeout: 10000,
-        maximumAge: 300000,  // accept cached position up to 5 minutes old
-    });
+    // Fallback: use Google Maps Geolocation API (IP-based, works on HTTP)
+    function tryGoogleGeolocation() {
+        const key = window.__GMAPS_KEY__;
+        if (!key) { applyDefault("No API key"); return; }
+        fetch("https://www.googleapis.com/geolocation/v1/geolocate?key=" + key, {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ considerIp: true }),
+        })
+            .then((r) => r.json())
+            .then((data) => {
+                if (data.location) {
+                    applyLocation(data.location.lat, data.location.lng);
+                } else {
+                    applyDefault("Google geolocation failed");
+                }
+            })
+            .catch(() => applyDefault("Network error"));
+    }
+
+    function applyDefault(reason) {
+        console.warn("GPS detection failed:", reason);
+        if (gpsBtn) { gpsBtn.textContent = "GPS"; gpsBtn.disabled = false; }
+        startInput.value = DEFAULT_START.name;
+        window.startLat = DEFAULT_START.lat;
+        window.startLon = DEFAULT_START.lon;
+        updateFindSaferRouteButton();
+    }
+
+    // Try browser geolocation first, fall back to Google Geolocation API
+    if (navigator.geolocation) {
+        navigator.geolocation.getCurrentPosition(
+            (pos) => applyLocation(pos.coords.latitude, pos.coords.longitude),
+            () => tryGoogleGeolocation(),
+            { enableHighAccuracy: false, timeout: 5000, maximumAge: 300000 }
+        );
+    } else {
+        tryGoogleGeolocation();
+    }
 }
 
 // ===== FIND SAFER ROUTE BUTTON =====
