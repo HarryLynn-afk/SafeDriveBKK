@@ -148,7 +148,7 @@ async function analyzeRoute(evt) {
         alertsList.innerHTML = "";
 
         if (data.alerts.length === 0) {
-            alertsList.innerHTML = '<p class="text-success">✓ No high-risk segments on this route</p>';
+            alertsList.innerHTML = '<p class="text-success">No high-risk segments on this route</p>';
         } else {
             data.alerts.forEach((alertItem) => {
                 const alertDiv = document.createElement("div");
@@ -200,7 +200,7 @@ async function analyzeRoute(evt) {
         console.error(error);
     } finally {
         button.disabled = false;
-        button.innerHTML = "🔍 Analyze Route";
+        button.innerHTML = "Analyze Route";
     }
 }
 

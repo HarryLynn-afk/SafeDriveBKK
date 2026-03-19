@@ -6,6 +6,9 @@ let tripNavigationMap = null;
 let routeOptions = {};   // { fast: routeObj, safe: routeObj }
 let routeLayers = {};    // { fast: L.Polyline, safe: L.Polyline }
 let selectedRoute = null;
+// Preview markers shown before the user hits "Find Safer Route"
+let previewStartMarker = null;
+let previewEndMarker = null;
 let tripCompareMap = null;
 let tripNavigationInterval = null;
 let tripCurrentDistance = 0;
@@ -88,6 +91,7 @@ window.initGooglePlaces = function () {
         window.startLat = lat;
         window.startLon = lon;
         updateFindSaferRouteButton();
+        setPreviewMarker(lat, lon, true);
     });
 
     destAC.addListener("place_changed", function () {
@@ -100,6 +104,7 @@ window.initGooglePlaces = function () {
         window.endLat = lat;
         window.endLon = lon;
         updateFindSaferRouteButton();
+        setPreviewMarker(lat, lon, false);
     });
 
     // Disable the custom oninput search since Google handles it
@@ -188,7 +193,6 @@ function displayLocationSuggestions(results, source, dropdownId, onSelect) {
         }
 
         item.innerHTML = `
-            <div class="suggestion-icon">📍</div>
             <div class="suggestion-text">
                 <div class="suggestion-name">${name}</div>
                 <div class="suggestion-address">${address}</div>
@@ -222,6 +226,7 @@ function selectStartLocation(name, lat, lon) {
     window.startLat = lat;
     window.startLon = lon;
     updateFindSaferRouteButton();
+    setPreviewMarker(lat, lon, true);
 }
 
 async function searchDestinations(query) {
@@ -241,10 +246,10 @@ async function searchDestinations(query) {
 function selectDestination(name, lat, lon) {
     document.getElementById("destination").value = name;
     hideElement("suggestions-dropdown");
-
     window.endLat = lat;
     window.endLon = lon;
     updateFindSaferRouteButton();
+    setPreviewMarker(lat, lon, false);
 }
 
 // Close suggestions when clicking outside (for Nominatim fallback)
@@ -280,7 +285,7 @@ function detectMyLocation() {
     // Show loading state
     startInput.value = "Detecting location...";
     if (gpsBtn) {
-        gpsBtn.textContent = "⏳";
+        gpsBtn.textContent = "...";
         gpsBtn.disabled = true;
     }
 
@@ -291,9 +296,9 @@ function detectMyLocation() {
 
             // Restore button
             if (gpsBtn) {
-                gpsBtn.textContent = "✅";
+                gpsBtn.textContent = "OK";
                 gpsBtn.disabled = false;
-                setTimeout(() => { gpsBtn.textContent = "📍"; }, 2000);
+                setTimeout(() => { gpsBtn.textContent = "GPS"; }, 2000);
             }
 
             // Reverse geocode to get place name (try Google first, then Nominatim)
@@ -308,6 +313,7 @@ function detectMyLocation() {
                     window.startLat = lat;
                     window.startLon = lon;
                     updateFindSaferRouteButton();
+                    setPreviewMarker(lat, lon, true, 15);
                 });
             } else {
                 fetch(`https://nominatim.openstreetmap.org/reverse?lat=${lat}&lon=${lon}&format=json`)
@@ -318,19 +324,21 @@ function detectMyLocation() {
                         window.startLat = lat;
                         window.startLon = lon;
                         updateFindSaferRouteButton();
+                        setPreviewMarker(lat, lon, true, 15);
                     })
                     .catch(() => {
                         startInput.value = "Current Location";
                         window.startLat = lat;
                         window.startLon = lon;
                         updateFindSaferRouteButton();
+                        setPreviewMarker(lat, lon, true, 15);
                     });
             }
         },
         (error) => {
             // Restore button
             if (gpsBtn) {
-                gpsBtn.textContent = "📍";
+                gpsBtn.textContent = "GPS";
                 gpsBtn.disabled = false;
             }
 
@@ -444,7 +452,7 @@ async function calculateRoute(startLat, startLon, endLat, endLon, destName) {
         await sleep(150);
 
         updateAnalysisStep(3, "complete");
-        updateStatus("✓ Analysis complete!");
+        updateStatus("Analysis complete!");
         await sleep(100);
 
         hideAIAnalyzing();
@@ -473,7 +481,7 @@ function showAIAnalyzing() {
         s.classList.remove("active", "complete")
     );
     document.querySelectorAll(".step-status").forEach((s) => {
-        s.textContent = "⏳";
+        s.textContent = "...";
     });
     const counter = document.getElementById("routes-analyzed");
     if (counter) counter.textContent = "0";
@@ -510,10 +518,10 @@ function updateAnalysisStep(stepNumber, status) {
     step.classList.remove("active", "complete");
     if (status === "active") {
         step.classList.add("active");
-        if (icon) icon.textContent = "⏳";
+        if (icon) icon.textContent = "...";
     } else if (status === "complete") {
         step.classList.add("complete");
-        if (icon) icon.textContent = "✅";
+        if (icon) icon.textContent = "done";
     }
 }
 
@@ -604,11 +612,53 @@ function displayRouteOnMap(route, routeId, color, opacity) {
     routeLayers[routeId] = routeLine;
 }
 
+function clearPreviewMarkers() {
+    if (previewStartMarker && tripCompareMap) {
+        tripCompareMap.removeLayer(previewStartMarker);
+        previewStartMarker = null;
+    }
+    if (previewEndMarker && tripCompareMap) {
+        tripCompareMap.removeLayer(previewEndMarker);
+        previewEndMarker = null;
+    }
+}
+
+// Place a green (start) or red (end) circle marker on the background map.
+// If both markers are present, fit bounds to show both.
+function setPreviewMarker(lat, lon, isStart, zoom) {
+    if (!tripCompareMap) return;
+    const color = isStart ? "#34D399" : "#EF4444";
+    const existing = isStart ? previewStartMarker : previewEndMarker;
+    if (existing) tripCompareMap.removeLayer(existing);
+
+    const marker = L.circleMarker([lat, lon], {
+        radius: 10,
+        fillColor: color,
+        color: "#ffffff",
+        weight: 2,
+        fillOpacity: 1,
+    }).addTo(tripCompareMap);
+
+    if (isStart) {
+        previewStartMarker = marker;
+    } else {
+        previewEndMarker = marker;
+    }
+
+    if (previewStartMarker && previewEndMarker) {
+        const group = L.featureGroup([previewStartMarker, previewEndMarker]);
+        tripCompareMap.fitBounds(group.getBounds(), { padding: [60, 60] });
+    } else {
+        tripCompareMap.setView([lat, lon], zoom || 13);
+    }
+}
+
 function clearPreviewMap() {
     Object.values(routeLayers).forEach((layer) => {
         if (tripCompareMap) tripCompareMap.removeLayer(layer);
     });
     routeLayers = {};
+    clearPreviewMarkers();
 }
 
 // ===== ROUTE SELECTION UI =====
@@ -661,7 +711,7 @@ function showRouteSelectionUI(data) {
             <button class="sheet-back-btn" onclick="setSheetState(1)">← Change route</button>
 
             <div class="ml-analysis-badge">
-                🤖 <strong>AI-Powered Route Analysis</strong>
+                <strong>AI-Powered Route Analysis</strong>
                 <span class="ml-model">XGBoost ML &bull; 83.8% Validated</span>
             </div>
 
@@ -672,15 +722,15 @@ function showRouteSelectionUI(data) {
                 <!-- Fix 1: Fast card — red border + bg -->
                 <div class="route-card route-card-fast-style" id="route-card-fast" onclick="selectRoute('fast')">
                     <div>
-                        <div class="route-badge-v2 fastest-v2">🚀 FASTEST</div>
+                        <div class="route-badge-v2 fastest-v2">FASTEST</div>
                         <div class="route-time">${fastTime} min ${trafficBadge(fastTrafficSrc)}</div>
                         <div class="route-distance">${(fastRoute.distance_km || 0).toFixed(1)} km</div>
                         ${riskPill(fastRoute.risk_level)}
                     </div>
                     <div>
                         ${fastHighRisk > 0
-                            ? `<div class="warning-note">⚠️ ${fastHighRisk} danger zone${fastHighRisk > 1 ? "s" : ""}</div>`
-                            : '<div class="safe-note">✅ No danger zones</div>'}
+                            ? `<div class="warning-note">! ${fastHighRisk} danger zone${fastHighRisk > 1 ? "s" : ""}</div>`
+                            : '<div class="safe-note">No danger zones</div>'}
                         <button class="select-route-btn select-fast-btn" onclick="selectRoute('fast'); event.stopPropagation();">
                             Select This Route
                         </button>
@@ -690,16 +740,16 @@ function showRouteSelectionUI(data) {
                 <!-- Fix 1: Safe card — green border + bg -->
                 <div class="route-card route-card-safe-style recommended" id="route-card-safe" onclick="selectRoute('safe')">
                     <div>
-                        <div class="route-badge-v2 safest-v2">🛡️ SAFEST</div>
-                        ${safeRiskScore < fastRiskScore ? '<div class="recommended-badge">⭐ REC</div>' : ""}
+                        <div class="route-badge-v2 safest-v2">SAFEST</div>
+                        ${safeRiskScore < fastRiskScore ? '<div class="recommended-badge">REC</div>' : ""}
                         <div class="route-time">${safeTime} min ${trafficBadge(safeTrafficSrc)}</div>
                         <div class="route-distance">${(safeRoute.distance_km || 0).toFixed(1)} km</div>
                         ${riskPill(safeRoute.risk_level)}
                     </div>
                     <div>
                         ${safeHighRisk > 0
-                            ? `<div class="warning-note">⚠️ ${safeHighRisk} danger zone${safeHighRisk > 1 ? "s" : ""}</div>`
-                            : '<div class="safe-note">✅ No danger zones</div>'}
+                            ? `<div class="warning-note">! ${safeHighRisk} danger zone${safeHighRisk > 1 ? "s" : ""}</div>`
+                            : '<div class="safe-note">No danger zones</div>'}
                         <button class="select-route-btn primary" onclick="selectRoute('safe'); event.stopPropagation();">
                             Select This Route
                         </button>
@@ -708,7 +758,7 @@ function showRouteSelectionUI(data) {
             </div>
 
             ${data.recommendation
-                ? `<div class="ai-recommendation">🤖 ${data.recommendation}</div>`
+                ? `<div class="ai-recommendation">${data.recommendation}</div>`
                 : ""}
         </div>
     `;
@@ -721,10 +771,10 @@ function showRouteSelectionUI(data) {
 
 function getRiskIcon(level) {
     switch (level) {
-        case "high":   return "🔴 ✗";
-        case "medium": return "🟡 !";
-        case "low":    return "🟢 ✓";
-        default:       return "⚪";
+        case "high":   return "✗";
+        case "medium": return "!";
+        case "low":    return "✓";
+        default:       return "-";
     }
 }
 
@@ -770,10 +820,7 @@ function showRouteDetails(route) {
                 <span class="risk-pill-inline ${riskClass}">${riskLabel}</span>
             </div>
             <button id="start-navigation-btn" class="start-navigation-btn" onclick="startNavigationWithSelected()">
-                🚗 Start Navigation
-            </button>
-            <button class="change-route-btn" onclick="changeRoute()">
-                ← Choose Different Route
+                Start Navigation
             </button>
         </div>
     `;
@@ -1115,6 +1162,9 @@ function selectDemoRoute(startName, startLat, startLon, endName, endLat, endLon)
     window.endLat = endLat;
     window.endLon = endLon;
     updateFindSaferRouteButton();
+    // Show preview markers immediately — before user clicks Find Safer Route
+    setPreviewMarker(startLat, startLon, true);
+    setPreviewMarker(endLat, endLon, false);
 }
 
 function haversineKm(lat1, lon1, lat2, lon2) {

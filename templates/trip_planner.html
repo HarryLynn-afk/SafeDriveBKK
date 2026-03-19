@@ -23,7 +23,7 @@ main, .container, .container-fluid, .container-lg,
 <!-- ── Step 7: Dark top bar ── -->
 <div class="planner-topbar">
     <div class="planner-topbar-left">
-        <span class="planner-brand">🛡️ RoadRisk</span>
+        <span class="planner-brand">RoadRisk</span>
         <a href="/" class="planner-back-link">← <span class="back-label-desktop">Dashboard</span><span class="back-label-mobile">Back</span></a>
     </div>
     <div class="planner-menu-wrap">
@@ -74,7 +74,7 @@ main, .container, .container-fluid, .container-lg,
                         autocomplete="off"
                         oninput="searchStartLocations(this.value)"
                     >
-                    <button class="gps-button" onclick="detectMyLocation()" title="Use my GPS" aria-label="Detect my GPS location">📍</button>
+                    <button class="gps-button" onclick="detectMyLocation()" title="Use my GPS" aria-label="Detect my GPS location">GPS</button>
                 </div>
             </div>
             <div id="start-suggestions-dropdown" class="suggestions-dropdown" style="display:none;"></div>
@@ -101,16 +101,16 @@ main, .container, .container-fluid, .container-lg,
         <p class="quick-label">Try a demo route:</p>
         <div class="quick-chips">
             <button class="quick-chip" style="border-color:#ef4444;color:#ef4444" onclick="selectDemoRoute('Thong Lo', 13.7244, 100.5787, 'Pinklao', 13.7769, 100.4735)">
-                &#x26A0;&#xFE0F; Dramatic Tradeoff
+                Dramatic Tradeoff
             </button>
             <button class="quick-chip" style="border-color:#f97316;color:#f97316" onclick="selectDemoRoute('Bearing', 13.6680, 100.6048, 'Minburi', 13.7918, 100.7316)">
-                &#x1F6A8; High-Risk Commute
+                High-Risk Commute
             </button>
             <button class="quick-chip" style="border-color:#eab308;color:#eab308" onclick="selectDemoRoute('Silom', 13.7260, 100.5233, 'Chatuchak', 13.7999, 100.5537)">
-                &#x2696;&#xFE0F; Balanced Choice
+                Balanced Choice
             </button>
             <button class="quick-chip" style="border-color:#22c55e;color:#22c55e" onclick="selectDemoRoute('Siam Paragon', 13.7467, 100.5348, 'Grand Palace', 13.7500, 100.4914)">
-                &#x2705; Safe Tourist Route
+                Safe Tourist Route
             </button>
         </div>
     </div>
@@ -157,16 +157,16 @@ main, .container, .container-fluid, .container-lg,
         </div>
         <div class="risk-indicator" id="risk-indicator" role="status" aria-live="polite">
             <div class="risk-badge" id="risk-badge">
-                <span class="risk-icon" aria-hidden="true">⚠️</span>
+                <span class="risk-icon" aria-hidden="true">!</span>
                 <span class="risk-text" id="risk-text">CALCULATING...</span>
             </div>
             <div class="risk-details" id="risk-details">Analyzing route safety...</div>
         </div>
         <div id="danger-zones-list" class="danger-zones-list" style="display:none;">
-            <p class="zones-header">⚠️ Danger zones on this route:</p>
+            <p class="zones-header">Danger zones on this route:</p>
             <div id="zones-content"></div>
         </div>
-        <button class="start-nav-button" onclick="startNavigation()">🟢 Start Navigation</button>
+        <button class="start-nav-button" onclick="startNavigation()">Start Navigation</button>
     </div>
 
     <!-- ── Step 5: Multi-route results (cards only — map is the background) ── -->
@@ -180,25 +180,25 @@ main, .container, .container-fluid, .container-lg,
     <div class="ai-analyzing-content">
         <div class="ai-spinner">
             <div class="spinner-ring"></div>
-            <div class="ai-icon">🤖</div>
+            <div class="ai-icon">AI</div>
         </div>
         <h3>AI Analyzing Routes</h3>
         <p id="analysis-status">Requesting route alternatives from OSRM...</p>
         <div class="analysis-progress">
             <div class="progress-step" id="step-1">
-                <div class="step-icon">📍</div>
+                <div class="step-icon">1</div>
                 <div class="step-text">Getting route options</div>
-                <div class="step-status">⏳</div>
+                <div class="step-status">...</div>
             </div>
             <div class="progress-step" id="step-2">
-                <div class="step-icon">🤖</div>
+                <div class="step-icon">2</div>
                 <div class="step-text">XGBoost analyzing risks</div>
-                <div class="step-status">⏳</div>
+                <div class="step-status">...</div>
             </div>
             <div class="progress-step" id="step-3">
-                <div class="step-icon">⚖️</div>
+                <div class="step-icon">3</div>
                 <div class="step-text">Comparing routes</div>
-                <div class="step-status">⏳</div>
+                <div class="step-status">...</div>
             </div>
         </div>
         <div class="analysis-stats">

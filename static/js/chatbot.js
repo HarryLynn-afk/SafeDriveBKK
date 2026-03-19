@@ -59,7 +59,7 @@
 
         var avatar = document.createElement("div");
         avatar.className = "message-avatar";
-        avatar.textContent = role === "bot" ? "\uD83E\uDD16" : "\uD83D\uDC64";
+        avatar.textContent = role === "bot" ? "AI" : "";
 
         var contentDiv = document.createElement("div");
         contentDiv.className = "message-content";
