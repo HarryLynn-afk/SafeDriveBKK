@@ -306,6 +306,24 @@ body {
     .hero-stat-value { font-size: 1.6rem; }
 }
 
+/* ── Primary CTA pulse ─────────────────────────────────────── */
+
+@keyframes cta-pulse {
+    0%, 100% { box-shadow: 0 8px 24px rgba(102, 126, 234, 0.35); }
+    50%       { box-shadow: 0 8px 32px rgba(102, 126, 234, 0.65), 0 0 0 8px rgba(102, 126, 234, 0.12); }
+}
+
+.cta-pulse {
+    animation: cta-pulse 2.4s ease-in-out infinite;
+    transition: transform 0.2s ease;
+}
+
+.cta-pulse:hover {
+    animation: none;
+    transform: translateY(-2px);
+    box-shadow: 0 12px 32px rgba(102, 126, 234, 0.55) !important;
+}
+
 /* Respect reduced-motion preferences */
 @media (prefers-reduced-motion: reduce) {
     *, *::before, *::after {

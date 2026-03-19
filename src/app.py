@@ -1039,11 +1039,6 @@ def home():
         ), 500
 
 
-@app.route("/route-analyze")
-def route_analyze_page():
-    """Route analysis page."""
-    return render_template("route_analyze.html")
-
 
 @app.route("/trip-planner")
 def trip_planner():
@@ -1893,7 +1888,6 @@ if __name__ == "__main__":
     print("-" * 64)
     print("Endpoints:")
     print("  GET  /                         Home")
-    print("  GET  /route-analyze            Route analysis page")
     print("  GET  /risk-map                 Risk heatmap")
     print("  GET  /api/risk-zones           Risk zone data")
     print("  GET  /api/temporal-stats       Time-based stats")

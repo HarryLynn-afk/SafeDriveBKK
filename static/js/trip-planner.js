@@ -439,17 +439,7 @@ async function calculateRoute(startLat, startLon, endLat, endLon, destName) {
     } catch (error) {
         console.error("Route calculation error:", error);
         hideAIAnalyzing();
-        alert(
-            `Unable to calculate route: ${error.message}\n\n`
-            + "This may be due to:\n"
-            + "• Network connectivity issues\n"
-            + "• Location outside Bangkok coverage\n"
-            + "• External routing service unavailable\n\n"
-            + "Please try:\n"
-            + "• Different destination\n"
-            + "• Check internet connection\n"
-            + "• Use pre-loaded example routes"
-        );
+        showRouteError(error.message);
     } finally {
         if (findBtn) {
             findBtn.textContent = "Find Safer Route";
@@ -478,6 +468,25 @@ function showAIAnalyzing() {
 function hideAIAnalyzing() {
     const overlay = document.getElementById("ai-analyzing-overlay");
     if (overlay) overlay.style.display = "none";
+}
+
+function showRouteError(rawMessage) {
+    const el = document.getElementById("route-error");
+    const msgEl = document.getElementById("route-error-message");
+    if (!el) return;
+    const m = (rawMessage || "").toLowerCase();
+    let msg = "Unable to calculate route.";
+    if (m.includes("outside") || m.includes("coverage") || m.includes("bangkok")) {
+        msg = "Location may be outside Bangkok coverage area.";
+    } else if (m.includes("fetch") || m.includes("network") || m.includes("networkerror")) {
+        msg = "Network error — please check your connection.";
+    } else if (m.includes("no route") || m.includes("empty") || m.includes("no result")) {
+        msg = "No route found between these locations.";
+    }
+    if (msgEl) msgEl.textContent = msg;
+    hideElement("route-results");
+    hideElement("route-preview");
+    el.style.display = "block";
 }
 
 function updateAnalysisStep(stepNumber, status) {
@@ -608,13 +617,6 @@ function showRouteSelectionUI(data) {
             ? `${Math.abs(timeDiff)} min faster`
             : "Same time";
 
-    // Confidence values come from the backend (0.0–1.0). Fall back to
-    // sensible defaults so UI never shows 0% or "undefined".
-    const fastConf = Math.round((fastRoute.confidence || 0.88) * 100);
-    const safeConf = Math.round((safeRoute.confidence || 0.92) * 100);
-    const fastMethod = fastRoute.prediction_method || "xgboost";
-    const safeMethod = safeRoute.prediction_method || "xgboost";
-    const methodLabel = (m) => m === "xgboost" ? "XGBoost" : "Spatial ML";
     const altCount = data.alternatives_analyzed || 5;
     const fastTrafficSrc = fastRoute.traffic_source || "estimated";
     const safeTrafficSrc = safeRoute.traffic_source || "estimated";
@@ -645,19 +647,9 @@ function showRouteSelectionUI(data) {
                     <div class="route-card-risk ${fastRoute.risk_level}">
                         ${getRiskIcon(fastRoute.risk_level)} ${(fastRoute.risk_level || "unknown").toUpperCase()} RISK
                     </div>
-                    <div class="risk-score">${fastRiskScore}/100</div>
                     ${fastHighRisk > 0
                         ? `<div class="warning-note">⚠️ Passes ${fastHighRisk} danger zone${fastHighRisk > 1 ? "s" : ""}</div>`
                         : '<div class="safe-note">✅ No major danger zones</div>'}
-                    <div class="ai-confidence-indicator">
-                        🎯 AI Confidence: <strong>${fastConf}%</strong>
-                        <div class="confidence-bar">
-                            <div class="confidence-fill" style="width:${fastConf}%"></div>
-                        </div>
-                    </div>
-                    <div class="prediction-method">
-                        Method: <span class="method-badge">${methodLabel(fastMethod)}</span>
-                    </div>
                     <button class="select-route-btn" onclick="selectRoute('fast'); event.stopPropagation();">
                         Select This Route
                     </button>
@@ -672,20 +664,10 @@ function showRouteSelectionUI(data) {
                     <div class="route-card-risk ${safeRoute.risk_level}">
                         ${getRiskIcon(safeRoute.risk_level)} ${(safeRoute.risk_level || "unknown").toUpperCase()} RISK
                     </div>
-                    <div class="risk-score">${safeRiskScore}/100</div>
                     <div class="time-difference">${timeDiffText}</div>
                     ${safeHighRisk > 0
                         ? `<div class="warning-note">⚠️ Passes ${safeHighRisk} danger zone${safeHighRisk > 1 ? "s" : ""}</div>`
                         : '<div class="safe-note">✅ No major danger zones</div>'}
-                    <div class="ai-confidence-indicator">
-                        🎯 AI Confidence: <strong>${safeConf}%</strong>
-                        <div class="confidence-bar">
-                            <div class="confidence-fill" style="width:${safeConf}%"></div>
-                        </div>
-                    </div>
-                    <div class="prediction-method">
-                        Method: <span class="method-badge">${methodLabel(safeMethod)}</span>
-                    </div>
                     <button class="select-route-btn primary" onclick="selectRoute('safe'); event.stopPropagation();">
                         Select This Route
                     </button>

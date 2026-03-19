@@ -97,9 +97,40 @@
     color: #6b7280;
     font-size: 16px;
 }
+/* Skeleton loading */
+@keyframes shimmer {
+    0%   { background-position: -600px 0; }
+    100% { background-position: 600px 0; }
+}
+.skeleton {
+    background: linear-gradient(90deg, #e5e7eb 25%, #f3f4f6 50%, #e5e7eb 75%);
+    background-size: 600px 100%;
+    animation: shimmer 1.4s infinite linear;
+    border-radius: 6px;
+}
+.skeleton-value {
+    width: 80px;
+    height: 40px;
+    margin: 0 auto 6px;
+}
+.skeleton-chart {
+    position: absolute;
+    inset: 0;
+    border-radius: 6px;
+    z-index: 1;
+}
+.chart-wrapper canvas {
+    opacity: 0;
+    transition: opacity 0.3s ease;
+}
+.chart-wrapper canvas.loaded {
+    opacity: 1;
+}
 @media (max-width: 768px) {
     .chart-grid { grid-template-columns: 1fr; }
     .summary-row { grid-template-columns: repeat(2, 1fr); }
+    #top-zones-container { overflow-x: auto; -webkit-overflow-scrolling: touch; }
+    .top-zones-table { min-width: 480px; }
 }
 </style>
 {% endblock %}
@@ -114,19 +145,19 @@
     <!-- Summary Cards -->
     <div class="summary-row" id="summary-row">
         <div class="summary-card">
-            <div class="summary-value" id="stat-total">--</div>
+            <div class="summary-value" id="stat-total"><span class="skeleton skeleton-value"></span></div>
             <div class="summary-label">Total Accidents</div>
         </div>
         <div class="summary-card danger">
-            <div class="summary-value" id="stat-deaths">--</div>
+            <div class="summary-value" id="stat-deaths"><span class="skeleton skeleton-value"></span></div>
             <div class="summary-label">Fatalities</div>
         </div>
         <div class="summary-card warning">
-            <div class="summary-value" id="stat-serious">--</div>
+            <div class="summary-value" id="stat-serious"><span class="skeleton skeleton-value"></span></div>
             <div class="summary-label">Serious Injuries</div>
         </div>
         <div class="summary-card success">
-            <div class="summary-value" id="stat-zones">--</div>
+            <div class="summary-value" id="stat-zones"><span class="skeleton skeleton-value"></span></div>
             <div class="summary-label">Grid Zones Monitored</div>
         </div>
     </div>
@@ -136,12 +167,14 @@
         <div class="chart-card">
             <h3>Accidents by Hour of Day</h3>
             <div class="chart-wrapper">
+                <div class="skeleton skeleton-chart"></div>
                 <canvas id="chart-hourly" aria-label="Bar chart showing accidents by hour of day" role="img"></canvas>
             </div>
         </div>
         <div class="chart-card">
             <h3>Accidents by Day of Week</h3>
             <div class="chart-wrapper">
+                <div class="skeleton skeleton-chart"></div>
                 <canvas id="chart-daily" aria-label="Bar chart showing accidents by day of week" role="img"></canvas>
             </div>
         </div>
@@ -152,12 +185,14 @@
         <div class="chart-card">
             <h3>Monthly Accident Trend</h3>
             <div class="chart-wrapper">
+                <div class="skeleton skeleton-chart"></div>
                 <canvas id="chart-monthly" aria-label="Line chart showing monthly accident trend" role="img"></canvas>
             </div>
         </div>
         <div class="chart-card">
             <h3>Severity Breakdown</h3>
             <div class="chart-wrapper">
+                <div class="skeleton skeleton-chart"></div>
                 <canvas id="chart-severity" aria-label="Doughnut chart showing severity breakdown" role="img"></canvas>
             </div>
         </div>
@@ -168,12 +203,14 @@
         <div class="chart-card">
             <h3>Vehicle Types Involved</h3>
             <div class="chart-wrapper">
+                <div class="skeleton skeleton-chart"></div>
                 <canvas id="chart-vehicles" aria-label="Bar chart showing vehicle types" role="img"></canvas>
             </div>
         </div>
         <div class="chart-card">
             <h3>Accidents by Bangkok Area</h3>
             <div class="chart-wrapper">
+                <div class="skeleton skeleton-chart"></div>
                 <canvas id="chart-areas" aria-label="Horizontal bar chart showing accidents by Bangkok area" role="img"></canvas>
             </div>
         </div>
@@ -194,12 +231,14 @@
         <div class="chart-card">
             <h3>Risk Level Distribution</h3>
             <div class="chart-wrapper">
+                <div class="skeleton skeleton-chart"></div>
                 <canvas id="chart-risk-dist" aria-label="Pie chart showing risk level distribution" role="img"></canvas>
             </div>
         </div>
         <div class="chart-card">
             <h3>Weekend vs Weekday Accidents</h3>
             <div class="chart-wrapper">
+                <div class="skeleton skeleton-chart"></div>
                 <canvas id="chart-weekend" aria-label="Doughnut chart showing weekend vs weekday" role="img"></canvas>
             </div>
         </div>
@@ -250,13 +289,21 @@ function createBarChart(canvasId, labels, data, color, label) {
     });
 }
 
+function revealChart(canvasId) {
+    const canvas = document.getElementById(canvasId);
+    if (!canvas) return;
+    const skeleton = canvas.previousElementSibling;
+    if (skeleton && skeleton.classList.contains('skeleton-chart')) skeleton.remove();
+    canvas.classList.add('loaded');
+}
+
 async function loadAnalytics() {
     try {
         const response = await fetch('/api/analytics-data');
         if (!response.ok) throw new Error('Failed to load analytics');
         const data = await response.json();
 
-        // Summary cards
+        // Summary cards — replace skeleton spans with real values
         document.getElementById('stat-total').textContent = data.total_accidents.toLocaleString();
         document.getElementById('stat-deaths').textContent = data.severity.Deaths.toLocaleString();
         document.getElementById('stat-serious').textContent = data.severity['Serious Injuries'].toLocaleString();
@@ -267,6 +314,7 @@ async function loadAnalytics() {
         const hourlyData = hours.map(h => data.by_hour[h] || 0);
         const hourLabels = hours.map(h => h.toString().padStart(2, '0') + ':00');
         createBarChart('chart-hourly', hourLabels, hourlyData, COLORS.primary, 'Accidents');
+        revealChart('chart-hourly');
 
         // Daily chart
         const dayOrder = ['Monday','Tuesday','Wednesday','Thursday','Friday','Saturday','Sunday'];
@@ -290,6 +338,7 @@ async function loadAnalytics() {
                 scales: { y: { beginAtZero: true, grid: { color: '#f1f5f9' } }, x: { grid: { display: false } } }
             }
         });
+        revealChart('chart-daily');
 
         // Monthly trend
         const monthOrder = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
@@ -315,6 +364,7 @@ async function loadAnalytics() {
                 scales: { y: { beginAtZero: true, grid: { color: '#f1f5f9' } }, x: { grid: { display: false } } }
             }
         });
+        revealChart('chart-monthly');
 
         // Severity doughnut
         new Chart(document.getElementById('chart-severity'), {
@@ -333,6 +383,7 @@ async function loadAnalytics() {
                 plugins: { legend: { position: 'bottom' } }
             }
         });
+        revealChart('chart-severity');
 
         // Vehicle types
         const vehicleLabels = Object.keys(data.by_vehicle);
@@ -355,6 +406,7 @@ async function loadAnalytics() {
                 scales: { x: { beginAtZero: true, grid: { color: '#f1f5f9' } }, y: { grid: { display: false } } }
             }
         });
+        revealChart('chart-vehicles');
 
         // Accidents by Bangkok area (horizontal bar)
         const areaLabels = Object.keys(data.by_area);
@@ -377,6 +429,7 @@ async function loadAnalytics() {
                 scales: { x: { beginAtZero: true, grid: { color: '#f1f5f9' } }, y: { grid: { display: false }, ticks: { font: { size: 11 } } } }
             }
         });
+        revealChart('chart-areas');
 
         // Top 10 zones table
         const container = document.getElementById('top-zones-container');
@@ -418,6 +471,7 @@ async function loadAnalytics() {
                 plugins: { legend: { position: 'bottom' } }
             }
         });
+        revealChart('chart-risk-dist');
 
         // Weekend vs Weekday doughnut
         new Chart(document.getElementById('chart-weekend'), {
@@ -436,9 +490,14 @@ async function loadAnalytics() {
                 plugins: { legend: { position: 'bottom' } }
             }
         });
+        revealChart('chart-weekend');
 
     } catch (error) {
         console.error('Analytics load error:', error);
+        // Remove all skeletons and show error state
+        document.querySelectorAll('.skeleton-chart').forEach(el => el.remove());
+        document.querySelectorAll('.skeleton-value').forEach(el => el.parentElement.textContent = '—');
+        document.querySelectorAll('.chart-wrapper canvas').forEach(el => el.classList.add('loaded'));
         document.getElementById('top-zones-container').innerHTML =
             '<p style="color: #dc2626;">Failed to load analytics data. Please try refreshing the page.</p>';
     }

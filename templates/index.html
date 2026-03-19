@@ -80,6 +80,12 @@
         </div>
     </section>
 
+    <div style="text-align: center; margin: 32px 0 24px;">
+        <a href="/trip-planner" class="cta-pulse" style="display: inline-block; background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); color: white; padding: 20px 48px; border-radius: 50px; text-decoration: none; font-size: 20px; font-weight: 600;">
+            🚗 Plan Your Safe Route Now
+        </a>
+    </div>
+
     <section class="mb-4">
         <h2 class="h4 mb-3">Bangkok Risk Map</h2>
         {% if map_available %}
@@ -97,32 +103,11 @@
         {% endif %}
     </section>
 
-    <div style="text-align: center; margin: 48px 0;">
-        <a href="/trip-planner" style="display: inline-block; background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); color: white; padding: 20px 48px; border-radius: 50px; text-decoration: none; font-size: 20px; font-weight: 600; box-shadow: 0 8px 24px rgba(102, 126, 234, 0.3); transition: transform 0.3s ease;">
-            🚗 Plan Your Safe Route Now
-        </a>
-        <p style="margin-top: 16px; color: #6c757d; font-size: 14px;">
-            <a href="/analytics" style="color: #667eea; text-decoration: none; font-weight: 500;">Explore Analytics Dashboard</a> •
-            <a href="/about" style="color: #667eea; text-decoration: none;">Learn more about our methodology →</a>
-        </p>
-    </div>
+    <p style="text-align: center; margin-top: 32px; color: #6c757d; font-size: 14px;">
+        <a href="/analytics" style="color: #667eea; text-decoration: none; font-weight: 500;">Explore Analytics Dashboard</a> •
+        <a href="/about" style="color: #667eea; text-decoration: none;">Learn about our methodology →</a>
+    </p>
 
-    <section class="row g-3 mb-4">
-        <div class="col-md-6">
-            <div class="stats-card" style="cursor: pointer;" onclick="window.location='/nlp'">
-                <div class="stats-label">NLP Track</div>
-                <div class="stats-value" style="font-size: 1.2rem;">Safety Assistant Chatbot</div>
-                <p class="mb-0 mt-2" style="font-size: 0.85rem; opacity: 0.8;">Ask questions about Bangkok road safety in natural language</p>
-            </div>
-        </div>
-        <div class="col-md-6">
-            <div class="stats-card" style="cursor: pointer;" onclick="window.location='/analytics'">
-                <div class="stats-label">Data Visualization Track</div>
-                <div class="stats-value" style="font-size: 1.2rem;">Trip Planner & Analytics</div>
-                <p class="mb-0 mt-2" style="font-size: 0.85rem; opacity: 0.8;">Compare routes and understand accident patterns across Bangkok</p>
-            </div>
-        </div>
-    </section>
 
 </div>
 {% endblock %}

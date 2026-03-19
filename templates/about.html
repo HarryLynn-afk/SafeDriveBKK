@@ -206,240 +206,6 @@
     box-shadow: 0 8px 16px rgba(0,0,0,0.2);
 }
 
-/* ── ML Enhancement Section ─────────────────────────────── */
-.ml-section {
-    background: linear-gradient(135deg, #1a1a2e 0%, #16213e 50%, #0f3460 100%);
-    color: white;
-    padding: 80px 20px;
-    margin: 0 0 60px;
-}
-.ml-section .ml-container {
-    max-width: 1000px;
-    margin: 0 auto;
-}
-.ml-section .ml-header {
-    text-align: center;
-    margin-bottom: 60px;
-}
-.ml-section .ml-tag {
-    display: inline-block;
-    background: rgba(255,255,255,0.12);
-    padding: 8px 20px;
-    border-radius: 20px;
-    font-size: 0.9rem;
-    font-weight: 600;
-    margin-bottom: 15px;
-}
-.ml-section .ml-header h2 {
-    font-size: 2.4rem;
-    margin: 15px 0;
-    font-weight: 700;
-}
-.ml-section .ml-header p {
-    font-size: 1.15rem;
-    opacity: 0.9;
-    max-width: 600px;
-    margin: 10px auto 0;
-}
-
-/* evolution cards */
-.evolution-timeline {
-    display: flex;
-    align-items: stretch;
-    justify-content: center;
-    gap: 20px;
-    flex-wrap: wrap;
-    margin-bottom: 60px;
-}
-.evolution-step {
-    flex: 1;
-    min-width: 260px;
-    max-width: 320px;
-    background: rgba(255,255,255,0.08);
-    border-radius: 15px;
-    padding: 28px;
-    transition: transform 0.3s ease, box-shadow 0.3s ease;
-}
-.evolution-step:hover {
-    transform: translateY(-5px);
-    box-shadow: 0 10px 30px rgba(0,0,0,0.35);
-}
-.evolution-step.winner {
-    background: rgba(255,215,0,0.12);
-    border: 2px solid rgba(255,215,0,0.45);
-}
-.step-badge {
-    display: flex;
-    align-items: center;
-    gap: 10px;
-    margin-bottom: 18px;
-}
-.step-number {
-    width: 38px;
-    height: 38px;
-    background: rgba(255,255,255,0.18);
-    border-radius: 50%;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    font-size: 1.2rem;
-    font-weight: bold;
-}
-.step-label {
-    font-size: 0.8rem;
-    text-transform: uppercase;
-    letter-spacing: 1px;
-    opacity: 0.75;
-}
-.evolution-step h4 {
-    font-size: 1.3rem;
-    margin-bottom: 12px;
-}
-.accuracy-badge {
-    display: inline-flex;
-    flex-direction: column;
-    align-items: center;
-    padding: 14px 24px;
-    border-radius: 10px;
-    margin: 12px 0;
-}
-.accuracy-badge.baseline { background: rgba(255,255,255,0.12); }
-.accuracy-badge.good     { background: rgba(72,187,120,0.22); }
-.accuracy-badge.perfect  {
-    background: rgba(255,215,0,0.2);
-    border: 2px solid rgba(255,215,0,0.55);
-    box-shadow: 0 0 20px rgba(255,215,0,0.25);
-}
-.accuracy-value {
-    font-size: 2.4rem;
-    font-weight: 700;
-    line-height: 1;
-}
-.accuracy-label {
-    font-size: 0.8rem;
-    opacity: 0.75;
-    margin-top: 5px;
-}
-.evolution-step p {
-    line-height: 1.6;
-    margin: 14px 0;
-    opacity: 0.9;
-    font-size: 0.95rem;
-}
-.feat-list {
-    display: flex;
-    flex-wrap: wrap;
-    gap: 8px;
-    margin-top: 14px;
-}
-.feat-tag {
-    font-size: 0.82rem;
-    padding: 4px 12px;
-    background: rgba(255,255,255,0.12);
-    border-radius: 14px;
-}
-.evolution-arrow {
-    display: flex;
-    align-items: center;
-    color: rgba(255,255,255,0.4);
-}
-
-/* key discovery */
-.key-discovery {
-    background: rgba(255,215,0,0.12);
-    border-left: 5px solid #ffd700;
-    border-radius: 10px;
-    padding: 36px;
-    margin: 0 0 60px;
-    display: flex;
-    gap: 28px;
-    align-items: flex-start;
-}
-.discovery-icon { font-size: 3.5rem; flex-shrink: 0; }
-.discovery-content h3 { font-size: 1.6rem; margin-bottom: 12px; }
-.discovery-text {
-    font-size: 1.08rem;
-    line-height: 1.7;
-    margin-bottom: 22px;
-}
-.feature-spotlight {
-    display: flex;
-    align-items: center;
-    gap: 18px;
-}
-.feature-name {
-    font-family: 'Courier New', monospace;
-    background: rgba(0,0,0,0.3);
-    padding: 8px 14px;
-    border-radius: 5px;
-    font-size: 1rem;
-    white-space: nowrap;
-}
-.importance-bar {
-    flex: 1;
-    height: 38px;
-    background: rgba(255,255,255,0.15);
-    border-radius: 19px;
-    overflow: hidden;
-}
-.importance-fill {
-    height: 100%;
-    background: linear-gradient(90deg, #ffd700, #ffed4e);
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    color: #000;
-    font-weight: 700;
-    font-size: 0.9rem;
-}
-
-/* feature categories */
-.ml-features-grid {
-    display: grid;
-    grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
-    gap: 22px;
-    margin: 0 0 60px;
-}
-.feature-category {
-    background: rgba(255,255,255,0.08);
-    padding: 26px;
-    border-radius: 12px;
-    transition: transform 0.3s ease;
-}
-.feature-category:hover { transform: translateY(-3px); }
-.category-icon { font-size: 2.2rem; margin-bottom: 12px; }
-.feature-category h4 { font-size: 1.1rem; margin-bottom: 14px; }
-.feature-category ul { list-style: none; padding: 0; margin: 0; }
-.feature-category li {
-    padding: 6px 0;
-    opacity: 0.88;
-    border-bottom: 1px solid rgba(255,255,255,0.08);
-    font-size: 0.95rem;
-}
-.feature-category li:last-child { border-bottom: none; }
-
-/* technical note */
-.ml-tech-note {
-    padding: 22px;
-    background: rgba(0,0,0,0.2);
-    border-radius: 10px;
-    text-align: center;
-}
-.ml-tech-note p {
-    margin: 0;
-    line-height: 1.6;
-    opacity: 0.88;
-    font-size: 0.95rem;
-}
-
-/* responsive */
-@media (max-width: 768px) {
-    .evolution-timeline { flex-direction: column; align-items: center; }
-    .evolution-arrow { transform: rotate(90deg); margin: 16px 0; }
-    .key-discovery { flex-direction: column; text-align: center; }
-    .feature-spotlight { flex-direction: column; }
-    .ml-section .ml-header h2 { font-size: 1.8rem; }
-}
 </style>
 {% endblock %}
 
@@ -481,15 +247,12 @@
     <h2 class="section-title">What We Do</h2>
     <p style="font-size: 18px; line-height: 1.8; margin-bottom: 16px;">
         Government agencies track accidents <strong>after they happen</strong>. RoadRisk Bangkok predicts
-        <strong>where accidents are most likely to occur before you drive there</strong>, using 2024 Bangkok accident data
+        <strong>where accidents are most likely to occur before you drive there</strong> — using 2024 Bangkok accident data
         to identify persistent danger zones across the city.
     </p>
-    <p style="font-size: 18px; line-height: 1.8; margin-bottom: 16px;">
-        Drivers get real-time risk alerts during navigation, a fast-vs-safe route comparison, and a conversational
-        safety assistant — all powered by the same underlying ML model.
-    </p>
     <p style="font-size: 18px; line-height: 1.8;">
-        Just 5% of Bangkok's area (126 zones) accounts for <strong>88.4% of all accidents</strong> — these are the zones we track.
+        Just 5% of Bangkok's area (126 zones) accounts for <strong>88.4% of all accidents</strong>. Drivers get real-time risk
+        alerts, fast-vs-safe route comparison, and a conversational safety assistant — all from one ML model.
     </p>
 </div>
 
@@ -511,7 +274,7 @@
             <ul>
                 <li>pythainlp tokenization on accident reports</li>
                 <li>TF-IDF + Logistic Regression classifier</li>
-                <li>6 cause categories, 99.5% CV accuracy</li>
+                <li>6 cause categories, 99.5% cross-validation accuracy (training data)</li>
                 <li>NLP features feed directly into XGBoost</li>
             </ul>
         </div>
@@ -527,9 +290,9 @@
     </div>
 </div>
 
-<!-- Trust Indicators -->
+<!-- Data, Trust & Ethics -->
 <div class="section">
-    <h2 class="section-title">Data & Trust</h2>
+    <h2 class="section-title">Data, Trust & Ethics</h2>
     <div class="responsible-ai-grid">
         <div class="ai-card">
             <h4>📊 Data Source</h4>
@@ -552,166 +315,26 @@
         <div class="ai-card warning">
             <h4>⚠️ Limitations</h4>
             <ul>
-                <li>Based on 2024 historical data</li>
+                <li>Based on 2024 historical data only</li>
                 <li>Not a guarantee of future safety</li>
-                <li>1 km grid resolution (local variations exist)</li>
+                <li>1 km grid resolution — local variations exist</li>
                 <li>Not for legal or insurance use</li>
             </ul>
         </div>
-    </div>
-</div>
-
-<!-- ── Machine Learning Enhancement Section ──────────────────── -->
-<section class="ml-section" id="ml-methodology">
-    <div class="ml-container">
-        <div class="ml-header">
-            <span class="ml-tag">Powered by AI</span>
-            <h2>Machine Learning Enhancement</h2>
-            <p>From spatial counting to gradient boosting: 83.8% to 39/39 zone detection with 17.5x lift</p>
-        </div>
-
-        <!-- Evolution Timeline -->
-        <div class="evolution-timeline">
-            <div class="evolution-step" data-step="1">
-                <div class="step-badge">
-                    <span class="step-number">1</span>
-                    <span class="step-label">Baseline</span>
-                </div>
-                <h4>Spatial Analysis</h4>
-                <div class="accuracy-badge baseline">
-                    <span class="accuracy-value">83.8%</span>
-                    <span class="accuracy-label">Accuracy</span>
-                </div>
-                <p>Grid-based accident counting. Simple and explainable, but missed temporal and severity patterns.</p>
-                <div class="feat-list">
-                    <span class="feat-tag">Fast computation</span>
-                    <span class="feat-tag">Explainable</span>
-                    <span class="feat-tag">Limited features</span>
-                </div>
-            </div>
-
-            <div class="evolution-arrow">
-                <svg width="50" height="36" viewBox="0 0 50 36">
-                    <path d="M 4 18 L 42 18 L 37 13 M 42 18 L 37 23"
-                          stroke="currentColor" stroke-width="2" fill="none"/>
-                </svg>
-            </div>
-
-            <div class="evolution-step" data-step="2">
-                <div class="step-badge">
-                    <span class="step-number">2</span>
-                    <span class="step-label">Advanced</span>
-                </div>
-                <h4>Random Forest</h4>
-                <div class="accuracy-badge good">
-                    <span class="accuracy-value">94.9%</span>
-                    <span class="accuracy-label">Accuracy</span>
-                </div>
-                <p>Ensemble of 200 decision trees with 44 engineered features.</p>
-                <div class="feat-list">
-                    <span class="feat-tag">Non-linear patterns</span>
-                    <span class="feat-tag">37/39 zones</span>
-                    <span class="feat-tag">0 false positives</span>
-                </div>
-            </div>
-
-            <div class="evolution-arrow">
-                <svg width="50" height="36" viewBox="0 0 50 36">
-                    <path d="M 4 18 L 42 18 L 37 13 M 42 18 L 37 23"
-                          stroke="currentColor" stroke-width="2" fill="none"/>
-                </svg>
-            </div>
-
-            <div class="evolution-step winner" data-step="3">
-                <div class="step-badge">
-                    <span class="step-number">3</span>
-                    <span class="step-label">Best</span>
-                </div>
-                <h4>XGBoost</h4>
-                <div class="accuracy-badge perfect">
-                    <span class="accuracy-value">39/39</span>
-                    <span class="accuracy-label">Zones Detected</span>
-                </div>
-                <p>Gradient boosting that discovered severity matters more than count. 83.8% temporal capture rate with 17.5x lift.</p>
-                <div class="feat-list">
-                    <span class="feat-tag">39/39 zones</span>
-                    <span class="feat-tag">0 false alarms</span>
-                    <span class="feat-tag">17.5x lift</span>
-                </div>
-            </div>
-        </div>
-
-        <!-- Key Discovery -->
-        <div class="key-discovery">
-            <div class="discovery-icon">&#x1F4A1;</div>
-            <div class="discovery-content">
-                <h3>Key Discovery</h3>
-                <p class="discovery-text">
-                    <strong>Severity matters more than count.</strong> XGBoost revealed that a zone with
-                    4 severe accidents (deaths, serious injuries) is more dangerous than one with
-                    6 minor accidents. This insight caught the 2 danger zones Random Forest missed.
-                </p>
-                <div class="feature-spotlight">
-                    <div class="feature-name">severity_mean</div>
-                    <div class="importance-bar">
-                        <div class="importance-fill" style="width: 54%">
-                            <span>54% of model decisions</span>
-                        </div>
-                    </div>
-                </div>
-            </div>
-        </div>
-
-        <div class="ml-tech-note">
-            <p>
-                <em><strong>Methodology:</strong> All models trained on 2,669 real Bangkok accidents (2024).
-                XGBoost risk predictor uses 44 engineered features with spatial analysis fallback.
-                NLP text classifier uses TF-IDF vectorization with Thai word segmentation (pythainlp)
-                to classify accident cause categories from report text.</em>
-            </p>
-        </div>
-    </div>
-</section>
-<!-- ── End ML Section ────────────────────────────────────────── -->
-
-<div class="section">
-    <h2 class="section-title">🤖 Responsible AI & Ethics</h2>
-
-    <div class="responsible-ai-grid">
-        <div class="ai-card">
-            <h4>🔒 Data Privacy</h4>
-            <ul>
-                <li>No personal data collected</li>
-                <li>GPS processed in-memory only</li>
-                <li>No user tracking or identification</li>
-                <li>Public aggregate data only</li>
-            </ul>
-        </div>
-
-        <div class="ai-card warning">
-            <h4>⚠️ Transparency & Limitations</h4>
-            <ul>
-                <li>Based on 2024 historical data</li>
-                <li>Not a guarantee of future safety</li>
-                <li>Cannot predict individual risk</li>
-                <li>1km grid resolution (local variations exist)</li>
-            </ul>
-        </div>
-
         <div class="ai-card limitation">
             <h4>📊 Known Biases</h4>
             <ul>
-                <li>Reporting bias: Not all accidents reported</li>
+                <li>Reporting bias: not all accidents reported</li>
                 <li>GPS accuracy: 8.5% missing location data</li>
                 <li>Urban bias: Bangkok coverage only</li>
-                <li>Temporal: 2024 data, infrastructure changes</li>
+                <li>Temporal: 2024 data, infrastructure may have changed</li>
             </ul>
         </div>
     </div>
 
     <div class="methodology">
         <h4>✅ Appropriate Use Cases</h4>
-        <p>✓ Route planning awareness tool for daily commuters</p>
+        <p>✓ Route planning awareness for daily commuters</p>
         <p>✓ Fleet safety decision support for logistics companies</p>
         <p>✓ City infrastructure planning and resource allocation</p>
         <p>✓ Public awareness campaigns for high-risk areas</p>
@@ -719,7 +342,7 @@
         <h4 style="margin-top: 24px;">❌ Inappropriate Use Cases</h4>
         <p>✗ Discriminatory insurance pricing based on location</p>
         <p>✗ Restricting access or stigmatizing neighborhoods</p>
-        <p>✗ Replacement for safe driving practices and vigilance</p>
+        <p>✗ Replacement for safe driving practices</p>
         <p>✗ Legal liability determination in accident cases</p>
     </div>
 </div>
