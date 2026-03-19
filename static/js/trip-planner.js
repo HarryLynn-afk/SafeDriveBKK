@@ -630,7 +630,7 @@ function drawStraightPreviewLine() {
     const s = previewStartMarker.getLatLng();
     const e = previewEndMarker.getLatLng();
     previewRouteLine = L.polyline([[s.lat, s.lng], [e.lat, e.lng]], {
-        color: "#6366F1",
+        color: "#15803D",
         weight: 4,
         opacity: 0.7,
         dashArray: "10 8",
@@ -659,7 +659,7 @@ function fetchAndDrawPreviewRoute() {
             (p) => [p.lat(), p.lng()]
         );
         previewRouteLine = L.polyline(coords, {
-            color: "#6366F1",
+            color: "#15803D",
             weight: 5,
             opacity: 0.8,
             interactive: false,
