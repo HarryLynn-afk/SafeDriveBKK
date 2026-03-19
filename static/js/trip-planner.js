@@ -845,16 +845,11 @@ function selectRoute(routeId) {
 
     // Highlight selected route on map, fade the other
     Object.keys(routeLayers).forEach((id) => {
-        const layer = routeLayers[id];
+        const poly = routeLayers[id];
         if (id === routeId) {
-            layer.setStyle({
-                weight: 9,
-                opacity: 1.0,
-                color: id === "fast" ? "#1D4ED8" : "#059669"
-            });
-            layer.bringToFront();
+            poly.setOptions({ strokeWeight: 9, strokeOpacity: 1.0, strokeColor: id === "fast" ? "#1D4ED8" : "#059669", zIndex: 2 });
         } else {
-            layer.setStyle({ weight: 4, opacity: 0.3 });
+            poly.setOptions({ strokeWeight: 4, strokeOpacity: 0.3, zIndex: 1 });
         }
     });
 
@@ -903,11 +898,7 @@ function changeRoute() {
 
     // Reset map route styles to original colours/opacity
     Object.keys(routeLayers).forEach((id) => {
-        routeLayers[id].setStyle({
-            weight: 6,
-            opacity: 0.75,
-            color: id === "fast" ? "#3B82F6" : "#10B981"
-        });
+        routeLayers[id].setOptions({ strokeWeight: 6, strokeOpacity: 0.75, strokeColor: id === "fast" ? "#3B82F6" : "#10B981", zIndex: 1 });
     });
 
     document.querySelectorAll(".route-card").forEach((card) => card.classList.remove("selected"));
@@ -1893,6 +1884,8 @@ function setSheetState(state) {
 
     if (state === 1) {
         if (inputs) inputs.classList.remove("hidden");
+        // Clear comparison routes from map when going back to input state
+        clearPreviewMap();
         collapseSheet();
     } else if (state === 2) {
         if (results) results.classList.remove("hidden");
