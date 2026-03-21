@@ -3,7 +3,7 @@
 {% block title %}Plan Your Trip{% endblock %}
 
 {% block extra_css %}
-<link rel="stylesheet" href="{{ url_for('static', filename='css/trip-planner.css', v='20260320e') }}">
+<link rel="stylesheet" href="{{ url_for('static', filename='css/trip-planner.css', v='20260320d') }}">
 <style>
 /* ── Trip planner page: break out of base layout ── */
 .rr-navbar, .rr-footer, footer { display: none !important; }
@@ -102,17 +102,17 @@ main { background: transparent !important; position: relative; z-index: auto; }
     <div class="quick-destinations">
         <p class="quick-label">Try a demo route:</p>
         <div class="quick-chips">
-            <button class="quick-chip" style="border-color:#ef4444;color:#ef4444" onclick="selectDemoRoute('Dusit', 13.7845, 100.5200, 'Bang Kruai', 13.7845, 100.3700)">
-                Highest Danger Zone
+            <button class="quick-chip" style="border-color:#ef4444;color:#ef4444" onclick="selectDemoRoute('Thong Lo', 13.7244, 100.5787, 'Pinklao', 13.7769, 100.4735)">
+                Dramatic Tradeoff
             </button>
-            <button class="quick-chip" style="border-color:#f97316;color:#f97316" onclick="selectDemoRoute('Chatuchak', 13.8000, 100.5500, 'Taling Chan', 13.7800, 100.3500)">
-                Long High-Risk Commute
+            <button class="quick-chip" style="border-color:#f97316;color:#f97316" onclick="selectDemoRoute('Bearing', 13.6680, 100.6048, 'Minburi', 13.7918, 100.7316)">
+                High-Risk Commute
             </button>
-            <button class="quick-chip" style="border-color:#eab308;color:#eab308" onclick="selectDemoRoute('Ekkamai', 13.7200, 100.5850, 'Bang Na', 13.7305, 100.7300)">
-                Eastern Risk Corridor
+            <button class="quick-chip" style="border-color:#eab308;color:#eab308" onclick="selectDemoRoute('Silom', 13.7260, 100.5233, 'Chatuchak', 13.7999, 100.5537)">
+                Balanced Choice
             </button>
-            <button class="quick-chip" style="border-color:#22c55e;color:#22c55e" onclick="selectDemoRoute('Victory Monument', 13.7648, 100.5378, 'Lat Krabang', 13.7300, 100.7500)">
-                Cross-City Journey
+            <button class="quick-chip" style="border-color:#22c55e;color:#22c55e" onclick="selectDemoRoute('Siam Paragon', 13.7467, 100.5348, 'Grand Palace', 13.7500, 100.4914)">
+                Safe Tourist Route
             </button>
         </div>
     </div>
@@ -350,7 +350,7 @@ main { background: transparent !important; position: relative; z-index: auto; }
 {% if google_maps_api_key %}
 <script>window.__GMAPS_KEY__ = "{{ google_maps_api_key }}";</script>
 {% endif %}
-<script src="{{ url_for('static', filename='js/trip-planner.js', v='20260320e') }}"></script>
+<script src="{{ url_for('static', filename='js/trip-planner.js', v='20260320d') }}"></script>
 {% if google_maps_api_key %}
 <script src="https://maps.googleapis.com/maps/api/js?key={{ google_maps_api_key }}&libraries=places,geometry&loading=async&callback=initGooglePlaces" async></script>
 {% endif %}
