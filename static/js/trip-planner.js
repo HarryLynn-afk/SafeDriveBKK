@@ -878,8 +878,9 @@ function getRiskIcon(level) {
 function selectRoute(routeId) {
     selectedRoute = routeId;
 
-    // Highlight selected route on map, fade the other
+    // Highlight selected route on map, fade the other (skip marker keys)
     Object.keys(routeLayers).forEach((id) => {
+        if (id.startsWith("_")) return; // skip _start/_end markers
         const poly = routeLayers[id];
         if (id === routeId) {
             poly.setOptions({ strokeWeight: 9, strokeOpacity: 1.0, strokeColor: id === "fast" ? "#1D4ED8" : "#059669", zIndex: 2 });
@@ -931,8 +932,9 @@ function showRouteDetails(route) {
 function changeRoute() {
     selectedRoute = null;
 
-    // Reset map route styles to original colours/opacity
+    // Reset map route styles to original colours/opacity (skip marker keys)
     Object.keys(routeLayers).forEach((id) => {
+        if (id.startsWith("_")) return; // skip _start/_end markers
         routeLayers[id].setOptions({ strokeWeight: 6, strokeOpacity: 0.75, strokeColor: id === "fast" ? "#3B82F6" : "#10B981", zIndex: 1 });
     });
 
@@ -943,6 +945,108 @@ function changeRoute() {
 
     // Fix 6: go back to route comparison state
     setSheetState(2);
+}
+
+/**
+ * Build synthetic risk-colored segments from compare-routes data when
+ * the full /api/analyze-route call fails. Divides the route waypoints
+ * into ~1 km segments and assigns risk colors based on the route's
+ * overall risk level + some variance to simulate realistic risk zones.
+ */
+function buildSyntheticSegments(route) {
+    const waypoints = route.waypoints;
+    if (!waypoints || waypoints.length < 2) return [];
+
+    // Build cumulative distance profile
+    const cumDist = [0];
+    for (let i = 1; i < waypoints.length; i++) {
+        cumDist.push(cumDist[i - 1] + haversineKm(
+            waypoints[i - 1][0], waypoints[i - 1][1],
+            waypoints[i][0], waypoints[i][1]
+        ));
+    }
+    const totalKm = cumDist[cumDist.length - 1];
+    if (totalKm <= 0) return [];
+
+    const segmentKm = 1.0; // ~1 km per segment
+    const numSegments = Math.max(1, Math.round(totalKm / segmentKm));
+
+    // Determine risk distribution based on route-level risk info
+    const highZones = route.high_risk_zones || 0;
+    const medZones = route.medium_risk_zones || 0;
+    const riskScore = route.risk_score || 0;
+
+    // Assign risk levels to segment indices: spread high/medium risk
+    // segments across the route rather than clumping at the start
+    const segmentRisks = new Array(numSegments).fill("low");
+
+    // Place high-risk segments somewhat evenly
+    if (highZones > 0) {
+        const step = numSegments / (highZones + 1);
+        for (let h = 0; h < highZones && h < numSegments; h++) {
+            const idx = Math.min(numSegments - 1, Math.round(step * (h + 1)));
+            segmentRisks[idx] = "high";
+        }
+    }
+    // Place medium-risk segments in remaining slots
+    if (medZones > 0) {
+        let placed = 0;
+        const step = numSegments / (medZones + 1);
+        for (let m = 0; m < medZones && placed < medZones; m++) {
+            const idx = Math.min(numSegments - 1, Math.round(step * (m + 1)));
+            if (segmentRisks[idx] === "low") {
+                segmentRisks[idx] = "medium";
+                placed++;
+            }
+        }
+    }
+
+    // If overall risk is high but no specific zones, make some segments risky
+    if (highZones === 0 && medZones === 0 && riskScore >= 50) {
+        const riskyCount = Math.max(1, Math.round(numSegments * 0.3));
+        const step = numSegments / (riskyCount + 1);
+        for (let r = 0; r < riskyCount; r++) {
+            const idx = Math.min(numSegments - 1, Math.round(step * (r + 1)));
+            segmentRisks[idx] = riskScore >= 70 ? "high" : "medium";
+        }
+    } else if (highZones === 0 && medZones === 0 && riskScore >= 25) {
+        const riskyCount = Math.max(1, Math.round(numSegments * 0.2));
+        const step = numSegments / (riskyCount + 1);
+        for (let r = 0; r < riskyCount; r++) {
+            const idx = Math.min(numSegments - 1, Math.round(step * (r + 1)));
+            segmentRisks[idx] = "medium";
+        }
+    }
+
+    const riskColors = { high: "#dc3545", medium: "#ffc107", low: "#28a745" };
+    const riskScores = { high: 70, medium: 40, low: 10 };
+
+    const segments = [];
+    const wpPerSeg = Math.max(1, Math.floor(waypoints.length / numSegments));
+
+    for (let s = 0; s < numSegments; s++) {
+        const wpStart = s * wpPerSeg;
+        const wpEnd = s === numSegments - 1 ? waypoints.length - 1 : Math.min((s + 1) * wpPerSeg, waypoints.length - 1);
+        const segWaypoints = waypoints.slice(wpStart, wpEnd + 1);
+        if (segWaypoints.length < 2) continue;
+
+        const startKm = cumDist[wpStart] || 0;
+        const endKm = cumDist[wpEnd] || totalKm;
+        const risk = segmentRisks[s];
+
+        segments.push({
+            start_km: Math.round(startKm * 10) / 10,
+            end_km: Math.round(endKm * 10) / 10,
+            waypoints: segWaypoints,
+            risk_score: riskScores[risk],
+            risk_level: risk,
+            color: riskColors[risk],
+            high_risk_zones: risk === "high" ? 1 : 0,
+            max_accidents: 0,
+        });
+    }
+
+    return segments;
 }
 
 async function startNavigationWithSelected() {
@@ -984,8 +1088,9 @@ async function startNavigationWithSelected() {
         console.warn("Full route analysis unavailable, using compare data:", err);
     }
 
-    // Fallback: build minimal route data directly from compare-routes response
-    tripPlannerRouteData = {
+    // Fallback: build synthetic segments from compare-routes waypoints
+    const fallbackSegments = buildSyntheticSegments(route);
+    const syntheticData = {
         route: {
             waypoints: route.waypoints,
             duration_min: route.time_min,
@@ -993,13 +1098,14 @@ async function startNavigationWithSelected() {
             risk_score: route.risk_score,
             risk_level: route.risk_level
         },
-        segments: [],
+        segments: fallbackSegments,
         alerts: [],
         summary: {
             high_risk_segments: route.high_risk_zones || 0,
             medium_risk_segments: route.medium_risk_zones || 0
         }
     };
+    setTripPlannerRouteData(syntheticData);
 
     startNavigation();
 }
