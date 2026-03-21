@@ -6,16 +6,20 @@
     "use strict";
 
     // DOM refs
+    const shellEl = document.getElementById("chatShell");
     const messagesEl = document.getElementById("chatMessages");
     const inputEl = document.getElementById("chatInput");
     const sendBtn = document.getElementById("chatSend");
     const suggestionsEl = document.getElementById("chatSuggestions");
     const sugButtonsEl = document.getElementById("suggestionsButtons");
     const typingEl = document.getElementById("typingIndicator");
+    const fileButtonEl = document.getElementById("chatFileButton");
+    const fileInputEl = document.getElementById("chatFileInput");
     const accordionBtn = document.getElementById("howItWorksToggle");
     const accordionBody = document.getElementById("howItWorksContent");
 
     let isSending = false;
+    let history = [];
 
     // ------------------------------------------------------------------
     // Suggestions
@@ -33,13 +37,14 @@
                 "What causes most accidents?",
                 "Which areas are most dangerous?",
                 "What time are accidents most common?",
+                "Is this route risky tonight?",
             ]);
         }
     }
 
     function renderSuggestions(items) {
         sugButtonsEl.innerHTML = "";
-        items.slice(0, 3).forEach(function (text) {
+        items.slice(0, 4).forEach(function (text) {
             var btn = document.createElement("button");
             btn.className = "suggestion-btn";
             btn.textContent = text;
@@ -50,16 +55,27 @@
         });
     }
 
+    function prefersReducedMotion() {
+        return window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+    }
+
+    function hideSuggestions() {
+        if (!suggestionsEl) return;
+        suggestionsEl.classList.add("is-hidden");
+    }
+
     // ------------------------------------------------------------------
     // Messages
     // ------------------------------------------------------------------
     function addMessage(role, content, meta) {
+        var wasCollapsed = shellEl && !shellEl.classList.contains("has-messages");
         var wrapper = document.createElement("div");
         wrapper.className = "message " + role;
 
         var avatar = document.createElement("div");
         avatar.className = "message-avatar";
-        avatar.textContent = role === "bot" ? "AI" : "";
+        avatar.textContent = role === "bot" ? "SD" : "ME";
+        avatar.setAttribute("aria-hidden", "true");
 
         var contentDiv = document.createElement("div");
         contentDiv.className = "message-content";
@@ -85,81 +101,31 @@
         wrapper.appendChild(avatar);
         wrapper.appendChild(contentDiv);
         messagesEl.appendChild(wrapper);
-        scrollToBottom();
+        if (shellEl) shellEl.classList.add("has-messages");
+        scrollToBottom(true);
+        if (wasCollapsed && !prefersReducedMotion()) {
+            window.setTimeout(function () {
+                scrollToBottom(true);
+            }, 220);
+        }
     }
 
     function formatContent(content, meta) {
-        if (!meta) return escapeHtml(content);
+        if (!meta) return "<p>" + escapeHtml(content) + "</p>";
 
         // Error type
         if (meta.type === "error") {
             return "<p>" + escapeHtml(meta.message || content) + "</p>";
         }
 
-        // AI response — may contain markdown-style formatting
-        if (meta.type === "ai" || meta.source === "groq") {
-            return formatMarkdown(meta.message || content);
+        var out = formatMarkdown(meta.message || content || "");
+        var followup = meta.followup || meta.follow_up;
+        if (followup) {
+            out += '<div class="message-followup">' + formatMarkdown(followup) + "</div>";
         }
-
-        // Scripted responses
-        if (meta.type === "list" && meta.items) {
-            var header = meta.message ? "<p>" + escapeHtml(meta.message) + "</p>" : "";
-            var items = meta.items
-                .map(function (item) {
-                    return "<li>" + escapeHtml(item) + "</li>";
-                })
-                .join("");
-            var footer = meta.follow_up
-                ? "<p><em>" + escapeHtml(meta.follow_up) + "</em></p>"
-                : "";
-            return header + "<ol>" + items + "</ol>" + footer;
+        if (Array.isArray(meta.actions) && meta.actions.length) {
+            out += renderActionButtons(meta.actions);
         }
-
-        if (meta.type === "stats" && meta.stats) {
-            var header = meta.message ? "<p>" + escapeHtml(meta.message) + "</p>" : "";
-            var rows = Object.keys(meta.stats)
-                .map(function (k) {
-                    return (
-                        "<li><strong>" +
-                        escapeHtml(k) +
-                        ":</strong> " +
-                        escapeHtml(String(meta.stats[k])) +
-                        "</li>"
-                    );
-                })
-                .join("");
-            var footer = meta.follow_up
-                ? "<p><em>" + escapeHtml(meta.follow_up) + "</em></p>"
-                : "";
-            return header + "<ul>" + rows + "</ul>" + footer;
-        }
-
-        if (meta.type === "zone_detail") {
-            var parts = [];
-            if (meta.message) parts.push("<p>" + escapeHtml(meta.message) + "</p>");
-            if (meta.details) {
-                var dRows = Object.keys(meta.details)
-                    .map(function (k) {
-                        return (
-                            "<li><strong>" +
-                            escapeHtml(k) +
-                            ":</strong> " +
-                            escapeHtml(String(meta.details[k])) +
-                            "</li>"
-                        );
-                    })
-                    .join("");
-                parts.push("<ul>" + dRows + "</ul>");
-            }
-            if (meta.follow_up)
-                parts.push("<p><em>" + escapeHtml(meta.follow_up) + "</em></p>");
-            return parts.join("");
-        }
-
-        // Default: plain text with follow_up
-        var out = "<p>" + escapeHtml(meta.message || content) + "</p>";
-        if (meta.follow_up)
-            out += "<p><em>" + escapeHtml(meta.follow_up) + "</em></p>";
         return out;
     }
 
@@ -198,10 +164,66 @@
         return div.innerHTML;
     }
 
-    function scrollToBottom() {
+    function normalizeActionHref(href) {
+        return typeof href === "string" && href.indexOf("/") === 0 && href.indexOf("//") !== 0 ? href : "#";
+    }
+
+    function flattenResponseText(response) {
+        if (!response || typeof response !== "object") return "";
+        return [response.message, response.followup]
+            .filter(function (value) {
+                return typeof value === "string" && value.trim();
+            })
+            .join("\n\n")
+            .trim();
+    }
+
+    function recordHistoryTurn(role, content) {
+        var text = String(content || "").trim();
+        if (!text || ["user", "assistant"].indexOf(role) === -1) return;
+        history.push({ role: role, content: text });
+        if (history.length > 8) {
+            history = history.slice(-8);
+        }
+    }
+
+    function renderActionButtons(actions) {
+        var buttons = actions
+            .map(function (action) {
+                var href = normalizeActionHref(action && action.href);
+                var label = escapeHtml((action && action.label) || "Open");
+                var style = action && action.style === "secondary" ? "secondary" : "primary";
+                return (
+                    '<a class="message-action message-action--' +
+                    style +
+                    '" href="' +
+                    href +
+                    '">' +
+                    label +
+                    "</a>"
+                );
+            })
+            .join("");
+
+        return '<div class="message-actions">' + buttons + "</div>";
+    }
+
+    function scrollToBottom(smooth) {
         requestAnimationFrame(function () {
-            messagesEl.scrollTop = messagesEl.scrollHeight;
+            if (!messagesEl) return;
+            var behavior = smooth && !prefersReducedMotion() ? "smooth" : "auto";
+            messagesEl.scrollTo({
+                top: messagesEl.scrollHeight,
+                behavior: behavior,
+            });
         });
+    }
+
+    function autoResizeInput() {
+        if (!inputEl || inputEl.tagName !== "TEXTAREA") return;
+        inputEl.style.height = "0px";
+        var nextHeight = Math.min(inputEl.scrollHeight, 220);
+        inputEl.style.height = nextHeight + "px";
     }
 
     // ------------------------------------------------------------------
@@ -209,7 +231,7 @@
     // ------------------------------------------------------------------
     function showTyping() {
         typingEl.style.display = "flex";
-        scrollToBottom();
+        scrollToBottom(true);
     }
 
     function hideTyping() {
@@ -228,23 +250,29 @@
         inputEl.value = "";
 
         // Hide suggestions after first user message
-        suggestionsEl.style.display = "none";
+        hideSuggestions();
 
         // Show user bubble
         addMessage("user", text);
         showTyping();
+        autoResizeInput();
 
         try {
             var res = await fetch("/api/chatbot", {
                 method: "POST",
                 headers: { "Content-Type": "application/json" },
-                body: JSON.stringify({ message: text }),
+                body: JSON.stringify({
+                    message: text,
+                    history: history.slice(-8),
+                }),
             });
 
             var data = await res.json();
             hideTyping();
 
             if (data.success && data.response) {
+                recordHistoryTurn("user", text);
+                recordHistoryTurn("assistant", flattenResponseText(data.response));
                 addMessage("bot", data.response.message || "", data.response);
             } else {
                 addMessage(
@@ -267,6 +295,7 @@
         isSending = false;
         sendBtn.disabled = false;
         inputEl.focus();
+        autoResizeInput();
     }
 
     // ------------------------------------------------------------------
@@ -276,6 +305,18 @@
         sendMessage(inputEl.value);
     });
 
+    if (fileButtonEl && fileInputEl) {
+        fileButtonEl.addEventListener("click", function () {
+            fileInputEl.click();
+        });
+
+        fileInputEl.addEventListener("change", function () {
+            if (!fileInputEl.files || !fileInputEl.files.length) return;
+            fileInputEl.value = "";
+            inputEl.focus();
+        });
+    }
+
     inputEl.addEventListener("keydown", function (e) {
         if (e.key === "Enter" && !e.shiftKey) {
             e.preventDefault();
@@ -283,16 +324,20 @@
         }
     });
 
+    inputEl.addEventListener("input", autoResizeInput);
+
     // Accordion toggle (element may not exist on simplified pages)
     if (accordionBtn) {
         accordionBtn.addEventListener("click", function () {
             var icon = accordionBtn.querySelector(".toggle-icon");
             if (accordionBody.style.display === "none") {
                 accordionBody.style.display = "block";
-                icon.classList.add("open");
+                accordionBtn.setAttribute("aria-expanded", "true");
+                if (icon) icon.classList.add("open");
             } else {
                 accordionBody.style.display = "none";
-                icon.classList.remove("open");
+                accordionBtn.setAttribute("aria-expanded", "false");
+                if (icon) icon.classList.remove("open");
             }
         });
     }
@@ -301,5 +346,6 @@
     // Init
     // ------------------------------------------------------------------
     loadSuggestions();
+    autoResizeInput();
     inputEl.focus();
 })();

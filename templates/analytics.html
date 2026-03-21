@@ -1,6 +1,6 @@
 {% extends "base.html" %}
 
-{% block title %}RoadRisk Analytics - RoadRisk Bangkok{% endblock %}
+{% block title %}SafeDrive BKK Analytics{% endblock %}
 {% block body_class %}analytics-theme{% endblock %}
 
 {% block extra_head %}
@@ -46,7 +46,7 @@ body.analytics-theme .rr-footer {
 .analytics-shell {
     max-width: 1280px;
     margin: 0 auto;
-    padding: 18px 20px 88px;
+    padding: 12px 20px 104px;
 }
 
 .analytics-hero,
@@ -61,7 +61,7 @@ body.analytics-theme .rr-footer {
 .analytics-hero {
     position: relative;
     overflow: hidden;
-    padding: 36px 36px 28px;
+    padding: 28px 32px 20px;
     background:
         radial-gradient(110% 58% at 50% 114%, rgba(147, 197, 253, 0.86) 0%, rgba(191, 219, 254, 0.48) 34%, rgba(255, 255, 255, 0) 66%),
         linear-gradient(180deg, #ffffff 0%, #fbfcff 64%, #f3f7ff 100%);
@@ -110,17 +110,28 @@ body.analytics-theme .rr-footer {
 }
 
 .hero-kicker {
-    margin: 0 0 12px;
+    margin: 0 0 8px;
 }
 
 .hero-number {
     position: relative;
     z-index: 1;
-    margin: 0 0 10px;
+    margin: 0 0 2px;
     font-family: "Space Grotesk", "Inter", sans-serif;
-    font-size: clamp(72px, 12vw, 148px);
-    line-height: 0.9;
+    font-size: clamp(68px, 10vw, 132px);
+    line-height: 0.88;
     letter-spacing: -0.065em;
+    color: var(--ink);
+}
+
+.hero-support {
+    position: relative;
+    z-index: 1;
+    margin: 0 0 4px;
+    max-width: 58ch;
+    font-size: 14px;
+    font-weight: 700;
+    line-height: 1.5;
     color: var(--ink);
 }
 
@@ -128,25 +139,25 @@ body.analytics-theme .rr-footer {
     position: relative;
     z-index: 1;
     display: grid;
-    gap: 8px;
+    gap: 0;
     max-width: 760px;
 }
 
 .hero-copy h1 {
     margin: 0;
-    max-width: 10ch;
-    font-size: clamp(26px, 3.6vw, 44px);
+    max-width: 15ch;
+    font-size: clamp(24px, 3.2vw, 38px);
     font-weight: 700;
-    line-height: 0.96;
+    line-height: 0.98;
     letter-spacing: -0.04em;
     color: var(--ink);
 }
 
 .hero-copy p {
     margin: 0;
-    max-width: 62ch;
-    font-size: 15px;
-    line-height: 1.62;
+    max-width: 58ch;
+    font-size: 14px;
+    line-height: 1.56;
     color: var(--ink-soft);
 }
 
@@ -155,31 +166,34 @@ body.analytics-theme .rr-footer {
     z-index: 1;
     display: grid;
     grid-template-columns: repeat(3, minmax(0, 1fr));
-    gap: 12px;
-    margin-top: 22px;
+    gap: 10px;
+    margin-top: 16px;
 }
 
 .hero-rail-item {
-    padding: 15px 18px;
+    display: flex;
+    flex-direction: column;
+    justify-content: space-between;
+    padding: 12px 16px;
     border: 1px solid var(--line);
     border-radius: 18px;
     background: rgba(255, 255, 255, 0.74);
-    min-height: 92px;
+    min-height: 80px;
 }
 
 .hero-rail-item strong {
     display: block;
-    margin-top: 8px;
+    margin-top: 6px;
     font-family: "Space Grotesk", "Inter", sans-serif;
-    font-size: 25px;
+    font-size: 22px;
     line-height: 1;
     color: var(--ink);
 }
 
 .hero-rail-item p {
-    margin: 8px 0 0;
-    font-size: 13px;
-    line-height: 1.5;
+    margin: 6px 0 0;
+    font-size: 12px;
+    line-height: 1.45;
     color: var(--muted);
 }
 
@@ -187,23 +201,23 @@ body.analytics-theme .rr-footer {
 .story-grid {
     display: grid;
     grid-template-columns: repeat(12, minmax(0, 1fr));
-    gap: 16px;
+    gap: 20px;
 }
 
 .metrics-grid {
-    margin-top: 24px;
+    margin-top: 28px;
 }
 
 .metric-card {
     grid-column: span 3;
     display: flex;
     flex-direction: column;
-    min-height: 208px;
-    padding: 24px;
+    min-height: 188px;
+    padding: 22px;
 }
 
 .metric-label {
-    margin: 0 0 18px;
+    margin: 0 0 14px;
 }
 
 .metric-value {
@@ -223,14 +237,14 @@ body.analytics-theme .rr-footer {
 }
 
 .story-section {
-    margin-top: 64px;
+    margin-top: 82px;
 }
 
 .section-intro {
     display: grid;
     gap: 10px;
     max-width: 72ch;
-    margin-bottom: 24px;
+    margin-bottom: 32px;
 }
 
 .section-kicker {
@@ -257,9 +271,9 @@ body.analytics-theme .rr-footer {
     grid-column: span 6;
     display: flex;
     flex-direction: column;
-    gap: 20px;
+    gap: 24px;
     min-height: 100%;
-    padding: 24px;
+    padding: 28px;
 }
 
 .span-12 { grid-column: span 12; }
@@ -323,105 +337,141 @@ body.analytics-theme .rr-footer {
     opacity: 1;
 }
 
-.checkpoint-list,
-.distribution-grid,
-.severity-stack {
+.checkpoint-rail {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+    gap: 12px;
+}
+
+.checkpoint-card {
+    min-height: 124px;
+    background: linear-gradient(180deg, rgba(255, 255, 255, 0.9), rgba(244, 247, 255, 0.95));
+}
+
+.checkpoint-card strong {
+    font-size: clamp(34px, 4vw, 46px);
+}
+
+.checkpoint-card p {
+    max-width: 24ch;
+}
+
+.risk-donut-layout {
+    display: grid;
+    grid-template-columns: minmax(0, 240px) minmax(0, 1fr);
+    gap: 24px;
+    align-items: center;
+}
+
+.risk-donut-wrap {
+    display: flex;
+    justify-content: center;
+}
+
+.risk-donut {
+    position: relative;
+    width: min(100%, 240px);
+    aspect-ratio: 1;
+    border-radius: 50%;
+    background: var(--surface-muted);
+    box-shadow: 0 18px 36px rgba(15, 23, 42, 0.12);
+}
+
+.risk-donut::before {
+    content: "";
+    position: absolute;
+    inset: 22%;
+    border-radius: 50%;
+    border: 1px solid var(--line);
+    background: linear-gradient(180deg, var(--surface-strong), rgba(247, 249, 253, 0.94));
+}
+
+.risk-donut-core {
+    position: absolute;
+    inset: 0;
+    z-index: 1;
+    display: grid;
+    place-content: center;
+    gap: 4px;
+    padding: 64px;
+    text-align: center;
+}
+
+.risk-donut-core span,
+.severity-summary-label {
+    font-size: 10px;
+    font-weight: 600;
+    letter-spacing: 0.11em;
+    text-transform: uppercase;
+    color: var(--muted);
+}
+
+.risk-donut-core strong {
+    font-family: "Space Grotesk", "Inter", sans-serif;
+    font-size: 30px;
+    line-height: 0.94;
+    letter-spacing: -0.05em;
+    color: var(--ink);
+}
+
+.risk-donut-core p {
+    margin: 0;
+    font-size: 11px;
+    line-height: 1.4;
+    color: var(--muted);
+}
+
+.risk-legend,
+.severity-summary-grid {
     display: grid;
     gap: 12px;
 }
 
-.checkpoint-item {
-    padding: 16px 18px;
+.risk-legend-row {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    flex-wrap: wrap;
+    padding: 14px 16px;
     border: 1px solid var(--line);
     border-radius: 18px;
     background: linear-gradient(180deg, rgba(255, 255, 255, 0.96), rgba(247, 249, 253, 0.92));
 }
 
-.checkpoint-label {
-    display: block;
-    margin-bottom: 12px;
-}
-
-.checkpoint-value {
-    display: block;
-    font-family: "Space Grotesk", "Inter", sans-serif;
-    font-size: 32px;
-    line-height: 1;
-    letter-spacing: -0.05em;
-    color: var(--ink);
-}
-
-.checkpoint-copy {
-    margin: 8px 0 0;
-    font-size: 14px;
-    line-height: 1.6;
-    color: var(--muted);
-}
-
-.distribution-track {
-    display: flex;
-    height: 16px;
-    overflow: hidden;
+.risk-legend-swatch {
+    width: 12px;
+    height: 12px;
     border-radius: 999px;
-    background: var(--surface-muted);
+    flex-shrink: 0;
 }
 
-.distribution-segment {
-    display: block;
-    height: 100%;
-}
+.risk-legend-row.high .risk-legend-swatch { background: var(--danger); }
+.risk-legend-row.medium .risk-legend-swatch { background: var(--warning); }
+.risk-legend-row.low .risk-legend-swatch { background: var(--success); }
 
-.distribution-segment.high { background: var(--danger); }
-.distribution-segment.medium { background: var(--warning); }
-.distribution-segment.low { background: var(--success); }
-
-.distribution-item {
-    display: flex;
-    align-items: flex-start;
-    justify-content: space-between;
-    gap: 16px;
-    padding: 14px 0;
-    border-bottom: 1px solid var(--line);
-}
-
-.distribution-item:last-child {
-    border-bottom: 0;
-}
-
-.distribution-meta {
-    display: grid;
-    gap: 4px;
-}
-
-.distribution-label {
+.risk-legend-label {
     font-size: 15px;
     font-weight: 600;
     color: var(--ink);
 }
 
-.distribution-copy {
+.risk-legend-stats {
+    display: inline-flex;
+    align-items: baseline;
+    gap: 6px;
+    margin-left: auto;
     font-size: 13px;
-    line-height: 1.5;
     color: var(--muted);
+    white-space: nowrap;
 }
 
-.distribution-count {
-    text-align: right;
-}
-
-.distribution-count strong {
-    display: block;
+.risk-legend-stats strong {
+    display: inline;
     font-family: "Space Grotesk", "Inter", sans-serif;
-    font-size: 28px;
+    font-size: 20px;
     line-height: 1;
+    letter-spacing: -0.05em;
     color: var(--ink);
-}
-
-.distribution-count span {
-    display: block;
-    margin-top: 6px;
-    font-size: 13px;
-    color: var(--muted);
 }
 
 .zone-spotlight {
@@ -489,46 +539,72 @@ body.analytics-theme .rr-footer {
     color: var(--success);
 }
 
-.severity-row {
+.severity-overview {
     display: grid;
-    gap: 10px;
+    gap: 16px;
 }
 
-.severity-header {
+.severity-bar-stack {
     display: flex;
-    align-items: baseline;
-    justify-content: space-between;
-    gap: 12px;
+    width: 100%;
+    height: 32px;
+    overflow: hidden;
+    border: 1px solid var(--line);
+    border-radius: 999px;
+    background: var(--surface-muted);
+    box-shadow: inset 0 1px 2px rgba(15, 23, 42, 0.05);
 }
 
-.severity-header strong {
-    font-size: 15px;
-    font-weight: 600;
-    color: var(--ink);
+.severity-segment {
+    display: block;
+    height: 100%;
 }
 
-.severity-header span {
-    font-size: 14px;
+.severity-segment.danger { background: var(--danger); }
+.severity-segment.warning { background: var(--warning); }
+.severity-segment.success { background: var(--success); }
+
+.severity-summary-grid {
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+}
+
+.severity-summary-item {
+    padding: 16px 18px;
+    border: 1px solid var(--line);
+    border-radius: 18px;
+    background: linear-gradient(180deg, rgba(255, 255, 255, 0.96), rgba(247, 249, 253, 0.92));
+}
+
+.severity-summary-item p {
+    margin: 8px 0 0;
+    font-size: 13px;
+    line-height: 1.6;
     color: var(--muted);
 }
 
-.severity-bar {
-    width: 100%;
-    height: 12px;
-    overflow: hidden;
-    border-radius: 999px;
-    background: var(--surface-muted);
-}
-
-.severity-fill {
+.severity-summary-item strong {
     display: block;
-    height: 100%;
-    border-radius: inherit;
+    font-family: "Space Grotesk", "Inter", sans-serif;
+    font-size: 32px;
+    line-height: 0.95;
+    letter-spacing: -0.05em;
+    color: var(--ink);
 }
 
-.severity-fill.danger { background: var(--danger); }
-.severity-fill.warning { background: var(--warning); }
-.severity-fill.success { background: var(--success); }
+.severity-summary-item.danger {
+    border-color: rgba(220, 38, 38, 0.16);
+    background: linear-gradient(180deg, rgba(254, 226, 226, 0.78), rgba(255, 255, 255, 0.98));
+}
+
+.severity-summary-item.warning {
+    border-color: rgba(245, 158, 11, 0.2);
+    background: linear-gradient(180deg, rgba(254, 243, 199, 0.82), rgba(255, 255, 255, 0.98));
+}
+
+.severity-summary-item.success {
+    border-color: rgba(22, 163, 74, 0.16);
+    background: linear-gradient(180deg, rgba(220, 252, 231, 0.82), rgba(255, 255, 255, 0.98));
+}
 
 .table-empty,
 .panel-error {
@@ -578,6 +654,10 @@ body.analytics-theme .rr-footer {
     .panel {
         grid-column: span 12;
     }
+
+    .risk-donut-layout {
+        grid-template-columns: 1fr;
+    }
 }
 
 @media (max-width: 768px) {
@@ -593,6 +673,12 @@ body.analytics-theme .rr-footer {
     .hero-number {
         font-size: clamp(64px, 20vw, 92px);
         margin-bottom: 8px;
+    }
+
+    .hero-support {
+        margin-bottom: 12px;
+        max-width: 60ch;
+        font-size: 14px;
     }
 
     .hero-copy h1 {
@@ -620,6 +706,24 @@ body.analytics-theme .rr-footer {
     .chart-frame-tall,
     .chart-frame-medium {
         min-height: 280px;
+    }
+
+    .checkpoint-rail,
+    .severity-summary-grid {
+        grid-template-columns: 1fr;
+    }
+
+    .risk-donut-core {
+        padding: 56px;
+    }
+
+    .risk-legend-row {
+        align-items: baseline;
+    }
+
+    .risk-legend-stats {
+        width: 100%;
+        margin-left: 24px;
     }
 }
 
@@ -656,12 +760,33 @@ html[data-theme="dark"] .panel {
 }
 
 html[data-theme="dark"] .hero-rail-item,
-html[data-theme="dark"] .checkpoint-item {
+html[data-theme="dark"] .risk-legend-row,
+html[data-theme="dark"] .severity-summary-item {
     background: rgba(15, 23, 42, 0.72);
 }
 
 html[data-theme="dark"] .chart-skeleton {
     background: linear-gradient(90deg, rgba(22, 32, 55, 0.8) 0%, rgba(30, 41, 59, 0.95) 50%, rgba(22, 32, 55, 0.8) 100%);
+}
+
+html[data-theme="dark"] .risk-donut {
+    box-shadow: 0 22px 44px rgba(2, 6, 23, 0.34);
+}
+
+html[data-theme="dark"] .risk-donut::before {
+    background: linear-gradient(180deg, rgba(15, 23, 42, 0.96), rgba(17, 24, 39, 0.98));
+}
+
+html[data-theme="dark"] .severity-summary-item.danger {
+    background: linear-gradient(180deg, rgba(127, 29, 29, 0.54), rgba(15, 23, 42, 0.88));
+}
+
+html[data-theme="dark"] .severity-summary-item.warning {
+    background: linear-gradient(180deg, rgba(120, 53, 15, 0.5), rgba(15, 23, 42, 0.88));
+}
+
+html[data-theme="dark"] .severity-summary-item.success {
+    background: linear-gradient(180deg, rgba(20, 83, 45, 0.52), rgba(15, 23, 42, 0.88));
 }
 
 html[data-theme="dark"] .zone-spotlight {
@@ -676,9 +801,9 @@ html[data-theme="dark"] .zone-spotlight {
         <section class="analytics-hero">
             <p class="hero-kicker">Bangkok 2024 crash intelligence</p>
             <div class="hero-number" id="hero-total">2,669</div>
+            <p class="hero-support" id="hero-risk-support">88.4% of mapped crashes concentrate in just 126 of the 276 active zones, so targeted intervention could protect most of the city.</p>
             <div class="hero-copy">
                 <h1>Crashes recorded across Bangkok roads</h1>
-                <p>Everything below exists to explain that number: when pressure rises, where it concentrates, and who absorbs the harm inside a 2,418-grid citywide monitor.</p>
             </div>
             <div class="hero-rail" aria-label="Top analytics callouts">
                 <div class="hero-rail-item">
@@ -749,21 +874,21 @@ html[data-theme="dark"] .zone-spotlight {
                             <p class="panel-insight" id="insight-timing-summary">Saturday leads the week, but weekday movement still carries most of the annual crash volume.</p>
                         </div>
                     </div>
-                    <div class="checkpoint-list">
-                        <div class="checkpoint-item">
-                            <span class="checkpoint-label">Peak hour</span>
-                            <strong class="checkpoint-value" id="timing-peak-hour">10:00</strong>
-                            <p class="checkpoint-copy" id="timing-peak-hour-copy">175 crashes in the sharpest hour.</p>
+                    <div class="checkpoint-rail">
+                        <div class="hero-rail-item checkpoint-card">
+                            <span>Peak hour</span>
+                            <strong id="timing-peak-hour">10:00</strong>
+                            <p id="timing-peak-hour-copy">175 crashes in the sharpest hour.</p>
                         </div>
-                        <div class="checkpoint-item">
-                            <span class="checkpoint-label">Peak day</span>
-                            <strong class="checkpoint-value" id="timing-peak-day">Saturday</strong>
-                            <p class="checkpoint-copy" id="timing-peak-day-copy">450 incidents on the city’s highest-pressure day.</p>
+                        <div class="hero-rail-item checkpoint-card">
+                            <span>Peak day</span>
+                            <strong id="timing-peak-day">Saturday</strong>
+                            <p id="timing-peak-day-copy">450 incidents on the city’s highest-pressure day.</p>
                         </div>
-                        <div class="checkpoint-item">
-                            <span class="checkpoint-label">Weekday share</span>
-                            <strong class="checkpoint-value" id="timing-weekday-share">71.4%</strong>
-                            <p class="checkpoint-copy" id="timing-weekday-share-copy">Most crashes still happen during weekday exposure.</p>
+                        <div class="hero-rail-item checkpoint-card">
+                            <span>Weekday share</span>
+                            <strong id="timing-weekday-share">71.4%</strong>
+                            <p id="timing-weekday-share-copy">Most crashes still happen during weekday exposure.</p>
                         </div>
                     </div>
                 </article>
@@ -823,40 +948,31 @@ html[data-theme="dark"] .zone-spotlight {
                             <p class="panel-insight" id="insight-risk">126 high-risk zones cover a tiny slice of the network yet absorb most of the mapped crashes.</p>
                         </div>
                     </div>
-                    <div class="distribution-track" aria-label="Risk zone distribution">
-                        <span class="distribution-segment high" id="risk-segment-high" style="width: 45.7%"></span>
-                        <span class="distribution-segment medium" id="risk-segment-medium" style="width: 30.8%"></span>
-                        <span class="distribution-segment low" id="risk-segment-low" style="width: 23.5%"></span>
-                    </div>
-                    <div class="distribution-grid">
-                        <div class="distribution-item">
-                            <div class="distribution-meta">
-                                <div class="distribution-label">High risk</div>
-                                <div class="distribution-copy">Priority zones for intervention and route warnings.</div>
-                            </div>
-                            <div class="distribution-count">
-                                <strong id="risk-high-count">126</strong>
-                                <span id="risk-high-share">45.7% of active zones</span>
+                    <div class="risk-donut-layout">
+                        <div class="risk-donut-wrap">
+                            <div class="risk-donut" id="risk-donut" role="img" aria-label="Risk zone distribution showing 126 high-risk zones, 85 medium-risk zones, and 65 low-risk zones.">
+                                <div class="risk-donut-core">
+                                    <span>Active zones</span>
+                                    <strong id="risk-active-count">276</strong>
+                                    <p id="risk-active-copy">11.4% of all city grids</p>
+                                </div>
                             </div>
                         </div>
-                        <div class="distribution-item">
-                            <div class="distribution-meta">
-                                <div class="distribution-label">Medium risk</div>
-                                <div class="distribution-copy">Watchlist corridors that still need active monitoring.</div>
+                        <div class="risk-legend" aria-label="Risk zone counts">
+                            <div class="risk-legend-row high">
+                                <span class="risk-legend-swatch" aria-hidden="true"></span>
+                                <span class="risk-legend-label">High risk</span>
+                                <span class="risk-legend-stats"><strong id="risk-high-count">126</strong> zones • <span id="risk-high-share">45.7%</span></span>
                             </div>
-                            <div class="distribution-count">
-                                <strong id="risk-medium-count">85</strong>
-                                <span id="risk-medium-share">30.8% of active zones</span>
+                            <div class="risk-legend-row medium">
+                                <span class="risk-legend-swatch" aria-hidden="true"></span>
+                                <span class="risk-legend-label">Medium risk</span>
+                                <span class="risk-legend-stats"><strong id="risk-medium-count">85</strong> zones • <span id="risk-medium-share">30.8%</span></span>
                             </div>
-                        </div>
-                        <div class="distribution-item">
-                            <div class="distribution-meta">
-                                <div class="distribution-label">Low risk</div>
-                                <div class="distribution-copy">Scattered incidents, but not enough to dominate the map.</div>
-                            </div>
-                            <div class="distribution-count">
-                                <strong id="risk-low-count">65</strong>
-                                <span id="risk-low-share">23.5% of active zones</span>
+                            <div class="risk-legend-row low">
+                                <span class="risk-legend-swatch" aria-hidden="true"></span>
+                                <span class="risk-legend-label">Low risk</span>
+                                <span class="risk-legend-stats"><strong id="risk-low-count">65</strong> zones • <span id="risk-low-share">23.5%</span></span>
                             </div>
                         </div>
                     </div>
@@ -895,27 +1011,28 @@ html[data-theme="dark"] .zone-spotlight {
                             <p class="panel-insight" id="insight-severity">Minor injuries dominate the record, while deaths and serious injuries remain matched at 45 each.</p>
                         </div>
                     </div>
-                    <div class="severity-stack" id="severity-stack" aria-label="Crash severity breakdown">
-                        <div class="severity-row">
-                            <div class="severity-header">
-                                <strong>Deaths</strong>
-                                <span>45 cases</span>
-                            </div>
-                            <div class="severity-bar"><span class="severity-fill danger" style="width: 10%"></span></div>
+                    <div class="severity-overview" id="severity-stack">
+                        <div class="severity-bar-stack" role="img" aria-label="Crash severity stacked bar showing 45 deaths, 45 serious injuries, and 1,685 minor injuries.">
+                            <span class="severity-segment danger" style="width: 2.5%"></span>
+                            <span class="severity-segment warning" style="width: 2.5%"></span>
+                            <span class="severity-segment success" style="width: 95%"></span>
                         </div>
-                        <div class="severity-row">
-                            <div class="severity-header">
-                                <strong>Serious injuries</strong>
-                                <span>45 cases</span>
+                        <div class="severity-summary-grid">
+                            <div class="severity-summary-item danger">
+                                <span class="severity-summary-label">Deaths</span>
+                                <strong>45</strong>
+                                <p>2.5% of harm records</p>
                             </div>
-                            <div class="severity-bar"><span class="severity-fill warning" style="width: 10%"></span></div>
-                        </div>
-                        <div class="severity-row">
-                            <div class="severity-header">
-                                <strong>Minor injuries</strong>
-                                <span>1,685 cases</span>
+                            <div class="severity-summary-item warning">
+                                <span class="severity-summary-label">Serious injuries</span>
+                                <strong>45</strong>
+                                <p>2.5% of harm records</p>
                             </div>
-                            <div class="severity-bar"><span class="severity-fill success" style="width: 100%"></span></div>
+                            <div class="severity-summary-item success">
+                                <span class="severity-summary-label">Minor injuries</span>
+                                <strong>1,685</strong>
+                                <p>94.9% of harm records</p>
+                            </div>
                         </div>
                     </div>
                 </article>
@@ -1080,8 +1197,20 @@ function renderHero(data) {
     const [peakHour, peakHourCount] = topEntry(data.by_hour);
     const [peakDay, peakDayCount] = topEntry(data.by_day);
     const [topArea, topAreaCount] = topEntry(data.by_area);
+    const highRiskZones = Number(data.summary?.high_risk_zones || data.risk_distribution?.high || 0);
+    const activeZones = Number(data.summary?.active_zones || sumValues(data.risk_distribution));
+    const mappedAccidents = Number(data.summary?.mapped_accidents || 0);
+    const highRiskAccidents = Number(data.summary?.high_risk_accidents || 0);
+    const exactHighRiskShare = Number(
+        data.summary?.high_risk_accident_share_exact ||
+        (mappedAccidents ? (highRiskAccidents / mappedAccidents) * 100 : data.summary?.high_risk_accident_share || 0)
+    );
 
     setText('hero-total', formatNumber(data.total_accidents));
+    setText(
+        'hero-risk-support',
+        `${formatPercent(exactHighRiskShare)} of mapped crashes concentrate in just ${formatNumber(highRiskZones)} of the ${formatNumber(activeZones)} active zones, so targeted intervention could protect most of the city.`
+    );
     setText('hero-peak-hour', formatHourLabel(peakHour));
     setText('hero-peak-hour-copy', `${formatNumber(peakHourCount)} crashes in the busiest hour.`);
     setText('hero-peak-day', peakDay || 'Unknown');
@@ -1146,30 +1275,36 @@ function renderRiskDistribution(data) {
     const highRiskZones = Number(data.risk_distribution?.high || 0);
     const mediumRiskZones = Number(data.risk_distribution?.medium || 0);
     const lowRiskZones = Number(data.risk_distribution?.low || 0);
+    const activeGridShare = data.total_grids ? (activeZones / data.total_grids) * 100 : 0;
     const highRiskGridShare = Number(
         data.summary?.high_risk_grid_share_percent ||
         (data.total_grids ? (Number(data.summary?.high_risk_zones || highRiskZones) / data.total_grids) * 100 : 0)
     );
     const highRiskAccidentShare = Number(data.summary?.high_risk_accident_share || 0);
 
-    const segments = [
-        ['high', highRiskZones],
-        ['medium', mediumRiskZones],
-        ['low', lowRiskZones],
-    ];
+    const highShare = activeZones ? (highRiskZones / activeZones) * 100 : 0;
+    const mediumShare = activeZones ? (mediumRiskZones / activeZones) * 100 : 0;
+    const lowShare = activeZones ? (lowRiskZones / activeZones) * 100 : 0;
+    const donut = document.getElementById('risk-donut');
 
-    segments.forEach(([name, count]) => {
-        const width = activeZones ? (Number(count) / activeZones) * 100 : 0;
-        const segment = document.getElementById(`risk-segment-${name}`);
-        if (segment) segment.style.width = `${width}%`;
-    });
+    if (donut) {
+        donut.style.background = activeZones
+            ? `conic-gradient(from -90deg, var(--danger) 0 ${highShare}%, var(--warning) ${highShare}% ${highShare + mediumShare}%, var(--success) ${highShare + mediumShare}% 100%)`
+            : 'var(--surface-muted)';
+        donut.setAttribute(
+            'aria-label',
+            `Risk zone distribution showing ${formatNumber(highRiskZones)} high-risk zones (${formatPercent(highShare)}), ${formatNumber(mediumRiskZones)} medium-risk zones (${formatPercent(mediumShare)}), and ${formatNumber(lowRiskZones)} low-risk zones (${formatPercent(lowShare)}).`
+        );
+    }
 
+    setText('risk-active-count', formatNumber(activeZones));
+    setText('risk-active-copy', data.total_grids ? `${formatPercent(activeGridShare)} of all city grids` : 'Crash-mapped footprint');
     setText('risk-high-count', formatNumber(highRiskZones));
-    setText('risk-high-share', `${formatPercent(activeZones ? (highRiskZones / activeZones) * 100 : 0)} of active zones`);
+    setText('risk-high-share', formatPercent(highShare));
     setText('risk-medium-count', formatNumber(mediumRiskZones));
-    setText('risk-medium-share', `${formatPercent(activeZones ? (mediumRiskZones / activeZones) * 100 : 0)} of active zones`);
+    setText('risk-medium-share', formatPercent(mediumShare));
     setText('risk-low-count', formatNumber(lowRiskZones));
-    setText('risk-low-share', `${formatPercent(activeZones ? (lowRiskZones / activeZones) * 100 : 0)} of active zones`);
+    setText('risk-low-share', formatPercent(lowShare));
     setText(
         'insight-risk',
         `${formatNumber(Number(data.summary?.high_risk_zones || highRiskZones))} high-risk zones cover just ${formatPercent(highRiskGridShare)} of monitored grids yet contain ${formatPercent(highRiskAccidentShare)} of mapped crashes.`
@@ -1183,26 +1318,40 @@ function renderSeverityStack(data) {
         { key: 'Minor Injuries', tone: 'success' },
     ];
     const totalSeverity = severityOrder.reduce((sum, item) => sum + Number(data.severity?.[item.key] || 0), 0);
-    const maxSeverity = Math.max(...severityOrder.map((item) => Number(data.severity?.[item.key] || 0)), 1);
-
-    const rows = severityOrder.map((item) => {
+    const stackedBar = severityOrder.map((item) => {
         const value = Number(data.severity?.[item.key] || 0);
         const share = totalSeverity ? (value / totalSeverity) * 100 : 0;
-        const width = value === 0 ? 0 : Math.max(8, (value / maxSeverity) * 100);
         return `
-            <div class="severity-row">
-                <div class="severity-header">
-                    <strong>${escapeHtml(item.key)}</strong>
-                    <span>${formatNumber(value)} cases • ${formatPercent(share)} of harm records</span>
-                </div>
-                <div class="severity-bar">
-                    <span class="severity-fill ${item.tone}" style="width: ${width}%"></span>
-                </div>
+            <span class="severity-segment ${item.tone}" style="width: ${share}%"></span>
+        `;
+    }).join('');
+    const summaryCards = severityOrder.map((item) => {
+        const value = Number(data.severity?.[item.key] || 0);
+        const share = totalSeverity ? (value / totalSeverity) * 100 : 0;
+        return `
+            <div class="severity-summary-item ${item.tone}">
+                <span class="severity-summary-label">${escapeHtml(item.key)}</span>
+                <strong>${formatNumber(value)}</strong>
+                <p>${formatPercent(share)} of harm records</p>
             </div>
         `;
     }).join('');
+    const severityLabel = totalSeverity
+        ? severityOrder.map((item) => {
+            const value = Number(data.severity?.[item.key] || 0);
+            const share = totalSeverity ? (value / totalSeverity) * 100 : 0;
+            return `${formatNumber(value)} ${item.key.toLowerCase()} (${formatPercent(share)})`;
+        }).join(', ')
+        : 'No severity data available.';
 
-    document.getElementById('severity-stack').innerHTML = rows;
+    document.getElementById('severity-stack').innerHTML = `
+        <div class="severity-bar-stack" role="img" aria-label="${escapeHtml(`Crash severity stacked bar showing ${severityLabel}`)}">
+            ${stackedBar}
+        </div>
+        <div class="severity-summary-grid">
+            ${summaryCards}
+        </div>
+    `;
     setText(
         'insight-severity',
         `Minor injuries dominate with ${formatNumber(data.severity?.['Minor Injuries'] || 0)} records, while deaths and serious injuries both land at ${formatNumber(data.severity?.Deaths || 0)}.`

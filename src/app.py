@@ -222,6 +222,11 @@ _CHAT_COUNT_STAT_PATTERN = re.compile(
     r"weekends?|months?|years?|km²?|km|risk(?: score)?|accuracy|recall|lift)\b",
     flags=re.IGNORECASE,
 )
+_CHAT_ROUTE_REQUEST_PATTERN = re.compile(
+    r"\b(?:route|routes|directions?|navigate|navigation|safest way|best way)\b|"
+    r"\bfrom\b.+\bto\b",
+    flags=re.IGNORECASE,
+)
 
 
 def _strip_chat_emojis(text: str) -> str:
@@ -278,6 +283,62 @@ def _sanitize_chatbot_payload(payload, rich_text: bool = False):
             for key, value in payload.items()
         }
     return payload
+
+
+def _chatbot_needs_trip_planner_action(user_message: str, intent_name=None, response=None) -> bool:
+    """Attach a Trip Planner CTA for route-specific questions or replies."""
+    if intent_name == "route_safety":
+        return True
+
+    if _CHAT_ROUTE_REQUEST_PATTERN.search(user_message or ""):
+        return True
+
+    if isinstance(response, dict):
+        combined_text = " ".join(
+            str(response.get(key, "") or "")
+            for key in ("message", "followup")
+        ).lower()
+        if "trip planner" in combined_text:
+            return True
+
+    return False
+
+
+def _attach_trip_planner_action(response):
+    """Add a stable Trip Planner action without duplicating existing actions."""
+    if not isinstance(response, dict):
+        return response
+
+    actions = list(response.get("actions") or [])
+    if not any(action.get("href") == "/trip-planner" for action in actions if isinstance(action, dict)):
+        actions.append({
+            "label": "Open Trip Planner",
+            "href": "/trip-planner",
+            "style": "primary",
+        })
+    response["actions"] = actions
+    return response
+
+
+def _normalize_chat_history(raw_history, max_messages=8):
+    """Normalize chat history from the client before sending it to the LLM."""
+    if not isinstance(raw_history, list):
+        return []
+
+    normalized = []
+    for item in raw_history[-max_messages:]:
+        if not isinstance(item, dict):
+            continue
+        role = str(item.get("role", "")).strip().lower()
+        content = str(item.get("content", "")).strip()
+        if role not in {"user", "assistant"} or not content:
+            continue
+        normalized.append({
+            "role": role,
+            "content": content[:1200],
+        })
+
+    return normalized
 
 
 app = Flask(
@@ -1444,7 +1505,12 @@ def analytics_data():
             ).fillna(0).sum()
         )
         high_risk_grid_share_percent = round((high_risk_zones / total_grids) * 100, 1) if total_grids else 0.0
-        high_risk_accident_share = round((high_risk_accidents / total_mapped_accidents) * 100, 1) if total_mapped_accidents else 0.0
+        high_risk_accident_share_exact = (
+            (high_risk_accidents / total_mapped_accidents) * 100
+            if total_mapped_accidents
+            else 0.0
+        )
+        high_risk_accident_share = round(high_risk_accident_share_exact, 1)
 
         # Weekend vs weekday
         weekend_col = df.get("is_weekend")
@@ -1474,8 +1540,10 @@ def analytics_data():
                 "active_zones": active_zones,
                 "high_risk_zones": high_risk_zones,
                 "mapped_accidents": total_mapped_accidents,
+                "high_risk_accidents": high_risk_accidents,
                 "high_risk_grid_share_percent": high_risk_grid_share_percent,
                 "high_risk_accident_share": high_risk_accident_share,
+                "high_risk_accident_share_exact": high_risk_accident_share_exact,
             },
         })
     except Exception as exc:
@@ -2019,7 +2087,8 @@ def _load_nlp_cache():
 @app.route("/nlp")
 def nlp():
     """Bangkok Safety Assistant — hybrid chatbot page."""
-    return render_template("nlp.html")
+    assistant_stats = CHATBOT_DATA.get("stats", {}) if isinstance(CHATBOT_DATA, dict) else {}
+    return render_template("nlp.html", assistant_stats=assistant_stats)
 
 
 @app.route("/api/nlp/pipeline-demo")
@@ -2117,6 +2186,7 @@ def chatbot():
     try:
         data = request.json
         user_message = data.get("message", "").strip()
+        conversation_history = _normalize_chat_history(data.get("history", []))
 
         if not user_message:
             return jsonify({"success": False, "error": "Empty message"}), 400
@@ -2141,7 +2211,14 @@ def chatbot():
                 response = ml_response
             else:
                 # Step 3: AI response (flexible, open-ended)
-                response = get_groq_response(user_message, CHATBOT_DATA)
+                response = get_groq_response(
+                    user_message,
+                    CHATBOT_DATA,
+                    conversation_history=conversation_history,
+                )
+
+        if _chatbot_needs_trip_planner_action(user_message, intent, response):
+            response = _attach_trip_planner_action(response)
 
         response = _sanitize_chatbot_payload(response)
         return jsonify({"success": True, "response": response})
@@ -2172,7 +2249,7 @@ def chatbot_suggestions():
 if __name__ == "__main__":
     print()
     print("=" * 64)
-    print("RoadRisk Bangkok - Risk Prediction System")
+    print("SafeDrive BKK - Risk Prediction System")
     print("=" * 64)
 
     if USE_ML:

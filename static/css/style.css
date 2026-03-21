@@ -1,5 +1,5 @@
 /* ============================================================
-   RoadRisk Bangkok — Global Design Tokens & Base Styles
+   SafeDrive BKK — Global Design Tokens & Base Styles
    Single source of truth for all color, shadow, and typography
    ============================================================ */
 
@@ -419,18 +419,24 @@ html[data-theme="dark"] .theme-toggle {
 /* ── Footer ────────────────────────────────────────────────── */
 
 .rr-footer {
-    border-top: 1px solid var(--rr-border);
-    background-color: #ffffff;
+    border-top: 1px solid rgba(148, 163, 184, 0.16);
+    background-color: rgba(255, 255, 255, 0.94);
     transition: background-color 0.2s ease, border-color 0.2s ease;
 }
 
 html[data-theme="dark"] .rr-footer {
-    background-color: #060b16;
+    border-top-color: rgba(148, 163, 184, 0.18);
+    background-color: rgba(6, 11, 22, 0.92);
+}
+
+.rr-footer .text-muted,
+.rr-footer .text-muted a {
+    color: rgba(31, 41, 55, 0.78) !important;
 }
 
 html[data-theme="dark"] .rr-footer .text-muted,
 html[data-theme="dark"] .rr-footer .text-muted a {
-    color: #94a3b8 !important;
+    color: #cbd5e1 !important;
 }
 
 /* Status dot — pulsing green "all systems operational" */

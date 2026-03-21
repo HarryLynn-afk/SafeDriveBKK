@@ -1,8 +1,8 @@
-# RoadRisk Bangkok — AI-Powered Road Safety System
+# SafeDrive BKK — AI-Powered Road Safety System
 
 ## What This Project Is
 
-RoadRisk Bangkok predicts dangerous road zones in Bangkok using Thai government accident data (2,669 Bangkok records from 23,952 nationwide in 2024). It helps drivers find safer routes by combining XGBoost ML, Thai NLP, and interactive data visualization.
+SafeDrive BKK predicts dangerous road zones in Bangkok using Thai government accident data (2,669 Bangkok records from 23,952 nationwide in 2024). It helps drivers find safer routes by combining XGBoost ML, Thai NLP, and interactive data visualization.
 
 **Hackathon:** AIIC2026 (Tracks: NLP + Data Visualization)
 **Live URL:** Runs locally via Flask on port 5000

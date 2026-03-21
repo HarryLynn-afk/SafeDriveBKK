@@ -1,5 +1,5 @@
 """
-Intent Detection & Response System for RoadRisk Bangkok Chatbot
+Intent Detection & Response System for SafeDrive BKK Chatbot
 
 Hybrid approach:
   - Pattern matching handles 20 common question types instantly
@@ -50,6 +50,31 @@ def _search_zone_by_name(query):
         if query_lower in zone["location"].lower():
             return gid, zone
     return None, None
+
+
+def _trip_planner_action():
+    return {
+        "label": "Open Trip Planner",
+        "href": "/trip-planner",
+        "style": "primary",
+    }
+
+
+def _extract_route_reference(user_message):
+    """Extract a short human-readable route reference from the user's message."""
+    text = str(user_message or "").strip()
+    from_to_match = re.search(r"\bfrom\s+(.+?)\s+\bto\s+(.+?)(?:[\?\.,!]|$)", text, re.I)
+    if from_to_match:
+        start = from_to_match.group(1).strip()
+        end = from_to_match.group(2).strip()
+        return f"from **{start}** to **{end}**"
+
+    to_match = re.search(r"\bto\s+(.+?)(?:[\?\.,!]|$)", text, re.I)
+    if to_match:
+        destination = to_match.group(1).strip()
+        return f"to **{destination}**"
+
+    return ""
 
 
 # ---------------------------------------------------------------------------
@@ -144,6 +169,13 @@ INTENTS = {
             re.compile(r"route.*(?:recommendation|suggest|plan)", re.I),
         ],
         "handler": "handle_route_safety",
+    },
+    "rain_data_gap": {
+        "patterns": [
+            re.compile(r"(?:rain|raining|weather|storm|wet roads?).*(?:risk|danger|safe|accident|increase)", re.I),
+            re.compile(r"(?:how much|does).*(?:rain|weather).*(?:increase|affect).*(?:risk|accident)", re.I),
+        ],
+        "handler": "handle_rain_data_gap",
     },
     "camera_deployment": {
         "patterns": [
@@ -449,14 +481,31 @@ def handle_zone_safety(user_message=""):
 
 
 def handle_route_safety(user_message=""):
+    route_reference = _extract_route_reference(user_message)
+    acknowledgement = (
+        f"That trip {route_reference} needs a path-specific check rather than a generic answer."
+        if route_reference
+        else "That is a route-specific question, so the safest answer depends on the exact path and time of travel."
+    )
     return {
         "type": "info",
         "message": (
-            "Use our **Trip Planner** for the safest route! It compares routes and shows danger zones along the way, "
-            "plus suggests safer alternatives. Just enter your start and destination."
+            f"{acknowledgement} **Use the Trip Planner** to compare a faster option with a safer option and see the danger zones along the way."
         ),
         "data": [],
-        "followup": "Want to know which areas to avoid? ⚠️",
+        "followup": "Want to know which areas to avoid first?",
+        "actions": [_trip_planner_action()],
+    }
+
+
+def handle_rain_data_gap(user_message=""):
+    return {
+        "type": "info",
+        "message": (
+            "While this isn't in our Bangkok dataset, based on general road safety research, rain usually increases risk by reducing visibility and tire grip. I can't give a Bangkok-specific number yet, but the safest response is to slow down, increase following distance, and avoid abrupt braking or lane changes."
+        ),
+        "data": [],
+        "followup": "I can still help with danger zones, peak times, or route-specific checks.",
     }
 
 
@@ -545,7 +594,7 @@ def handle_speeding_stats(user_message=""):
         "message": (
             f"Speeding causes **{speeding['percentage']}%** of all Bangkok accidents - it's the #1 problem by far.\n\n"
             f"Worst zone: **{speeding['top_zones'][0]['location']}** with {speeding['top_zones'][0]['cause_count']} speeding accidents. "
-            f"Stricter speed enforcement could cut these numbers by 30-40%."
+            f"That makes it one of the clearest enforcement targets in the dataset."
         ),
         "data": speeding["top_zones"][:3],
         "followup": "Want to see top speeding zones? 🚗",
@@ -621,9 +670,8 @@ def handle_time_patterns(user_message=""):
     return {
         "type": "stats",
         "message": (
-            f"Most dangerous: **{tp['most_dangerous_hour']}** (evening rush - {tp['most_dangerous_hour_count']} accidents).\n"
-            f"Safest for normal travel: **10 AM - 3 PM** (between rush hours).\n"
-            f"Weekend nights (10 PM - 2 AM) are risky due to drunk driving. Plan accordingly! 🕐"
+            f"**Peak hour: {tp['most_dangerous_hour']}.** That is the busiest single hour in the dataset with **{tp['most_dangerous_hour_count']} accidents**.\n\n"
+            f"The lowest hour is **{tp['safest_hour']}** with **{tp['safest_hour_count']} accidents**, but for normal trips the practical move is to avoid the main spikes around **7-10 AM**, **{tp['most_dangerous_hour']}**, and **4-8 PM**."
         ),
         "data": [],
         "followup": "Want rush hour or weekend details?",
@@ -641,10 +689,8 @@ def handle_rush_hour(user_message=""):
     return {
         "type": "stats",
         "message": (
-            f"⚠️ Rush hours cause {tp['rush_hour_pct']}% of all accidents.\n\n"
-            f"Evening rush (4-8 PM) is {'worse' if evening > morning else 'better'} than morning (7-10 AM) "
-            f"with {evening} vs {morning} accidents. "
-            f"If you can, travel between **10 AM - 3 PM** for the safest window."
+            f"**Rush hour is a major risk window.** **{tp['rush_hour_pct']}%** of all recorded crashes happen during rush-hour periods.\n\n"
+            f"The evening rush (4-8 PM) is {'worse' if evening > morning else 'slightly lighter'} than the morning rush (7-10 AM), with **{evening} vs {morning} accidents**. If your schedule is flexible, avoid those peaks instead of aiming for one supposedly 'safe' daytime block."
         ),
         "data": [],
         "followup": "Want weekend patterns too? 🕐",
@@ -664,10 +710,8 @@ def handle_weekend_pattern(user_message=""):
     return {
         "type": "comparison",
         "message": (
-            f"**{tp['most_dangerous_day']}** is the most dangerous day overall.\n\n"
-            f"Weekend daily average is {round(weekend_daily_avg / weekday_daily_avg, 1)}× higher than weekdays "
-            f"({weekend_daily_avg:.0f} vs {weekday_daily_avg:.0f} accidents/day). "
-            f"Late-night drunk driving is a major factor. Be extra careful on weekend nights! 🕐"
+            f"**{tp['most_dangerous_day']}** is the highest-risk single day with **{tp['most_dangerous_day_count']} accidents**.\n\n"
+            f"Weekdays still make up **{tp['weekday_accidents']} crashes** overall because there are more weekday travel days, but weekend pressure is concentrated hardest on Saturday. If you are traveling on the weekend, Saturday deserves the most caution."
         ),
         "data": [{"day": d, **daily[d]} for d in ["Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday", "Sunday"]],
         "followup": "Want to see the riskiest weekend zones?",
@@ -706,7 +750,7 @@ def handle_camera_deployment(user_message=""):
         "message": (
             f"Top zones recommended for speed enforcement:\n" +
             "\n".join(lines) +
-            f"\n\nData-driven enforcement in these zones could reduce speeding accidents by 30-40%. 💡"
+            f"\n\nThese locations show the heaviest speeding concentration in the dataset, so they are the clearest enforcement candidates."
         ),
         "data": top_zones,
         "followup": "Want to see other recommendations?",
@@ -879,7 +923,7 @@ def handle_ml_cause_response(cause_key: str, confidence: float, user_message: st
         zone_text = f"\n\nTop zones:\n{_fmt_zone_list(top_zones, 3)}"
 
     if cause_key == "speeding":
-        advice = "Stricter speed enforcement in these zones could reduce accidents by 30–40%."
+        advice = "These zones are the clearest enforcement targets in the dataset."
     elif cause_key == "cutting_in_front":
         advice = "Zones with high cutting-in-front rates are especially risky — keep safe following distance."
     else:
@@ -909,6 +953,7 @@ _HANDLERS = {
     "handle_dangerous_zones": handle_dangerous_zones,
     "handle_zone_safety": handle_zone_safety,
     "handle_route_safety": handle_route_safety,
+    "handle_rain_data_gap": handle_rain_data_gap,
     "handle_high_risk_zones": handle_high_risk_zones,
     "handle_motorcycle_zones": handle_motorcycle_zones,
     "handle_cause_breakdown": handle_cause_breakdown,

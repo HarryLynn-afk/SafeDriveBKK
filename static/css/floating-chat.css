@@ -500,6 +500,49 @@ html[data-theme="dark"] {
     line-height: 1.5;
 }
 
+.chat-widget-messages .message-actions {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px;
+    margin-top: 12px;
+}
+
+.chat-widget-messages .message-action {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    min-height: 40px;
+    padding: 10px 16px;
+    border-radius: var(--chat-radius-pill);
+    border: 1px solid transparent;
+    font-size: 13px;
+    font-weight: 700;
+    line-height: 1;
+    text-decoration: none;
+    transition:
+        transform 0.14s ease,
+        box-shadow 0.18s ease,
+        background-color 0.18s ease,
+        border-color 0.18s ease,
+        color 0.18s ease;
+}
+
+.chat-widget-messages .message-action:hover {
+    transform: translateY(-1px);
+}
+
+.chat-widget-messages .message-action--primary {
+    background: linear-gradient(135deg, var(--chat-primary) 0%, var(--chat-primary-deep) 100%);
+    color: #ffffff;
+    box-shadow: 0 10px 22px rgba(37, 99, 235, 0.18);
+}
+
+.chat-widget-messages .message-action--secondary {
+    background: var(--chat-bot-bubble-bg);
+    border-color: var(--chat-border);
+    color: var(--chat-text);
+}
+
 .chat-widget-suggestions {
     padding: 0 20px 14px;
     display: flex;

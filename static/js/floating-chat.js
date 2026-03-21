@@ -12,6 +12,7 @@ class FloatingChat {
         if (!this.fab || !this.widget) return;
 
         this.isOpen = false;
+        this.history = [];
         this.init();
     }
 
@@ -160,7 +161,10 @@ class FloatingChat {
             const response = await fetch('/api/chatbot', {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ message })
+                body: JSON.stringify({
+                    message,
+                    history: this.history.slice(-8),
+                })
             });
 
             const data = await response.json();
@@ -168,6 +172,8 @@ class FloatingChat {
             this.sendBtn.disabled = false;
 
             if (data.success && data.response) {
+                this.recordHistoryTurn('user', message);
+                this.recordHistoryTurn('assistant', this.flattenResponseText(data.response));
                 this.addBotResponse(data.response);
             } else {
                 this.addMessage('bot', 'Sorry, something went wrong. Please try again.');
@@ -193,9 +199,26 @@ class FloatingChat {
             html += `<div class="message-followup">${this.renderRichText(response.followup)}</div>`;
         }
 
+        if (Array.isArray(response.actions) && response.actions.length) {
+            html += this.renderActions(response.actions);
+        }
+
         const div = this.createMessageShell('bot', html);
         this.messages.appendChild(div);
         this.scrollToBottom();
+    }
+
+    renderActions(actions) {
+        const links = actions
+            .map((action) => {
+                const href = this.normalizeActionHref(action && action.href);
+                const label = this.escapeHtml((action && action.label) || 'Open');
+                const style = action && action.style === 'secondary' ? 'secondary' : 'primary';
+                return `<a class="message-action message-action--${style}" href="${href}">${label}</a>`;
+            })
+            .join('');
+
+        return `<div class="message-actions">${links}</div>`;
     }
 
     renderRichText(text) {
@@ -260,6 +283,26 @@ class FloatingChat {
         const el = document.createElement('span');
         el.textContent = text;
         return el.innerHTML;
+    }
+
+    flattenResponseText(response) {
+        if (!response || typeof response !== 'object') return '';
+        const parts = [response.message, response.followup]
+            .filter((value) => typeof value === 'string' && value.trim());
+        return parts.join('\n\n').trim();
+    }
+
+    recordHistoryTurn(role, content) {
+        const text = String(content || '').trim();
+        if (!text || !['user', 'assistant'].includes(role)) return;
+        this.history.push({ role, content: text });
+        if (this.history.length > 8) {
+            this.history = this.history.slice(-8);
+        }
+    }
+
+    normalizeActionHref(href) {
+        return typeof href === 'string' && href.startsWith('/') && !href.startsWith('//') ? href : '#';
     }
 
     showTyping() {

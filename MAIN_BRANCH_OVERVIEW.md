@@ -1,8 +1,8 @@
-# RoadRisk Bangkok — Main Branch Overview
+# SafeDrive BKK — Main Branch Overview
 
 ## What Is This Project?
 
-**RoadRisk Bangkok** (branded as "Smart City Dashboard" on the frontend) is an AI-powered accident risk prediction system for Bangkok. It uses Thai government accident data and XGBoost machine learning to predict next-week high-risk road zones, plan safer routes, and provide real-time navigation alerts.
+**SafeDrive BKK** (branded as "Smart City Dashboard" on the frontend) is an AI-powered accident risk prediction system for Bangkok. It uses Thai government accident data and XGBoost machine learning to predict next-week high-risk road zones, plan safer routes, and provide real-time navigation alerts.
 
 **Data Source:** Thai Ministry of Transport (2024) — 23,952 accident records nationwide, 2,669 focused on Bangkok.
 

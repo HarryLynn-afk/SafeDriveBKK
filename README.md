@@ -1,4 +1,4 @@
-# RoadRisk Bangkok: AI-Powered Road Safety Prediction
+# SafeDrive BKK: AI-Powered Road Safety Prediction
 
 Predicts high-risk road zones in Bangkok using NLP and Data Visualization on real Thai government accident data.
 

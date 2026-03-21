@@ -1,6 +1,6 @@
 {% extends "base.html" %}
 
-{% block title %}RoadRisk Bangkok | Predict Safer Drives{% endblock %}
+{% block title %}SafeDrive BKK | Predict Safer Drives{% endblock %}
 {% block body_class %}landing-shell{% endblock %}
 
 {% block extra_css %}
@@ -198,7 +198,7 @@ html {
     z-index: 1;
     max-width: 1320px;
     margin: 0 auto;
-    padding: 0.75rem 1rem 5rem;
+    padding: 1rem 1rem 6rem;
 }
 
 .surface-card {
@@ -379,10 +379,10 @@ html {
     z-index: 1;
     max-width: 1020px;
     margin: 0 auto;
-    padding: 0 1rem 1.3rem;
+    padding: 0 1rem 1.8rem;
     display: grid;
     grid-template-columns: repeat(4, minmax(0, 1fr));
-    gap: 0.9rem;
+    gap: 1.15rem;
 }
 
 .proof-card {
@@ -410,8 +410,8 @@ html {
 }
 
 .landing-section {
-    margin-top: 1rem;
-    padding: clamp(5rem, 7vw, 6rem) clamp(1.25rem, 2.8vw, 2rem);
+    margin-top: 1.75rem;
+    padding: clamp(5.4rem, 7.8vw, 6.6rem) clamp(1.4rem, 3vw, 2.25rem);
 }
 
 .landing-section-heading {
@@ -434,7 +434,7 @@ html {
 
 .landing-section-intro {
     text-align: center;
-    margin-bottom: 1.75rem;
+    margin-bottom: 2.35rem;
 }
 
 .heatmap-section {
@@ -472,7 +472,7 @@ html {
 .route-showcase-grid {
     display: grid;
     grid-template-columns: repeat(2, minmax(0, 1fr));
-    gap: 0.9rem;
+    gap: 1.3rem;
     align-items: stretch;
 }
 
@@ -481,7 +481,7 @@ html {
     display: flex;
     flex-direction: column;
     height: 100%;
-    padding: 0.95rem 1rem;
+    padding: 1.2rem 1.25rem;
     border-radius: 20px;
     border: 1px solid var(--landing-card-border);
     background: var(--landing-card-bg);
@@ -599,8 +599,8 @@ html {
 .route-metrics {
     display: grid;
     grid-template-columns: repeat(3, minmax(0, 1fr));
-    gap: 0.8rem;
-    margin-top: 1.4rem;
+    gap: 1rem;
+    margin-top: 1.6rem;
 }
 
 .route-metric {
@@ -658,14 +658,14 @@ html {
 }
 
 .landing-close {
-    margin-top: 1.1rem;
-    padding: 2rem 1rem 0.4rem;
+    margin-top: 2rem;
+    padding: 2.4rem 1rem 0.65rem;
     text-align: center;
 }
 
 .landing-close p {
     margin: 0;
-    color: #111827;
+    color: var(--landing-ink);
     font-size: clamp(1.2rem, 2vw, 1.6rem);
     font-weight: 700;
     letter-spacing: -0.035em;
@@ -675,6 +675,7 @@ html {
 .landing-close a {
     color: var(--landing-blue-deep);
     text-decoration: none;
+    text-underline-offset: 0.16em;
 }
 
 .landing-close a:hover {
@@ -1166,13 +1167,13 @@ html {
 }
 
 .landing-shell .rr-footer {
-    border-top: none;
-    background: #0f172a;
+    border-top: 1px solid rgba(148, 163, 184, 0.16);
+    background: rgba(255, 255, 255, 0.92);
 }
 
 .landing-shell .rr-footer .text-muted,
 .landing-shell .rr-footer .text-muted a {
-    color: rgba(226, 232, 240, 0.72) !important;
+    color: rgba(31, 41, 55, 0.82) !important;
 }
 
 .landing-shell .status-dot-green {
@@ -1256,6 +1257,24 @@ html[data-theme="dark"] .landing-shell .proof-card {
     background: linear-gradient(180deg, rgba(15, 17, 23, 0.9), rgba(17, 24, 39, 0.92));
     border-color: rgba(148, 163, 184, 0.16);
     box-shadow: 0 18px 34px rgba(2, 6, 23, 0.24);
+}
+
+html[data-theme="dark"] .landing-shell .landing-close p {
+    color: #f8fafc;
+}
+
+html[data-theme="dark"] .landing-shell .landing-close a {
+    color: #93c5fd;
+}
+
+html[data-theme="dark"] .landing-shell .rr-footer {
+    border-top-color: rgba(148, 163, 184, 0.18);
+    background: rgba(6, 11, 22, 0.9);
+}
+
+html[data-theme="dark"] .landing-shell .rr-footer .text-muted,
+html[data-theme="dark"] .landing-shell .rr-footer .text-muted a {
+    color: rgba(226, 232, 240, 0.82) !important;
 }
 
 html[data-theme="dark"] .landing-shell .route-preview-card {
@@ -1396,7 +1415,7 @@ html[data-theme="dark"] .landing-shell .route-metric {
                     rel="noopener noreferrer"
                 >Source &rarr;</a>
             </span>
-            <a href="/about">See how RoadRisk turns data into prevention &rarr;</a>
+            <a href="/about">See how SafeDrive BKK turns data into prevention &rarr;</a>
         </div>
     </section>
 
@@ -1421,7 +1440,7 @@ html[data-theme="dark"] .landing-shell .route-metric {
                     </h1>
 
                     <p class="hero-lead">
-                        RoadRisk Bangkok turns official crash records, XGBoost forecasting, and Thai NLP insights into a calm front door for safer driving decisions across the city.
+                        SafeDrive BKK turns official crash records, XGBoost forecasting, and Thai NLP insights into a calm front door for safer driving decisions across the city.
                     </p>
 
                     <div class="hero-actions">
@@ -1490,7 +1509,7 @@ html[data-theme="dark"] .landing-shell .route-metric {
                 </span>
                 <h2 class="landing-section-heading">Two routes. One clear winner.</h2>
                 <p class="landing-section-subline">
-                    RoadRisk scores every route using XGBoost predictions across 44 engineered features — so you always know which path is safer before you leave.
+                    SafeDrive BKK scores every route using XGBoost predictions across 44 engineered features — so you always know which path is safer before you leave.
                 </p>
             </div>
 
