@@ -1,254 +1,939 @@
 {% extends "base.html" %}
 
-{% block title %}Analytics Dashboard - RoadRisk Bangkok{% endblock %}
+{% block title %}RoadRisk Analytics - RoadRisk Bangkok{% endblock %}
+{% block body_class %}analytics-theme{% endblock %}
+
+{% block extra_head %}
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=Space+Grotesk:wght@500;700&display=swap" rel="stylesheet">
+{% endblock %}
 
 {% block extra_css %}
 <style>
-.analytics-hero {
-    background: linear-gradient(135deg, #1d4ed8 0%, #7c3aed 100%);
-    color: white;
-    padding: 40px 20px;
-    text-align: center;
-    margin-bottom: 32px;
+.analytics-page {
+    --bg: #ffffff;
+    --surface: rgba(255, 255, 255, 0.78);
+    --surface-strong: #ffffff;
+    --surface-muted: #eef2ff;
+    --line: rgba(148, 163, 184, 0.2);
+    --line-strong: rgba(219, 234, 254, 0.95);
+    --ink: #111827;
+    --ink-soft: #374151;
+    --muted: #6b7280;
+    --muted-soft: #94a3b8;
+    --accent: #2563eb;
+    --accent-deep: #1d4ed8;
+    --accent-soft: #93c5fd;
+    --accent-wash: #dbeafe;
+    --danger: #dc2626;
+    --warning: #f59e0b;
+    --success: #16a34a;
+    background: transparent;
+    color: var(--ink);
 }
-.analytics-hero h1 { font-size: 32px; font-weight: 700; margin-bottom: 8px; }
-.analytics-hero p { font-size: 16px; opacity: 0.9; }
-.analytics-container {
-    max-width: 1200px;
+
+body.analytics-theme {
+    background:
+        radial-gradient(circle at 50% 0%, rgba(219, 234, 254, 0.75), transparent 26rem),
+        linear-gradient(180deg, #f7f7f8 0%, #fbfbfc 22%, #ffffff 100%);
+    color: #111827;
+}
+
+body.analytics-theme .rr-footer {
+    background: rgba(255, 255, 255, 0.84);
+    border-top: 1px solid rgba(148, 163, 184, 0.14);
+}
+
+.analytics-shell {
+    max-width: 1280px;
     margin: 0 auto;
-    padding: 0 20px 60px;
+    padding: 18px 20px 88px;
 }
-.chart-grid {
-    display: grid;
-    grid-template-columns: repeat(auto-fit, minmax(480px, 1fr));
-    gap: 24px;
-    margin-bottom: 32px;
+
+.analytics-hero,
+.metric-card,
+.panel {
+    border: 1px solid var(--line);
+    border-radius: 24px;
+    box-shadow: 0 16px 40px rgba(15, 23, 42, 0.06);
+    backdrop-filter: blur(10px);
 }
-.chart-card {
-    background: white;
-    border-radius: 12px;
-    padding: 24px;
-    box-shadow: 0 2px 12px rgba(0,0,0,0.08);
+
+.analytics-hero {
+    position: relative;
+    overflow: hidden;
+    padding: 36px 36px 28px;
+    background:
+        radial-gradient(110% 58% at 50% 114%, rgba(147, 197, 253, 0.86) 0%, rgba(191, 219, 254, 0.48) 34%, rgba(255, 255, 255, 0) 66%),
+        linear-gradient(180deg, #ffffff 0%, #fbfcff 64%, #f3f7ff 100%);
 }
-.chart-card h3 {
-    font-size: 18px;
-    font-weight: 600;
-    margin-bottom: 16px;
-    color: #212529;
+
+.metric-card,
+.panel {
+    background: linear-gradient(180deg, rgba(255, 255, 255, 0.96), rgba(251, 252, 255, 0.94));
 }
-.chart-wrapper { position: relative; width: 100%; min-height: 300px; }
-.chart-card.full-width { grid-column: 1 / -1; }
-.summary-row {
-    display: grid;
-    grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
-    gap: 16px;
-    margin-bottom: 32px;
+
+.analytics-hero::before,
+.analytics-hero::after {
+    content: "";
+    position: absolute;
+    border-radius: 999px;
+    pointer-events: none;
 }
-.summary-card {
-    background: white;
-    border-radius: 12px;
-    padding: 20px;
-    text-align: center;
-    box-shadow: 0 2px 8px rgba(0,0,0,0.06);
-    border-top: 4px solid #1d4ed8;
+
+.analytics-hero::before {
+    width: 320px;
+    height: 320px;
+    left: -96px;
+    bottom: -150px;
+    background: radial-gradient(circle, rgba(191, 219, 254, 0.85) 0%, rgba(191, 219, 254, 0) 72%);
 }
-.summary-card.danger { border-top-color: #dc2626; }
-.summary-card.warning { border-top-color: #f59e0b; }
-.summary-card.success { border-top-color: #16a34a; }
-.summary-value { font-size: 32px; font-weight: 700; color: #1d4ed8; }
-.summary-card.danger .summary-value { color: #dc2626; }
-.summary-card.warning .summary-value { color: #f59e0b; }
-.summary-card.success .summary-value { color: #16a34a; }
-.summary-label { font-size: 13px; color: #6b7280; text-transform: uppercase; letter-spacing: 0.5px; margin-top: 4px; }
-.top-zones-table {
-    width: 100%;
-    border-collapse: collapse;
+
+.analytics-hero::after {
+    width: 260px;
+    height: 260px;
+    right: -56px;
+    top: -100px;
+    background: radial-gradient(circle, rgba(219, 234, 254, 0.95) 0%, rgba(219, 234, 254, 0) 70%);
 }
-.top-zones-table th {
-    background: #f8f9fa;
-    padding: 10px 14px;
-    text-align: left;
-    font-size: 13px;
-    text-transform: uppercase;
-    color: #6b7280;
-    letter-spacing: 0.5px;
-}
-.top-zones-table td {
-    padding: 10px 14px;
-    border-bottom: 1px solid #e5e7eb;
-    font-size: 14px;
-}
-.risk-badge {
-    display: inline-block;
-    padding: 2px 10px;
-    border-radius: 12px;
+
+.hero-kicker,
+.metric-label,
+.section-kicker,
+.checkpoint-label,
+.hero-rail-item span,
+.zone-spotlight span {
     font-size: 12px;
     font-weight: 600;
+    letter-spacing: 0.11em;
     text-transform: uppercase;
+    color: var(--muted);
 }
-.risk-badge.high { background: #fef2f2; color: #dc2626; }
-.risk-badge.medium { background: #fffbeb; color: #d97706; }
-.risk-badge.low { background: #f0fdf4; color: #16a34a; }
-.loading-spinner {
+
+.hero-kicker {
+    margin: 0 0 12px;
+}
+
+.hero-number {
+    position: relative;
+    z-index: 1;
+    margin: 0 0 10px;
+    font-family: "Space Grotesk", "Inter", sans-serif;
+    font-size: clamp(72px, 12vw, 148px);
+    line-height: 0.9;
+    letter-spacing: -0.065em;
+    color: var(--ink);
+}
+
+.hero-copy {
+    position: relative;
+    z-index: 1;
+    display: grid;
+    gap: 8px;
+    max-width: 760px;
+}
+
+.hero-copy h1 {
+    margin: 0;
+    max-width: 10ch;
+    font-size: clamp(26px, 3.6vw, 44px);
+    font-weight: 700;
+    line-height: 0.96;
+    letter-spacing: -0.04em;
+    color: var(--ink);
+}
+
+.hero-copy p {
+    margin: 0;
+    max-width: 62ch;
+    font-size: 15px;
+    line-height: 1.62;
+    color: var(--ink-soft);
+}
+
+.hero-rail {
+    position: relative;
+    z-index: 1;
+    display: grid;
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+    gap: 12px;
+    margin-top: 22px;
+}
+
+.hero-rail-item {
+    padding: 15px 18px;
+    border: 1px solid var(--line);
+    border-radius: 18px;
+    background: rgba(255, 255, 255, 0.74);
+    min-height: 92px;
+}
+
+.hero-rail-item strong {
+    display: block;
+    margin-top: 8px;
+    font-family: "Space Grotesk", "Inter", sans-serif;
+    font-size: 25px;
+    line-height: 1;
+    color: var(--ink);
+}
+
+.hero-rail-item p {
+    margin: 8px 0 0;
+    font-size: 13px;
+    line-height: 1.5;
+    color: var(--muted);
+}
+
+.metrics-grid,
+.story-grid {
+    display: grid;
+    grid-template-columns: repeat(12, minmax(0, 1fr));
+    gap: 16px;
+}
+
+.metrics-grid {
+    margin-top: 24px;
+}
+
+.metric-card {
+    grid-column: span 3;
     display: flex;
-    justify-content: center;
-    align-items: center;
-    min-height: 200px;
-    color: #6b7280;
+    flex-direction: column;
+    min-height: 208px;
+    padding: 24px;
+}
+
+.metric-label {
+    margin: 0 0 18px;
+}
+
+.metric-value {
+    margin: 0 0 12px;
+    font-family: "Space Grotesk", "Inter", sans-serif;
+    font-size: clamp(42px, 4vw, 58px);
+    line-height: 0.96;
+    letter-spacing: -0.05em;
+    color: var(--ink);
+}
+
+.metric-context {
+    margin: auto 0 0;
+    font-size: 15px;
+    line-height: 1.65;
+    color: var(--ink-soft);
+}
+
+.story-section {
+    margin-top: 64px;
+}
+
+.section-intro {
+    display: grid;
+    gap: 10px;
+    max-width: 72ch;
+    margin-bottom: 24px;
+}
+
+.section-kicker {
+    margin: 0;
+}
+
+.section-intro h2 {
+    margin: 0;
+    font-size: clamp(24px, 3.2vw, 34px);
+    font-weight: 700;
+    line-height: 1.08;
+    letter-spacing: -0.035em;
+    color: var(--ink);
+}
+
+.section-intro p {
+    margin: 0;
     font-size: 16px;
+    line-height: 1.7;
+    color: var(--ink-soft);
 }
-/* Skeleton loading */
-@keyframes shimmer {
-    0%   { background-position: -600px 0; }
-    100% { background-position: 600px 0; }
+
+.panel {
+    grid-column: span 6;
+    display: flex;
+    flex-direction: column;
+    gap: 20px;
+    min-height: 100%;
+    padding: 24px;
 }
-.skeleton {
-    background: linear-gradient(90deg, #e5e7eb 25%, #f3f4f6 50%, #e5e7eb 75%);
-    background-size: 600px 100%;
-    animation: shimmer 1.4s infinite linear;
-    border-radius: 6px;
+
+.span-12 { grid-column: span 12; }
+.span-8 { grid-column: span 8; }
+.span-7 { grid-column: span 7; }
+.span-5 { grid-column: span 5; }
+.span-4 { grid-column: span 4; }
+
+.panel-header {
+    display: flex;
+    align-items: flex-start;
+    justify-content: space-between;
+    gap: 16px;
 }
-.skeleton-value {
-    width: 80px;
-    height: 40px;
-    margin: 0 auto 6px;
+
+.panel-header h3 {
+    margin: 0;
+    font-size: 22px;
+    font-weight: 700;
+    line-height: 1.15;
+    letter-spacing: -0.03em;
+    color: var(--ink);
 }
-.skeleton-chart {
+
+.panel-insight {
+    margin: 10px 0 0;
+    max-width: 58ch;
+    font-size: 14px;
+    line-height: 1.65;
+    color: var(--muted);
+}
+
+.chart-frame {
+    position: relative;
+    min-height: 300px;
+}
+
+.chart-frame-tall {
+    min-height: 352px;
+}
+
+.chart-frame-medium {
+    min-height: 320px;
+}
+
+.chart-skeleton {
     position: absolute;
     inset: 0;
-    border-radius: 6px;
-    z-index: 1;
+    border-radius: 18px;
+    background: linear-gradient(90deg, rgba(219, 226, 238, 0.9) 0%, rgba(243, 246, 251, 1) 50%, rgba(219, 226, 238, 0.9) 100%);
+    background-size: 220% 100%;
+    animation: shimmer 1.4s linear infinite;
 }
-.chart-wrapper canvas {
+
+.chart-frame canvas {
     opacity: 0;
-    transition: opacity 0.3s ease;
+    transition: opacity 180ms ease;
 }
-.chart-wrapper canvas.loaded {
+
+.chart-frame canvas.loaded {
     opacity: 1;
 }
-.chart-section-header {
-    font-size: 18px;
-    font-weight: 700;
-    color: #1d4ed8;
-    border-bottom: 2px solid #dbeafe;
-    padding-bottom: 8px;
-    margin: 8px 0 20px;
+
+.checkpoint-list,
+.distribution-grid,
+.severity-stack {
+    display: grid;
+    gap: 12px;
 }
+
+.checkpoint-item {
+    padding: 16px 18px;
+    border: 1px solid var(--line);
+    border-radius: 18px;
+    background: linear-gradient(180deg, rgba(255, 255, 255, 0.96), rgba(247, 249, 253, 0.92));
+}
+
+.checkpoint-label {
+    display: block;
+    margin-bottom: 12px;
+}
+
+.checkpoint-value {
+    display: block;
+    font-family: "Space Grotesk", "Inter", sans-serif;
+    font-size: 32px;
+    line-height: 1;
+    letter-spacing: -0.05em;
+    color: var(--ink);
+}
+
+.checkpoint-copy {
+    margin: 8px 0 0;
+    font-size: 14px;
+    line-height: 1.6;
+    color: var(--muted);
+}
+
+.distribution-track {
+    display: flex;
+    height: 16px;
+    overflow: hidden;
+    border-radius: 999px;
+    background: var(--surface-muted);
+}
+
+.distribution-segment {
+    display: block;
+    height: 100%;
+}
+
+.distribution-segment.high { background: var(--danger); }
+.distribution-segment.medium { background: var(--warning); }
+.distribution-segment.low { background: var(--success); }
+
+.distribution-item {
+    display: flex;
+    align-items: flex-start;
+    justify-content: space-between;
+    gap: 16px;
+    padding: 14px 0;
+    border-bottom: 1px solid var(--line);
+}
+
+.distribution-item:last-child {
+    border-bottom: 0;
+}
+
+.distribution-meta {
+    display: grid;
+    gap: 4px;
+}
+
+.distribution-label {
+    font-size: 15px;
+    font-weight: 600;
+    color: var(--ink);
+}
+
+.distribution-copy {
+    font-size: 13px;
+    line-height: 1.5;
+    color: var(--muted);
+}
+
+.distribution-count {
+    text-align: right;
+}
+
+.distribution-count strong {
+    display: block;
+    font-family: "Space Grotesk", "Inter", sans-serif;
+    font-size: 28px;
+    line-height: 1;
+    color: var(--ink);
+}
+
+.distribution-count span {
+    display: block;
+    margin-top: 6px;
+    font-size: 13px;
+    color: var(--muted);
+}
+
+.zone-spotlight {
+    padding: 18px 20px;
+    border-radius: 18px;
+    border: 1px solid rgba(37, 99, 235, 0.18);
+    background: linear-gradient(180deg, rgba(219, 234, 254, 0.55), rgba(255, 255, 255, 0.94));
+}
+
+.zone-spotlight span {
+    display: block;
+    color: var(--accent-deep);
+}
+
+.zone-spotlight strong {
+    display: block;
+    margin-top: 10px;
+    font-family: "Space Grotesk", "Inter", sans-serif;
+    font-size: 34px;
+    line-height: 1;
+    letter-spacing: -0.05em;
+    color: var(--ink);
+}
+
+.zone-spotlight p {
+    margin: 10px 0 0;
+    font-size: 14px;
+    line-height: 1.6;
+    color: var(--ink-soft);
+}
+
+#top-zones-container {
+    overflow: hidden;
+}
+
+.top-zones-chart-frame {
+    min-height: 408px;
+}
+
+.risk-badge {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    min-width: 78px;
+    padding: 6px 12px;
+    border-radius: 999px;
+    font-size: 12px;
+    font-weight: 700;
+    letter-spacing: 0.05em;
+    text-transform: uppercase;
+}
+
+.risk-badge.high {
+    background: rgba(220, 38, 38, 0.12);
+    color: var(--danger);
+}
+
+.risk-badge.medium {
+    background: rgba(245, 158, 11, 0.14);
+    color: #b45309;
+}
+
+.risk-badge.low {
+    background: rgba(22, 163, 74, 0.12);
+    color: var(--success);
+}
+
+.severity-row {
+    display: grid;
+    gap: 10px;
+}
+
+.severity-header {
+    display: flex;
+    align-items: baseline;
+    justify-content: space-between;
+    gap: 12px;
+}
+
+.severity-header strong {
+    font-size: 15px;
+    font-weight: 600;
+    color: var(--ink);
+}
+
+.severity-header span {
+    font-size: 14px;
+    color: var(--muted);
+}
+
+.severity-bar {
+    width: 100%;
+    height: 12px;
+    overflow: hidden;
+    border-radius: 999px;
+    background: var(--surface-muted);
+}
+
+.severity-fill {
+    display: block;
+    height: 100%;
+    border-radius: inherit;
+}
+
+.severity-fill.danger { background: var(--danger); }
+.severity-fill.warning { background: var(--warning); }
+.severity-fill.success { background: var(--success); }
+
+.table-empty,
+.panel-error {
+    margin: 0;
+    font-size: 15px;
+    line-height: 1.6;
+    color: var(--muted);
+}
+
+@keyframes shimmer {
+    0% { background-position: 200% 0; }
+    100% { background-position: -200% 0; }
+}
+
+@keyframes riseIn {
+    from {
+        opacity: 0;
+        transform: translateY(14px);
+    }
+    to {
+        opacity: 1;
+        transform: translateY(0);
+    }
+}
+
+@media (prefers-reduced-motion: no-preference) {
+    .analytics-hero,
+    .metric-card,
+    .panel {
+        animation: riseIn 420ms cubic-bezier(0.4, 0, 0.2, 1) both;
+    }
+
+    .metrics-grid .metric-card:nth-child(2) { animation-delay: 40ms; }
+    .metrics-grid .metric-card:nth-child(3) { animation-delay: 80ms; }
+    .metrics-grid .metric-card:nth-child(4) { animation-delay: 120ms; }
+}
+
+@media (max-width: 1100px) {
+    .metric-card {
+        grid-column: span 6;
+    }
+
+    .span-8,
+    .span-7,
+    .span-5,
+    .span-4,
+    .panel {
+        grid-column: span 12;
+    }
+}
+
 @media (max-width: 768px) {
-    .chart-grid { grid-template-columns: 1fr; }
-    .summary-row { grid-template-columns: repeat(2, 1fr); }
-    #top-zones-container { overflow-x: auto; -webkit-overflow-scrolling: touch; }
-    .top-zones-table { min-width: 480px; }
+    .analytics-shell {
+        padding: 16px 16px 72px;
+    }
+
+    .analytics-hero {
+        padding: 26px 20px 20px;
+        border-radius: 22px;
+    }
+
+    .hero-number {
+        font-size: clamp(64px, 20vw, 92px);
+        margin-bottom: 8px;
+    }
+
+    .hero-copy h1 {
+        max-width: 12ch;
+        font-size: clamp(24px, 8vw, 34px);
+    }
+
+    .hero-rail {
+        grid-template-columns: 1fr;
+        gap: 10px;
+        margin-top: 18px;
+    }
+
+    .metric-card {
+        grid-column: span 12;
+        min-height: 0;
+    }
+
+    .panel {
+        padding: 20px;
+        border-radius: 22px;
+    }
+
+    .chart-frame,
+    .chart-frame-tall,
+    .chart-frame-medium {
+        min-height: 280px;
+    }
+}
+
+html[data-theme="dark"] body.analytics-theme {
+    background:
+        radial-gradient(circle at 0% 0%, rgba(30, 64, 175, 0.26), transparent 34%),
+        radial-gradient(circle at 100% 100%, rgba(29, 78, 216, 0.18), transparent 28%),
+        linear-gradient(180deg, #060b16 0%, #09101f 60%, #0b1120 100%);
+    color: #f8fafc;
+}
+
+html[data-theme="dark"] .analytics-page {
+    --bg: #0b1120;
+    --surface: rgba(12, 18, 34, 0.86);
+    --surface-strong: #0f172a;
+    --surface-muted: #172036;
+    --line: rgba(148, 163, 184, 0.18);
+    --line-strong: rgba(148, 163, 184, 0.32);
+    --ink: #f8fafc;
+    --ink-soft: #cbd5e1;
+    --muted: #94a3b8;
+    --muted-soft: #64748b;
+    --accent: #60a5fa;
+    --accent-deep: #3b82f6;
+    --accent-soft: #1d4ed8;
+    --accent-wash: rgba(59, 130, 246, 0.16);
+}
+
+html[data-theme="dark"] .analytics-hero,
+html[data-theme="dark"] .metric-card,
+html[data-theme="dark"] .panel {
+    background: var(--surface);
+    box-shadow: 0 22px 60px rgba(2, 6, 23, 0.38);
+}
+
+html[data-theme="dark"] .hero-rail-item,
+html[data-theme="dark"] .checkpoint-item {
+    background: rgba(15, 23, 42, 0.72);
+}
+
+html[data-theme="dark"] .chart-skeleton {
+    background: linear-gradient(90deg, rgba(22, 32, 55, 0.8) 0%, rgba(30, 41, 59, 0.95) 50%, rgba(22, 32, 55, 0.8) 100%);
+}
+
+html[data-theme="dark"] .zone-spotlight {
+    background: linear-gradient(180deg, rgba(30, 64, 175, 0.18), rgba(15, 23, 42, 0.84));
 }
 </style>
 {% endblock %}
 
 {% block content %}
-<div class="analytics-hero">
-    <h1>Analytics Dashboard</h1>
-    <p>Interactive exploration of Bangkok's 2024 accident data — 2,669 records across 2,418 grid zones</p>
-</div>
+<div class="analytics-page">
+    <div class="analytics-shell">
+        <section class="analytics-hero">
+            <p class="hero-kicker">Bangkok 2024 crash intelligence</p>
+            <div class="hero-number" id="hero-total">2,669</div>
+            <div class="hero-copy">
+                <h1>Crashes recorded across Bangkok roads</h1>
+                <p>Everything below exists to explain that number: when pressure rises, where it concentrates, and who absorbs the harm inside a 2,418-grid citywide monitor.</p>
+            </div>
+            <div class="hero-rail" aria-label="Top analytics callouts">
+                <div class="hero-rail-item">
+                    <span>Peak hour</span>
+                    <strong id="hero-peak-hour">10:00</strong>
+                    <p id="hero-peak-hour-copy">175 crashes in the busiest hour.</p>
+                </div>
+                <div class="hero-rail-item">
+                    <span>Peak day</span>
+                    <strong id="hero-peak-day">Saturday</strong>
+                    <p id="hero-peak-day-copy">450 reports on the highest-pressure day.</p>
+                </div>
+                <div class="hero-rail-item">
+                    <span>Top area</span>
+                    <strong id="hero-top-area">Lat Krabang</strong>
+                    <p id="hero-top-area-copy">652 crashes concentrated in the leading area cluster.</p>
+                </div>
+            </div>
+        </section>
 
-<div class="analytics-container">
-    <!-- Summary Cards -->
-    <div class="summary-row" id="summary-row">
-        <div class="summary-card">
-            <div class="summary-value" id="stat-total"><span class="skeleton skeleton-value"></span></div>
-            <div class="summary-label">Total Accidents</div>
-        </div>
-        <div class="summary-card danger">
-            <div class="summary-value" id="stat-deaths"><span class="skeleton skeleton-value"></span></div>
-            <div class="summary-label">Fatalities</div>
-        </div>
-        <div class="summary-card warning">
-            <div class="summary-value" id="stat-serious"><span class="skeleton skeleton-value"></span></div>
-            <div class="summary-label">Serious Injuries</div>
-        </div>
-        <div class="summary-card success">
-            <div class="summary-value" id="stat-zones"><span class="skeleton skeleton-value"></span></div>
-            <div class="summary-label">Grid Zones Monitored</div>
-        </div>
-    </div>
+        <section class="metrics-grid" aria-label="Key analytics metrics">
+            <article class="metric-card">
+                <p class="metric-label">High-risk zones</p>
+                <div class="metric-value" id="stat-high-risk">126</div>
+                <p class="metric-context" id="stat-high-risk-copy">Just 5.2% of monitored grids absorb most of the city’s mapped crash load.</p>
+            </article>
+            <article class="metric-card">
+                <p class="metric-label">Deaths recorded</p>
+                <div class="metric-value" id="stat-deaths">45</div>
+                <p class="metric-context" id="stat-deaths-copy">Fatal harm remains the sharpest signal in the severity stack.</p>
+            </article>
+            <article class="metric-card">
+                <p class="metric-label">Serious injuries</p>
+                <div class="metric-value" id="stat-serious">45</div>
+                <p class="metric-context" id="stat-serious-copy">Severe trauma matches fatalities one-for-one in the 2024 record.</p>
+            </article>
+            <article class="metric-card">
+                <p class="metric-label">Active crash zones</p>
+                <div class="metric-value" id="stat-active-zones">276</div>
+                <p class="metric-context" id="stat-active-zones-copy">Only a small share of monitored grids recorded crashes, showing how concentrated the footprint really is.</p>
+            </article>
+        </section>
 
-    <!-- Section 1: When accidents happen -->
-    <div class="chart-section-header">When Accidents Happen</div>
-    <div class="chart-grid">
-        <div class="chart-card">
-            <h3>Accidents by Hour of Day</h3>
-            <div class="chart-wrapper">
-                <div class="skeleton skeleton-chart"></div>
-                <canvas id="chart-hourly" aria-label="Bar chart showing accidents by hour of day" role="img"></canvas>
+        <section class="story-section">
+            <div class="section-intro">
+                <p class="section-kicker">Time</p>
+                <h2>When crash pressure rises across the city</h2>
+                <p>Bangkok’s crash rhythm is not flat. Late morning surges first, Saturday breaks above every other day, and the spring months stay stubbornly elevated.</p>
             </div>
-        </div>
-        <div class="chart-card">
-            <h3>Accidents by Day of Week</h3>
-            <div class="chart-wrapper">
-                <div class="skeleton skeleton-chart"></div>
-                <canvas id="chart-daily" aria-label="Bar chart showing accidents by day of week" role="img"></canvas>
-            </div>
-        </div>
-    </div>
-    <div class="chart-grid">
-        <div class="chart-card">
-            <h3>Monthly Accident Trend</h3>
-            <div class="chart-wrapper">
-                <div class="skeleton skeleton-chart"></div>
-                <canvas id="chart-monthly" aria-label="Line chart showing monthly accident trend" role="img"></canvas>
-            </div>
-        </div>
-        <div class="chart-card">
-            <h3>Weekend vs Weekday Accidents</h3>
-            <div class="chart-wrapper">
-                <div class="skeleton skeleton-chart"></div>
-                <canvas id="chart-weekend" aria-label="Doughnut chart showing weekend vs weekday" role="img"></canvas>
-            </div>
-        </div>
-    </div>
+            <div class="story-grid">
+                <article class="panel span-8">
+                    <div class="panel-header">
+                        <div>
+                            <h3>Crash volume by hour</h3>
+                            <p class="panel-insight" id="insight-hourly">Peak crashes land at 10:00 with 175 incidents, then stay elevated again through the late afternoon.</p>
+                        </div>
+                    </div>
+                    <div class="chart-frame chart-frame-tall">
+                        <div class="chart-skeleton"></div>
+                        <canvas id="chart-hourly" aria-label="Bar chart showing crash volume by hour" role="img"></canvas>
+                    </div>
+                </article>
 
-    <!-- Section 2: Where accidents happen -->
-    <div class="chart-section-header">Where Accidents Happen</div>
-    <div class="chart-grid">
-        <div class="chart-card">
-            <h3>Accidents by Bangkok Area</h3>
-            <div class="chart-wrapper">
-                <div class="skeleton skeleton-chart"></div>
-                <canvas id="chart-areas" aria-label="Horizontal bar chart showing accidents by Bangkok area" role="img"></canvas>
-            </div>
-        </div>
-        <div class="chart-card">
-            <h3>Risk Level Distribution</h3>
-            <div class="chart-wrapper">
-                <div class="skeleton skeleton-chart"></div>
-                <canvas id="chart-risk-dist" aria-label="Pie chart showing risk level distribution" role="img"></canvas>
-            </div>
-        </div>
-    </div>
-    <div class="chart-grid">
-        <div class="chart-card full-width">
-            <h3>Top 10 Most Dangerous Zones</h3>
-            <div id="top-zones-container">
-                <div class="loading-spinner">Loading data...</div>
-            </div>
-        </div>
-    </div>
+                <article class="panel span-4">
+                    <div class="panel-header">
+                        <div>
+                            <h3>Pressure checkpoints</h3>
+                            <p class="panel-insight" id="insight-timing-summary">Saturday leads the week, but weekday movement still carries most of the annual crash volume.</p>
+                        </div>
+                    </div>
+                    <div class="checkpoint-list">
+                        <div class="checkpoint-item">
+                            <span class="checkpoint-label">Peak hour</span>
+                            <strong class="checkpoint-value" id="timing-peak-hour">10:00</strong>
+                            <p class="checkpoint-copy" id="timing-peak-hour-copy">175 crashes in the sharpest hour.</p>
+                        </div>
+                        <div class="checkpoint-item">
+                            <span class="checkpoint-label">Peak day</span>
+                            <strong class="checkpoint-value" id="timing-peak-day">Saturday</strong>
+                            <p class="checkpoint-copy" id="timing-peak-day-copy">450 incidents on the city’s highest-pressure day.</p>
+                        </div>
+                        <div class="checkpoint-item">
+                            <span class="checkpoint-label">Weekday share</span>
+                            <strong class="checkpoint-value" id="timing-weekday-share">71.4%</strong>
+                            <p class="checkpoint-copy" id="timing-weekday-share-copy">Most crashes still happen during weekday exposure.</p>
+                        </div>
+                    </div>
+                </article>
 
-    <!-- Section 3: What causes accidents -->
-    <div class="chart-section-header">What Causes Accidents</div>
-    <div class="chart-grid">
-        <div class="chart-card">
-            <h3>Vehicle Types Involved</h3>
-            <div class="chart-wrapper">
-                <div class="skeleton skeleton-chart"></div>
-                <canvas id="chart-vehicles" aria-label="Bar chart showing vehicle types" role="img"></canvas>
+                <article class="panel span-6">
+                    <div class="panel-header">
+                        <div>
+                            <h3>Crash volume by day</h3>
+                            <p class="panel-insight" id="insight-daily">Saturday posts the highest single-day total, even before weekday exposure takes over the broader volume.</p>
+                        </div>
+                    </div>
+                    <div class="chart-frame">
+                        <div class="chart-skeleton"></div>
+                        <canvas id="chart-daily" aria-label="Bar chart showing crash volume by day of week" role="img"></canvas>
+                    </div>
+                </article>
+
+                <article class="panel span-6">
+                    <div class="panel-header">
+                        <div>
+                            <h3>Monthly crash trend</h3>
+                            <p class="panel-insight" id="insight-monthly">March edges April for the yearly high, with the curve staying elevated through late summer.</p>
+                        </div>
+                    </div>
+                    <div class="chart-frame">
+                        <div class="chart-skeleton"></div>
+                        <canvas id="chart-monthly" aria-label="Line chart showing monthly crash trend" role="img"></canvas>
+                    </div>
+                </article>
             </div>
-        </div>
-        <div class="chart-card">
-            <h3>Severity Breakdown</h3>
-            <div class="chart-wrapper">
-                <div class="skeleton skeleton-chart"></div>
-                <canvas id="chart-severity" aria-label="Doughnut chart showing severity breakdown" role="img"></canvas>
+        </section>
+
+        <section class="story-section">
+            <div class="section-intro">
+                <p class="section-kicker">Location</p>
+                <h2>Where crash load concentrates hardest</h2>
+                <p>The city is not evenly dangerous. A thin slice of Bangkok carries most of the burden, and a small high-risk tier explains far more than a citywide average ever could.</p>
             </div>
-        </div>
+            <div class="story-grid">
+                <article class="panel span-7">
+                    <div class="panel-header">
+                        <div>
+                            <h3>Crash volume by Bangkok area</h3>
+                            <p class="panel-insight" id="insight-area">Lat Krabang carries the heaviest area-level load in the current city split.</p>
+                        </div>
+                    </div>
+                    <div class="chart-frame chart-frame-medium">
+                        <div class="chart-skeleton"></div>
+                        <canvas id="chart-areas" aria-label="Horizontal bar chart showing crashes by Bangkok area" role="img"></canvas>
+                    </div>
+                </article>
+
+                <article class="panel span-5">
+                    <div class="panel-header">
+                        <div>
+                            <h3>Risk zone concentration</h3>
+                            <p class="panel-insight" id="insight-risk">126 high-risk zones cover a tiny slice of the network yet absorb most of the mapped crashes.</p>
+                        </div>
+                    </div>
+                    <div class="distribution-track" aria-label="Risk zone distribution">
+                        <span class="distribution-segment high" id="risk-segment-high" style="width: 45.7%"></span>
+                        <span class="distribution-segment medium" id="risk-segment-medium" style="width: 30.8%"></span>
+                        <span class="distribution-segment low" id="risk-segment-low" style="width: 23.5%"></span>
+                    </div>
+                    <div class="distribution-grid">
+                        <div class="distribution-item">
+                            <div class="distribution-meta">
+                                <div class="distribution-label">High risk</div>
+                                <div class="distribution-copy">Priority zones for intervention and route warnings.</div>
+                            </div>
+                            <div class="distribution-count">
+                                <strong id="risk-high-count">126</strong>
+                                <span id="risk-high-share">45.7% of active zones</span>
+                            </div>
+                        </div>
+                        <div class="distribution-item">
+                            <div class="distribution-meta">
+                                <div class="distribution-label">Medium risk</div>
+                                <div class="distribution-copy">Watchlist corridors that still need active monitoring.</div>
+                            </div>
+                            <div class="distribution-count">
+                                <strong id="risk-medium-count">85</strong>
+                                <span id="risk-medium-share">30.8% of active zones</span>
+                            </div>
+                        </div>
+                        <div class="distribution-item">
+                            <div class="distribution-meta">
+                                <div class="distribution-label">Low risk</div>
+                                <div class="distribution-copy">Scattered incidents, but not enough to dominate the map.</div>
+                            </div>
+                            <div class="distribution-count">
+                                <strong id="risk-low-count">65</strong>
+                                <span id="risk-low-share">23.5% of active zones</span>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="zone-spotlight">
+                        <span>Zone under highest pressure</span>
+                        <strong id="top-zone-name">Borommaratchachonnani Rd (Km 11.2)</strong>
+                        <p id="top-zone-copy">Thawi Watthana holds 85 crashes inside high-risk grid G020_002.</p>
+                    </div>
+                </article>
+
+                <article class="panel span-12">
+                    <div class="panel-header">
+                        <div>
+                            <h3>Top 10 danger zones</h3>
+                            <p class="panel-insight" id="insight-top-zones">The top 10 grid zones alone account for more than one-fifth of the full dataset.</p>
+                        </div>
+                    </div>
+                    <div id="top-zones-container">
+                        <p class="table-empty">Loading zone ranking...</p>
+                    </div>
+                </article>
+            </div>
+        </section>
+
+        <section class="story-section">
+            <div class="section-intro">
+                <p class="section-kicker">Harm</p>
+                <h2>Who absorbs the impact once a crash happens</h2>
+                <p>The harm stack is lopsided. Minor injuries dominate the record, but the fatal and severe end of the spectrum still signals where intervention quality matters most.</p>
+            </div>
+            <div class="story-grid">
+                <article class="panel span-5">
+                    <div class="panel-header">
+                        <div>
+                            <h3>Severity stack</h3>
+                            <p class="panel-insight" id="insight-severity">Minor injuries dominate the record, while deaths and serious injuries remain matched at 45 each.</p>
+                        </div>
+                    </div>
+                    <div class="severity-stack" id="severity-stack" aria-label="Crash severity breakdown">
+                        <div class="severity-row">
+                            <div class="severity-header">
+                                <strong>Deaths</strong>
+                                <span>45 cases</span>
+                            </div>
+                            <div class="severity-bar"><span class="severity-fill danger" style="width: 10%"></span></div>
+                        </div>
+                        <div class="severity-row">
+                            <div class="severity-header">
+                                <strong>Serious injuries</strong>
+                                <span>45 cases</span>
+                            </div>
+                            <div class="severity-bar"><span class="severity-fill warning" style="width: 10%"></span></div>
+                        </div>
+                        <div class="severity-row">
+                            <div class="severity-header">
+                                <strong>Minor injuries</strong>
+                                <span>1,685 cases</span>
+                            </div>
+                            <div class="severity-bar"><span class="severity-fill success" style="width: 100%"></span></div>
+                        </div>
+                    </div>
+                </article>
+
+                <article class="panel span-7">
+                    <div class="panel-header">
+                        <div>
+                            <h3>Vehicles involved</h3>
+                            <p class="panel-insight" id="insight-vehicles">Cars dominate the vehicle record, with pickups forming the next largest involvement tier.</p>
+                        </div>
+                    </div>
+                    <div class="chart-frame chart-frame-medium">
+                        <div class="chart-skeleton"></div>
+                        <canvas id="chart-vehicles" aria-label="Horizontal bar chart showing vehicles involved in crashes" role="img"></canvas>
+                    </div>
+                </article>
+            </div>
+        </section>
     </div>
 </div>
 {% endblock %}
@@ -256,260 +941,740 @@
 {% block extra_js %}
 <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js"></script>
 <script>
-const COLORS = {
-    primary: '#1d4ed8',
-    danger: '#dc2626',
-    warning: '#f59e0b',
-    success: '#16a34a',
-    purple: '#7c3aed',
-    teal: '#0d9488',
-    pink: '#db2777',
-    orange: '#ea580c',
-    indigo: '#4f46e5',
-    slate: '#64748b',
-};
-const PALETTE = ['#1d4ed8','#dc2626','#f59e0b','#16a34a','#7c3aed','#0d9488','#db2777','#ea580c','#4f46e5','#64748b'];
+const numberFormatter = new Intl.NumberFormat('en-US');
+let analyticsPayload = null;
+let analyticsCharts = [];
 
-function createBarChart(canvasId, labels, data, color, label) {
-    return new Chart(document.getElementById(canvasId), {
-        type: 'bar',
-        data: {
-            labels: labels,
-            datasets: [{
-                label: label,
-                data: data,
-                backgroundColor: color + 'cc',
-                borderColor: color,
-                borderWidth: 1,
-                borderRadius: 4,
-            }]
-        },
-        options: {
-            responsive: true,
-            maintainAspectRatio: false,
-            plugins: { legend: { display: false } },
-            scales: {
-                y: { beginAtZero: true, grid: { color: '#f1f5f9' } },
-                x: { grid: { display: false } }
-            }
-        }
-    });
+function formatNumber(value) {
+    return numberFormatter.format(Number(value || 0));
+}
+
+function formatPercent(value) {
+    return `${Number(value || 0).toFixed(1)}%`;
+}
+
+function formatHourLabel(hour) {
+    const numericHour = Number(hour || 0);
+    return `${numericHour.toString().padStart(2, '0')}:00`;
+}
+
+function sortedEntries(record) {
+    return Object.entries(record || {}).sort((a, b) => Number(b[1]) - Number(a[1]));
+}
+
+function topEntry(record) {
+    return sortedEntries(record)[0] || [null, 0];
+}
+
+function sumValues(record) {
+    return Object.values(record || {}).reduce((sum, value) => sum + Number(value || 0), 0);
+}
+
+function setText(id, value) {
+    const element = document.getElementById(id);
+    if (element) element.textContent = value;
 }
 
 function revealChart(canvasId) {
     const canvas = document.getElementById(canvasId);
     if (!canvas) return;
-    const skeleton = canvas.previousElementSibling;
-    if (skeleton && skeleton.classList.contains('skeleton-chart')) skeleton.remove();
+    const skeleton = canvas.parentElement.querySelector('.chart-skeleton');
+    if (skeleton) skeleton.remove();
     canvas.classList.add('loaded');
+}
+
+function clearChartsForError() {
+    document.querySelectorAll('.chart-skeleton').forEach((element) => element.remove());
+    document.querySelectorAll('.chart-frame canvas').forEach((canvas) => canvas.classList.add('loaded'));
+}
+
+function trackChart(chart) {
+    analyticsCharts.push(chart);
+    return chart;
+}
+
+function destroyAnalyticsCharts() {
+    analyticsCharts.forEach((chart) => chart.destroy());
+    analyticsCharts = [];
+}
+
+function titleCase(value) {
+    const stringValue = String(value || '');
+    return stringValue.charAt(0).toUpperCase() + stringValue.slice(1);
+}
+
+function escapeHtml(value) {
+    return String(value ?? '')
+        .replace(/&/g, '&amp;')
+        .replace(/</g, '&lt;')
+        .replace(/>/g, '&gt;')
+        .replace(/"/g, '&quot;')
+        .replace(/'/g, '&#39;');
+}
+
+function wrapAxisLabel(value, preferredBreak = 28) {
+    const label = String(value || '');
+    if (label.length <= preferredBreak) return label;
+
+    const parenIndex = label.indexOf(' (');
+    if (parenIndex > 0) {
+        return [label.slice(0, parenIndex), label.slice(parenIndex + 1)];
+    }
+
+    const nextSpace = label.indexOf(' ', preferredBreak);
+    if (nextSpace > 0) {
+        return [label.slice(0, nextSpace), label.slice(nextSpace + 1)];
+    }
+
+    return label;
+}
+
+function flattenAxisLabel(label) {
+    return Array.isArray(label) ? label.join(' ') : String(label || '');
+}
+
+function riskColorForLevel(level, chartTheme) {
+    const normalizedLevel = String(level || '').toLowerCase();
+    if (normalizedLevel === 'high') return chartTheme.danger;
+    if (normalizedLevel === 'medium') return chartTheme.warning;
+    if (normalizedLevel === 'low') return chartTheme.success;
+    return chartTheme.accentDeep;
+}
+
+function theme() {
+    const page = document.querySelector('.analytics-page');
+    const styles = getComputedStyle(page);
+    return {
+        ink: styles.getPropertyValue('--ink').trim(),
+        inkSoft: styles.getPropertyValue('--ink-soft').trim(),
+        muted: styles.getPropertyValue('--muted').trim(),
+        line: styles.getPropertyValue('--line').trim(),
+        accent: styles.getPropertyValue('--accent').trim(),
+        accentDeep: styles.getPropertyValue('--accent-deep').trim(),
+        accentSoft: styles.getPropertyValue('--accent-soft').trim(),
+        accentWash: styles.getPropertyValue('--accent-wash').trim(),
+        danger: styles.getPropertyValue('--danger').trim(),
+        warning: styles.getPropertyValue('--warning').trim(),
+        success: styles.getPropertyValue('--success').trim(),
+    };
+}
+
+function buildBaseOptions(chartTheme) {
+    return {
+        responsive: true,
+        maintainAspectRatio: false,
+        plugins: {
+            legend: { display: false },
+            tooltip: {
+                displayColors: false,
+                titleColor: '#ffffff',
+                bodyColor: '#ffffff',
+                backgroundColor: chartTheme.ink,
+                padding: 12,
+            },
+        },
+    };
+}
+
+function renderHero(data) {
+    const [peakHour, peakHourCount] = topEntry(data.by_hour);
+    const [peakDay, peakDayCount] = topEntry(data.by_day);
+    const [topArea, topAreaCount] = topEntry(data.by_area);
+
+    setText('hero-total', formatNumber(data.total_accidents));
+    setText('hero-peak-hour', formatHourLabel(peakHour));
+    setText('hero-peak-hour-copy', `${formatNumber(peakHourCount)} crashes in the busiest hour.`);
+    setText('hero-peak-day', peakDay || 'Unknown');
+    setText('hero-peak-day-copy', `${formatNumber(peakDayCount)} reports on the highest-pressure day.`);
+    setText('hero-top-area', topArea || 'Bangkok');
+    setText('hero-top-area-copy', `${formatNumber(topAreaCount)} crashes concentrated in the leading area cluster.`);
+}
+
+function renderMetrics(data) {
+    const highRiskZones = Number(data.summary?.high_risk_zones || data.risk_distribution?.high || 0);
+    const highRiskGridShare = Number(
+        data.summary?.high_risk_grid_share_percent ||
+        (data.total_grids ? (highRiskZones / data.total_grids) * 100 : 0)
+    );
+    const highRiskAccidentShare = Number(data.summary?.high_risk_accident_share || 0);
+    const activeZones = Number(data.summary?.active_zones || sumValues(data.risk_distribution));
+    const activeZoneShare = data.total_grids ? (activeZones / data.total_grids) * 100 : 0;
+    const deaths = Number(data.severity?.Deaths || 0);
+    const serious = Number(data.severity?.['Serious Injuries'] || 0);
+
+    setText('stat-high-risk', formatNumber(highRiskZones));
+    setText(
+        'stat-high-risk-copy',
+        `Just ${formatPercent(highRiskGridShare)} of monitored grids absorb ${formatPercent(highRiskAccidentShare)} of mapped crashes.`
+    );
+    setText('stat-deaths', formatNumber(deaths));
+    setText(
+        'stat-deaths-copy',
+        serious === deaths
+            ? 'Fatal harm matches serious injuries one-for-one in the 2024 record.'
+            : 'Fatal harm remains the sharpest signal in the severity stack.'
+    );
+    setText('stat-serious', formatNumber(serious));
+    setText('stat-serious-copy', 'Severe trauma sits far below the minor-injury stack, but still marks the city’s highest-cost incidents.');
+    setText('stat-active-zones', formatNumber(activeZones));
+    setText(
+        'stat-active-zones-copy',
+        `Only ${formatPercent(activeZoneShare)} of monitored grids recorded a crash, keeping the spatial footprint tightly concentrated.`
+    );
+}
+
+function renderTimingCallouts(data) {
+    const [peakHour, peakHourCount] = topEntry(data.by_hour);
+    const [peakDay, peakDayCount] = topEntry(data.by_day);
+    const weekdayCount = Number(data.weekend_vs_weekday?.Weekday || 0);
+    const weekdayShare = data.total_accidents ? (weekdayCount / data.total_accidents) * 100 : 0;
+
+    setText('timing-peak-hour', formatHourLabel(peakHour));
+    setText('timing-peak-hour-copy', `${formatNumber(peakHourCount)} crashes in the sharpest hour.`);
+    setText('timing-peak-day', peakDay || 'Unknown');
+    setText('timing-peak-day-copy', `${formatNumber(peakDayCount)} incidents on the city’s highest-pressure day.`);
+    setText('timing-weekday-share', formatPercent(weekdayShare));
+    setText('timing-weekday-share-copy', 'Most crashes still happen during weekday exposure.');
+    setText(
+        'insight-timing-summary',
+        `${peakDay} leads at ${formatNumber(peakDayCount)} incidents, but weekdays still account for ${formatPercent(weekdayShare)} of total crash volume.`
+    );
+}
+
+function renderRiskDistribution(data) {
+    const activeZones = Number(data.summary?.active_zones || sumValues(data.risk_distribution));
+    const highRiskZones = Number(data.risk_distribution?.high || 0);
+    const mediumRiskZones = Number(data.risk_distribution?.medium || 0);
+    const lowRiskZones = Number(data.risk_distribution?.low || 0);
+    const highRiskGridShare = Number(
+        data.summary?.high_risk_grid_share_percent ||
+        (data.total_grids ? (Number(data.summary?.high_risk_zones || highRiskZones) / data.total_grids) * 100 : 0)
+    );
+    const highRiskAccidentShare = Number(data.summary?.high_risk_accident_share || 0);
+
+    const segments = [
+        ['high', highRiskZones],
+        ['medium', mediumRiskZones],
+        ['low', lowRiskZones],
+    ];
+
+    segments.forEach(([name, count]) => {
+        const width = activeZones ? (Number(count) / activeZones) * 100 : 0;
+        const segment = document.getElementById(`risk-segment-${name}`);
+        if (segment) segment.style.width = `${width}%`;
+    });
+
+    setText('risk-high-count', formatNumber(highRiskZones));
+    setText('risk-high-share', `${formatPercent(activeZones ? (highRiskZones / activeZones) * 100 : 0)} of active zones`);
+    setText('risk-medium-count', formatNumber(mediumRiskZones));
+    setText('risk-medium-share', `${formatPercent(activeZones ? (mediumRiskZones / activeZones) * 100 : 0)} of active zones`);
+    setText('risk-low-count', formatNumber(lowRiskZones));
+    setText('risk-low-share', `${formatPercent(activeZones ? (lowRiskZones / activeZones) * 100 : 0)} of active zones`);
+    setText(
+        'insight-risk',
+        `${formatNumber(Number(data.summary?.high_risk_zones || highRiskZones))} high-risk zones cover just ${formatPercent(highRiskGridShare)} of monitored grids yet contain ${formatPercent(highRiskAccidentShare)} of mapped crashes.`
+    );
+}
+
+function renderSeverityStack(data) {
+    const severityOrder = [
+        { key: 'Deaths', tone: 'danger' },
+        { key: 'Serious Injuries', tone: 'warning' },
+        { key: 'Minor Injuries', tone: 'success' },
+    ];
+    const totalSeverity = severityOrder.reduce((sum, item) => sum + Number(data.severity?.[item.key] || 0), 0);
+    const maxSeverity = Math.max(...severityOrder.map((item) => Number(data.severity?.[item.key] || 0)), 1);
+
+    const rows = severityOrder.map((item) => {
+        const value = Number(data.severity?.[item.key] || 0);
+        const share = totalSeverity ? (value / totalSeverity) * 100 : 0;
+        const width = value === 0 ? 0 : Math.max(8, (value / maxSeverity) * 100);
+        return `
+            <div class="severity-row">
+                <div class="severity-header">
+                    <strong>${escapeHtml(item.key)}</strong>
+                    <span>${formatNumber(value)} cases • ${formatPercent(share)} of harm records</span>
+                </div>
+                <div class="severity-bar">
+                    <span class="severity-fill ${item.tone}" style="width: ${width}%"></span>
+                </div>
+            </div>
+        `;
+    }).join('');
+
+    document.getElementById('severity-stack').innerHTML = rows;
+    setText(
+        'insight-severity',
+        `Minor injuries dominate with ${formatNumber(data.severity?.['Minor Injuries'] || 0)} records, while deaths and serious injuries both land at ${formatNumber(data.severity?.Deaths || 0)}.`
+    );
+}
+
+function renderTopZonesChart(data, chartTheme) {
+    const zones = data.top_zones || [];
+    const container = document.getElementById('top-zones-container');
+
+    if (!zones.length) {
+        container.innerHTML = '<p class="table-empty">No zone data available.</p>';
+        return;
+    }
+
+    const totalTopZoneAccidents = zones.reduce((sum, zone) => sum + Number(zone.total_accidents || 0), 0);
+    const topZoneShare = data.total_accidents ? (totalTopZoneAccidents / data.total_accidents) * 100 : 0;
+    const topZone = zones[0];
+    const topZoneName = topZone.zone_name || topZone.grid_id;
+    const topZoneDistrict = topZone.district || `${Number(topZone.center_lat).toFixed(4)}, ${Number(topZone.center_lon).toFixed(4)}`;
+
+    setText(
+        'insight-top-zones',
+        `The top 10 grid zones alone account for ${formatNumber(totalTopZoneAccidents)} crashes, or ${formatPercent(topZoneShare)} of the city total.`
+    );
+    setText('top-zone-name', topZoneName);
+    setText(
+        'top-zone-copy',
+        `${topZoneDistrict} holds ${formatNumber(topZone.total_accidents)} crashes inside ${titleCase(topZone.risk_level)} risk grid ${topZone.grid_id}.`
+    );
+
+    container.innerHTML = `
+        <div class="chart-frame chart-frame-tall top-zones-chart-frame">
+            <canvas id="chart-top-zones" aria-label="Horizontal bar chart showing the top 10 danger zones by crash count" role="img"></canvas>
+        </div>
+    `;
+
+    const zoneLabels = zones.map((zone) => wrapAxisLabel(zone.zone_name || zone.grid_id));
+    const values = zones.map((zone) => Number(zone.total_accidents || 0));
+    const maxValue = Math.max(...values, 0);
+    const suggestedMax = maxValue > 0 ? Math.ceil(maxValue * 1.18) : 10;
+
+    const valueLabelPlugin = {
+        id: 'topZoneValueLabels',
+        afterDatasetsDraw(chart) {
+            const meta = chart.getDatasetMeta(0);
+            const ctx = chart.ctx;
+            const chartRight = chart.chartArea.right;
+
+            ctx.save();
+            ctx.fillStyle = chartTheme.ink;
+            ctx.font = '600 12px Inter, sans-serif';
+            ctx.textBaseline = 'middle';
+
+            meta.data.forEach((bar, index) => {
+                const valueLabel = formatNumber(values[index]);
+                const x = Math.min(bar.x + 8, chartRight - 28);
+                ctx.fillText(valueLabel, x, bar.y);
+            });
+
+            ctx.restore();
+        },
+    };
+
+    const baseOptions = buildBaseOptions(chartTheme);
+
+    trackChart(new Chart(document.getElementById('chart-top-zones'), {
+        type: 'bar',
+        data: {
+            labels: zoneLabels,
+            datasets: [{
+                data: values,
+                backgroundColor: zones.map((zone) => riskColorForLevel(zone.risk_level, chartTheme)),
+                borderRadius: 999,
+                borderSkipped: false,
+                maxBarThickness: 18,
+            }],
+        },
+        options: {
+            ...baseOptions,
+            indexAxis: 'y',
+            layout: {
+                padding: {
+                    right: 54,
+                },
+            },
+            plugins: {
+                ...baseOptions.plugins,
+                tooltip: {
+                    ...baseOptions.plugins.tooltip,
+                    callbacks: {
+                        title(items) {
+                            return flattenAxisLabel(zoneLabels[items[0].dataIndex]);
+                        },
+                        label(context) {
+                            const zone = zones[context.dataIndex];
+                            const district = zone.district || `${Number(zone.center_lat).toFixed(4)}, ${Number(zone.center_lon).toFixed(4)}`;
+                            return [
+                                `Accidents: ${formatNumber(context.raw)}`,
+                                `Risk: ${titleCase(zone.risk_level)}`,
+                                `District: ${district}`,
+                                `Grid: ${zone.grid_id}`,
+                            ];
+                        },
+                    },
+                },
+            },
+            scales: {
+                y: {
+                    grid: { display: false },
+                    border: { display: false },
+                    ticks: {
+                        color: chartTheme.inkSoft,
+                        font: { size: 12, weight: 600 },
+                    },
+                },
+                x: {
+                    beginAtZero: true,
+                    suggestedMax,
+                    border: { display: false },
+                    ticks: {
+                        color: chartTheme.muted,
+                        maxTicksLimit: 4,
+                        padding: 10,
+                        callback(value) {
+                            return formatNumber(value);
+                        },
+                    },
+                    grid: {
+                        color: chartTheme.line,
+                        drawTicks: false,
+                    },
+                },
+            },
+        },
+        plugins: [valueLabelPlugin],
+    }));
+
+    revealChart('chart-top-zones');
+}
+
+function renderHourlyChart(data, chartTheme) {
+    const hours = Array.from({ length: 24 }, (_, index) => index);
+    const hourlyData = hours.map((hour) => Number(data.by_hour?.[hour] || 0));
+    const [peakHour, peakHourCount] = topEntry(data.by_hour);
+    const topHours = sortedEntries(data.by_hour).slice(1, 3).map(([hour]) => formatHourLabel(hour));
+    const trailingHours = topHours.length ? `, with another lift at ${topHours.join(' and ')}` : '';
+
+    setText(
+        'insight-hourly',
+        `The sharpest spike lands at ${formatHourLabel(peakHour)} with ${formatNumber(peakHourCount)} incidents${trailingHours}.`
+    );
+
+    trackChart(new Chart(document.getElementById('chart-hourly'), {
+        type: 'bar',
+        data: {
+            labels: hours.map((hour) => formatHourLabel(hour)),
+            datasets: [{
+                data: hourlyData,
+                backgroundColor: hours.map((hour) => Number(hour) === Number(peakHour) ? chartTheme.accentDeep : chartTheme.accentSoft),
+                borderRadius: 999,
+                borderSkipped: false,
+                maxBarThickness: 18,
+            }],
+        },
+        options: {
+            ...buildBaseOptions(chartTheme),
+            scales: {
+                x: {
+                    grid: { display: false },
+                    border: { display: false },
+                    ticks: {
+                        color: chartTheme.muted,
+                        autoSkip: false,
+                        maxRotation: 0,
+                        callback(value, index) {
+                            return [0, 6, 10, 16, 20, 23].includes(index)
+                                ? this.getLabelForValue(value).slice(0, 5)
+                                : '';
+                        },
+                    },
+                },
+                y: {
+                    beginAtZero: true,
+                    border: { display: false },
+                    ticks: {
+                        color: chartTheme.muted,
+                        maxTicksLimit: 4,
+                        padding: 10,
+                    },
+                    grid: {
+                        color: chartTheme.line,
+                        drawTicks: false,
+                    },
+                },
+            },
+        },
+    }));
+
+    revealChart('chart-hourly');
+}
+
+function renderDailyChart(data, chartTheme) {
+    const dayOrder = ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday', 'Sunday'];
+    const dailyData = dayOrder.map((day) => Number(data.by_day?.[day] || 0));
+    const [peakDay, peakDayCount] = topEntry(data.by_day);
+    const weekdayCount = Number(data.weekend_vs_weekday?.Weekday || 0);
+    const weekdayShare = data.total_accidents ? (weekdayCount / data.total_accidents) * 100 : 0;
+
+    setText(
+        'insight-daily',
+        `${peakDay} posts the highest single-day total at ${formatNumber(peakDayCount)} incidents, even before weekday exposure takes over ${formatPercent(weekdayShare)} of annual volume.`
+    );
+
+    trackChart(new Chart(document.getElementById('chart-daily'), {
+        type: 'bar',
+        data: {
+            labels: dayOrder.map((day) => day.slice(0, 3)),
+            datasets: [{
+                data: dailyData,
+                backgroundColor: dayOrder.map((day) => day === peakDay ? chartTheme.accentDeep : chartTheme.accentSoft),
+                borderRadius: 999,
+                borderSkipped: false,
+                maxBarThickness: 36,
+            }],
+        },
+        options: {
+            ...buildBaseOptions(chartTheme),
+            scales: {
+                x: {
+                    grid: { display: false },
+                    border: { display: false },
+                    ticks: {
+                        color: chartTheme.muted,
+                    },
+                },
+                y: {
+                    beginAtZero: true,
+                    border: { display: false },
+                    ticks: {
+                        color: chartTheme.muted,
+                        maxTicksLimit: 4,
+                        padding: 10,
+                    },
+                    grid: {
+                        color: chartTheme.line,
+                        drawTicks: false,
+                    },
+                },
+            },
+        },
+    }));
+
+    revealChart('chart-daily');
+}
+
+function renderMonthlyChart(data, chartTheme) {
+    const monthOrder = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
+    const monthlyData = monthOrder.map((month) => Number(data.by_month?.[month] || 0));
+    const monthlyEntries = sortedEntries(data.by_month);
+    const [topMonth, topMonthCount] = monthlyEntries[0] || ['Unknown', 0];
+    const [runnerUpMonth, runnerUpCount] = monthlyEntries[1] || ['Unknown', 0];
+    const gap = Number(topMonthCount) - Number(runnerUpCount);
+
+    setText(
+        'insight-monthly',
+        `${topMonth} sets the annual high at ${formatNumber(topMonthCount)} crashes, only ${formatNumber(gap)} above ${runnerUpMonth}.`
+    );
+
+    trackChart(new Chart(document.getElementById('chart-monthly'), {
+        type: 'line',
+        data: {
+            labels: monthOrder,
+            datasets: [{
+                data: monthlyData,
+                borderColor: chartTheme.accentDeep,
+                backgroundColor: chartTheme.accentWash,
+                fill: true,
+                borderWidth: 3,
+                pointRadius: monthOrder.map((month) => month === topMonth ? 5 : 0),
+                pointHoverRadius: 6,
+                pointBackgroundColor: chartTheme.accentDeep,
+                tension: 0.32,
+            }],
+        },
+        options: {
+            ...buildBaseOptions(chartTheme),
+            scales: {
+                x: {
+                    grid: { display: false },
+                    border: { display: false },
+                    ticks: {
+                        color: chartTheme.muted,
+                        autoSkip: false,
+                        maxRotation: 0,
+                        callback(value, index) {
+                            return [0, 3, 6, 9, 11].includes(index) ? this.getLabelForValue(value) : '';
+                        },
+                    },
+                },
+                y: {
+                    beginAtZero: true,
+                    border: { display: false },
+                    ticks: {
+                        color: chartTheme.muted,
+                        maxTicksLimit: 4,
+                        padding: 10,
+                    },
+                    grid: {
+                        color: chartTheme.line,
+                        drawTicks: false,
+                    },
+                },
+            },
+        },
+    }));
+
+    revealChart('chart-monthly');
+}
+
+function renderAreaChart(data, chartTheme) {
+    const areaEntries = sortedEntries(data.by_area);
+    const labels = areaEntries.map(([label]) => label.split(' / '));
+    const values = areaEntries.map(([, value]) => Number(value));
+    const [topArea, topAreaCount] = areaEntries[0] || ['Bangkok', 0];
+    const topAreaShare = data.total_accidents ? (Number(topAreaCount) / data.total_accidents) * 100 : 0;
+
+    setText(
+        'insight-area',
+        `${topArea} carries ${formatNumber(topAreaCount)} crashes, or ${formatPercent(topAreaShare)} of the city total.`
+    );
+
+    trackChart(new Chart(document.getElementById('chart-areas'), {
+        type: 'bar',
+        data: {
+            labels,
+            datasets: [{
+                data: values,
+                backgroundColor: chartTheme.accentDeep,
+                borderRadius: 999,
+                borderSkipped: false,
+                maxBarThickness: 18,
+            }],
+        },
+        options: {
+            ...buildBaseOptions(chartTheme),
+            indexAxis: 'y',
+            scales: {
+                y: {
+                    grid: { display: false },
+                    border: { display: false },
+                    ticks: {
+                        color: chartTheme.muted,
+                        font: { size: 12 },
+                    },
+                },
+                x: {
+                    beginAtZero: true,
+                    border: { display: false },
+                    ticks: {
+                        color: chartTheme.muted,
+                        maxTicksLimit: 4,
+                        padding: 10,
+                    },
+                    grid: {
+                        color: chartTheme.line,
+                        drawTicks: false,
+                    },
+                },
+            },
+        },
+    }));
+
+    revealChart('chart-areas');
+}
+
+function renderVehicleChart(data, chartTheme) {
+    const vehicleEntries = sortedEntries(data.by_vehicle);
+    const labels = vehicleEntries.map(([label]) => label);
+    const values = vehicleEntries.map(([, value]) => Number(value));
+    const [topVehicle, topVehicleCount] = vehicleEntries[0] || ['Vehicle', 0];
+    const [runnerUpVehicle, runnerUpVehicleCount] = vehicleEntries[1] || ['Vehicle', 0];
+
+    setText(
+        'insight-vehicles',
+        `${topVehicle} entries lead at ${formatNumber(topVehicleCount)}, ahead of ${runnerUpVehicle} at ${formatNumber(runnerUpVehicleCount)}.`
+    );
+
+    trackChart(new Chart(document.getElementById('chart-vehicles'), {
+        type: 'bar',
+        data: {
+            labels,
+            datasets: [{
+                data: values,
+                backgroundColor: chartTheme.accentDeep,
+                borderRadius: 999,
+                borderSkipped: false,
+                maxBarThickness: 18,
+            }],
+        },
+        options: {
+            ...buildBaseOptions(chartTheme),
+            indexAxis: 'y',
+            scales: {
+                y: {
+                    grid: { display: false },
+                    border: { display: false },
+                    ticks: {
+                        color: chartTheme.muted,
+                    },
+                },
+                x: {
+                    beginAtZero: true,
+                    border: { display: false },
+                    ticks: {
+                        color: chartTheme.muted,
+                        maxTicksLimit: 4,
+                        padding: 10,
+                    },
+                    grid: {
+                        color: chartTheme.line,
+                        drawTicks: false,
+                    },
+                },
+            },
+        },
+    }));
+
+    revealChart('chart-vehicles');
+}
+
+function renderAnalytics(data) {
+    const chartTheme = theme();
+
+    Chart.defaults.font.family = '"Inter", sans-serif';
+    Chart.defaults.color = chartTheme.muted;
+    Chart.defaults.borderColor = chartTheme.line;
+
+    renderHero(data);
+    renderMetrics(data);
+    renderTimingCallouts(data);
+    renderRiskDistribution(data);
+    renderSeverityStack(data);
+    renderTopZonesChart(data, chartTheme);
+    renderHourlyChart(data, chartTheme);
+    renderDailyChart(data, chartTheme);
+    renderMonthlyChart(data, chartTheme);
+    renderAreaChart(data, chartTheme);
+    renderVehicleChart(data, chartTheme);
 }
 
 async function loadAnalytics() {
     try {
         const response = await fetch('/api/analytics-data');
-        if (!response.ok) throw new Error('Failed to load analytics');
-        const data = await response.json();
+        if (!response.ok) throw new Error('Failed to load analytics data');
 
-        // Summary cards — replace skeleton spans with real values
-        document.getElementById('stat-total').textContent = data.total_accidents.toLocaleString();
-        document.getElementById('stat-deaths').textContent = data.severity.Deaths.toLocaleString();
-        document.getElementById('stat-serious').textContent = data.severity['Serious Injuries'].toLocaleString();
-        document.getElementById('stat-zones').textContent = data.total_grids.toLocaleString();
-
-        // Hourly chart
-        const hours = Array.from({length: 24}, (_, i) => i);
-        const hourlyData = hours.map(h => data.by_hour[h] || 0);
-        const hourLabels = hours.map(h => h.toString().padStart(2, '0') + ':00');
-        createBarChart('chart-hourly', hourLabels, hourlyData, COLORS.primary, 'Accidents');
-        revealChart('chart-hourly');
-
-        // Daily chart
-        const dayOrder = ['Monday','Tuesday','Wednesday','Thursday','Friday','Saturday','Sunday'];
-        const dayLabels = dayOrder.map(d => d.slice(0,3));
-        const dailyData = dayOrder.map(d => data.by_day[d] || 0);
-        const dayColors = dayOrder.map(d => (d === 'Saturday' || d === 'Sunday') ? COLORS.danger + 'cc' : COLORS.primary + 'cc');
-        new Chart(document.getElementById('chart-daily'), {
-            type: 'bar',
-            data: {
-                labels: dayLabels,
-                datasets: [{
-                    label: 'Accidents',
-                    data: dailyData,
-                    backgroundColor: dayColors,
-                    borderRadius: 4,
-                }]
-            },
-            options: {
-                responsive: true, maintainAspectRatio: false,
-                plugins: { legend: { display: false } },
-                scales: { y: { beginAtZero: true, grid: { color: '#f1f5f9' } }, x: { grid: { display: false } } }
-            }
-        });
-        revealChart('chart-daily');
-
-        // Monthly trend
-        const monthOrder = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
-        const monthlyData = monthOrder.map(m => data.by_month[m] || 0);
-        new Chart(document.getElementById('chart-monthly'), {
-            type: 'line',
-            data: {
-                labels: monthOrder,
-                datasets: [{
-                    label: 'Accidents',
-                    data: monthlyData,
-                    borderColor: COLORS.purple,
-                    backgroundColor: COLORS.purple + '20',
-                    fill: true,
-                    tension: 0.3,
-                    pointBackgroundColor: COLORS.purple,
-                    pointRadius: 5,
-                }]
-            },
-            options: {
-                responsive: true, maintainAspectRatio: false,
-                plugins: { legend: { display: false } },
-                scales: { y: { beginAtZero: true, grid: { color: '#f1f5f9' } }, x: { grid: { display: false } } }
-            }
-        });
-        revealChart('chart-monthly');
-
-        // Severity doughnut
-        new Chart(document.getElementById('chart-severity'), {
-            type: 'doughnut',
-            data: {
-                labels: Object.keys(data.severity),
-                datasets: [{
-                    data: Object.values(data.severity),
-                    backgroundColor: [COLORS.danger, COLORS.warning, COLORS.success],
-                    borderWidth: 2,
-                    borderColor: '#fff',
-                }]
-            },
-            options: {
-                responsive: true, maintainAspectRatio: false,
-                plugins: { legend: { position: 'bottom' } }
-            }
-        });
-        revealChart('chart-severity');
-
-        // Vehicle types
-        const vehicleLabels = Object.keys(data.by_vehicle);
-        const vehicleData = Object.values(data.by_vehicle);
-        new Chart(document.getElementById('chart-vehicles'), {
-            type: 'bar',
-            data: {
-                labels: vehicleLabels,
-                datasets: [{
-                    label: 'Involved',
-                    data: vehicleData,
-                    backgroundColor: PALETTE.slice(0, vehicleLabels.length).map(c => c + 'cc'),
-                    borderRadius: 4,
-                }]
-            },
-            options: {
-                responsive: true, maintainAspectRatio: false,
-                indexAxis: 'y',
-                plugins: { legend: { display: false } },
-                scales: { x: { beginAtZero: true, grid: { color: '#f1f5f9' } }, y: { grid: { display: false } } }
-            }
-        });
-        revealChart('chart-vehicles');
-
-        // Accidents by Bangkok area (horizontal bar)
-        const areaLabels = Object.keys(data.by_area);
-        const areaData = Object.values(data.by_area);
-        new Chart(document.getElementById('chart-areas'), {
-            type: 'bar',
-            data: {
-                labels: areaLabels,
-                datasets: [{
-                    label: 'Accidents',
-                    data: areaData,
-                    backgroundColor: PALETTE.slice(0, areaLabels.length).map(c => c + 'cc'),
-                    borderRadius: 4,
-                }]
-            },
-            options: {
-                responsive: true, maintainAspectRatio: false,
-                indexAxis: 'y',
-                plugins: { legend: { display: false } },
-                scales: { x: { beginAtZero: true, grid: { color: '#f1f5f9' } }, y: { grid: { display: false }, ticks: { font: { size: 11 } } } }
-            }
-        });
-        revealChart('chart-areas');
-
-        // Top 10 zones table
-        const container = document.getElementById('top-zones-container');
-        if (data.top_zones && data.top_zones.length > 0) {
-            let html = '<table class="top-zones-table"><thead><tr><th>#</th><th>Zone ID</th><th>Accidents</th><th>Risk Level</th><th>District</th></tr></thead><tbody>';
-            data.top_zones.forEach((zone, i) => {
-                const riskClass = (zone.risk_level || '').toLowerCase();
-                html += `<tr>
-                    <td>${i + 1}</td>
-                    <td><strong>${zone.grid_id}</strong></td>
-                    <td>${zone.total_accidents}</td>
-                    <td><span class="risk-badge ${riskClass}">${zone.risk_level}</span></td>
-                    <td>${zone.district || (Number(zone.center_lat).toFixed(4) + ', ' + Number(zone.center_lon).toFixed(4))}</td>
-                </tr>`;
-            });
-            html += '</tbody></table>';
-            container.innerHTML = html;
-        } else {
-            container.innerHTML = '<p>No zone data available.</p>';
-        }
-
-        // Risk distribution pie
-        const riskColors = { high: COLORS.danger, medium: COLORS.warning, low: COLORS.success };
-        const riskLabels = Object.keys(data.risk_distribution);
-        const riskData = Object.values(data.risk_distribution);
-        new Chart(document.getElementById('chart-risk-dist'), {
-            type: 'pie',
-            data: {
-                labels: riskLabels.map(l => l.charAt(0).toUpperCase() + l.slice(1) + ' Risk'),
-                datasets: [{
-                    data: riskData,
-                    backgroundColor: riskLabels.map(l => riskColors[l.toLowerCase()] || COLORS.slate),
-                    borderWidth: 2,
-                    borderColor: '#fff',
-                }]
-            },
-            options: {
-                responsive: true, maintainAspectRatio: false,
-                plugins: { legend: { position: 'bottom' } }
-            }
-        });
-        revealChart('chart-risk-dist');
-
-        // Weekend vs Weekday doughnut
-        new Chart(document.getElementById('chart-weekend'), {
-            type: 'doughnut',
-            data: {
-                labels: ['Weekday', 'Weekend'],
-                datasets: [{
-                    data: [data.weekend_vs_weekday.Weekday, data.weekend_vs_weekday.Weekend],
-                    backgroundColor: [COLORS.primary, COLORS.orange],
-                    borderWidth: 2,
-                    borderColor: '#fff',
-                }]
-            },
-            options: {
-                responsive: true, maintainAspectRatio: false,
-                plugins: { legend: { position: 'bottom' } }
-            }
-        });
-        revealChart('chart-weekend');
-
+        analyticsPayload = await response.json();
+        destroyAnalyticsCharts();
+        renderAnalytics(analyticsPayload);
     } catch (error) {
         console.error('Analytics load error:', error);
-        // Remove all skeletons and show error state
-        document.querySelectorAll('.skeleton-chart').forEach(el => el.remove());
-        document.querySelectorAll('.skeleton-value').forEach(el => el.parentElement.textContent = '—');
-        document.querySelectorAll('.chart-wrapper canvas').forEach(el => el.classList.add('loaded'));
+        clearChartsForError();
         document.getElementById('top-zones-container').innerHTML =
-            '<p style="color: #dc2626;">Failed to load analytics data. Please try refreshing the page.</p>';
+            '<p class="panel-error">Unable to load the zone ranking right now. Please refresh and try again.</p>';
     }
 }
 
 document.addEventListener('DOMContentLoaded', loadAnalytics);
+window.addEventListener('rr-theme-change', () => {
+    if (!analyticsPayload) return;
+    destroyAnalyticsCharts();
+    renderAnalytics(analyticsPayload);
+});
 </script>
 {% endblock %}

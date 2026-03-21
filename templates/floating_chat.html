@@ -1,13 +1,35 @@
 <!-- Floating Chat Assistant -->
-<button class="chat-fab" id="chatFab" title="Ask Safety Assistant">
-    Chat
+<button
+    class="chat-fab"
+    id="chatFab"
+    type="button"
+    title="Open Safety Assistant"
+    aria-label="Open Safety Assistant"
+    aria-expanded="false"
+    aria-controls="chatWidget"
+>
+    <span class="chat-fab-icon chat-fab-open-icon" aria-hidden="true">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.95" stroke-linecap="round" stroke-linejoin="round">
+            <path d="M7 18.5c-1.4 0-2.5-1.1-2.5-2.5V8.5C4.5 7.1 5.6 6 7 6h10c1.4 0 2.5 1.1 2.5 2.5V16c0 1.4-1.1 2.5-2.5 2.5h-5.8l-3.4 2.8c-.2.2-.6 0-.5-.3l.4-2.5H7Z"></path>
+            <path d="M8.75 12h.01"></path>
+            <path d="M12 12h.01"></path>
+            <path d="M15.25 12h.01"></path>
+        </svg>
+    </span>
+    <span class="chat-fab-icon chat-fab-close-icon" aria-hidden="true">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.1" stroke-linecap="round" stroke-linejoin="round">
+            <path d="M18 6 6 18"></path>
+            <path d="m6 6 12 12"></path>
+        </svg>
+    </span>
+    <span class="visually-hidden">Safety Assistant</span>
 </button>
 
-<div class="chat-widget-overlay" id="chatWidget">
+<div class="chat-widget-overlay" id="chatWidget" role="dialog" aria-modal="false" aria-hidden="true" aria-labelledby="chatWidgetTitle">
     <!-- Header -->
     <div class="chat-widget-header">
         <div class="chat-widget-title">
-            <h3>Safety Assistant</h3>
+            <h3 id="chatWidgetTitle">Safety Assistant</h3>
             <div class="chat-widget-status">
                 <span class="status-dot"></span>
                 <span>Online</span>
@@ -19,10 +41,17 @@
     <!-- Messages -->
     <div class="chat-widget-messages" id="chatWidgetMessages">
         <div class="message bot">
-            <div class="message-avatar">AI</div>
+            <div class="message-avatar message-avatar--bot" aria-hidden="true">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round">
+                    <path d="M12 3.25 18 5.75v5.6c0 4.2-2.7 7.97-6 9.4-3.3-1.43-6-5.2-6-9.4v-5.6L12 3.25Z"></path>
+                    <path d="m9.2 12.1 1.8 1.8 3.8-4"></path>
+                </svg>
+            </div>
             <div class="message-content">
                 <div class="message-bubble">
-                    <p>Hi! I'm your Bangkok Safety Assistant. Ask me about dangerous areas, safe routes, or accident patterns!</p>
+                    <div class="message-body">
+                        <p>Ask about <strong>danger zones</strong>, <strong>safer travel windows</strong>, or <strong>route risk patterns</strong> across Bangkok.</p>
+                    </div>
                 </div>
             </div>
         </div>

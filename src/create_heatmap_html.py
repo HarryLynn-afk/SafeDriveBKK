@@ -15,6 +15,191 @@ BKK_LAT_MIN = 13.6
 BKK_LON_MIN = 100.35
 
 
+HEATMAP_PANEL_STYLES = """
+<style>
+    :root {
+        color-scheme: light;
+    }
+
+    body {
+        font-family: Inter, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+        color: #111827;
+    }
+
+    .heatmap-floating-panel,
+    .leaflet-control-layers {
+        background: linear-gradient(180deg, rgba(255, 255, 255, 0.96), rgba(248, 250, 252, 0.92));
+        border: 1px solid rgba(148, 163, 184, 0.18);
+        border-radius: 24px;
+        box-shadow: 0 18px 40px rgba(15, 23, 42, 0.12);
+        backdrop-filter: blur(12px);
+    }
+
+    .heatmap-floating-panel {
+        position: fixed;
+        z-index: 9999;
+        box-sizing: border-box;
+        padding: 18px 20px;
+    }
+
+    .heatmap-title-panel {
+        top: 18px;
+        left: 74px;
+        width: min(400px, calc(100vw - 92px));
+    }
+
+    .heatmap-legend-panel {
+        bottom: 24px;
+        left: 18px;
+        width: min(280px, calc(100vw - 36px));
+    }
+
+    .heatmap-panel-title {
+        margin: 0;
+        font-size: 17px;
+        font-weight: 700;
+        line-height: 1.24;
+        letter-spacing: -0.02em;
+        color: #111827;
+    }
+
+    .heatmap-panel-copy {
+        margin: 8px 0 0;
+        font-size: 13px;
+        line-height: 1.6;
+        color: #475569;
+    }
+
+    .heatmap-legend-title,
+    .leaflet-control-layers-list::before {
+        display: block;
+        margin: 0 0 12px;
+        font-size: 12px;
+        font-weight: 700;
+        letter-spacing: 0.08em;
+        text-transform: uppercase;
+        color: #64748b;
+    }
+
+    .heatmap-legend-list {
+        display: grid;
+        gap: 10px;
+    }
+
+    .heatmap-legend-item {
+        display: flex;
+        align-items: center;
+        gap: 12px;
+    }
+
+    .heatmap-legend-swatch {
+        width: 12px;
+        height: 12px;
+        border-radius: 999px;
+        flex-shrink: 0;
+        box-shadow:
+            inset 0 0 0 1px rgba(255, 255, 255, 0.72),
+            0 0 0 1px rgba(148, 163, 184, 0.18);
+    }
+
+    .heatmap-legend-text {
+        font-size: 13px;
+        line-height: 1.45;
+        color: #1f2937;
+    }
+
+    .heatmap-legend-note {
+        margin: 14px 0 0;
+        padding-top: 12px;
+        border-top: 1px solid rgba(148, 163, 184, 0.14);
+        font-size: 12px;
+        line-height: 1.55;
+        color: #64748b;
+    }
+
+    .leaflet-top .leaflet-control {
+        margin-top: 18px;
+    }
+
+    .leaflet-right .leaflet-control {
+        margin-right: 18px;
+    }
+
+    .leaflet-control-layers {
+        border: 1px solid rgba(148, 163, 184, 0.18) !important;
+        box-shadow: 0 18px 40px rgba(15, 23, 42, 0.12) !important;
+        overflow: hidden;
+    }
+
+    .leaflet-control-layers-expanded {
+        min-width: 250px;
+        padding: 18px 20px !important;
+    }
+
+    .leaflet-control-layers-list::before {
+        content: "Map layers";
+    }
+
+    .leaflet-control-layers-base,
+    .leaflet-control-layers-overlays {
+        display: grid;
+        gap: 10px;
+    }
+
+    .leaflet-control-layers label {
+        display: flex;
+        align-items: flex-start;
+        gap: 12px;
+        margin: 0;
+        font-size: 13px;
+        font-weight: 500;
+        line-height: 1.45;
+        color: #1f2937;
+    }
+
+    .leaflet-control-layers-selector {
+        margin: 2px 0 0 !important;
+        accent-color: #2563eb;
+    }
+
+    .leaflet-control-layers-separator {
+        margin: 12px 0 !important;
+        border-top: 1px solid rgba(148, 163, 184, 0.14) !important;
+    }
+
+    @media (max-width: 768px) {
+        .heatmap-title-panel {
+            top: 16px;
+            left: 68px;
+            width: calc(100vw - 84px);
+            padding: 16px 18px;
+        }
+
+        .heatmap-legend-panel {
+            left: 12px;
+            right: 12px;
+            bottom: 16px;
+            width: auto;
+            padding: 16px 18px;
+        }
+
+        .leaflet-top .leaflet-control {
+            margin-top: 16px;
+        }
+
+        .leaflet-right .leaflet-control {
+            margin-right: 12px;
+        }
+
+        .leaflet-control-layers-expanded {
+            min-width: 220px;
+            padding: 16px 18px !important;
+        }
+    }
+</style>
+"""
+
+
 def _get_coordinate_columns(df):
     if {"LATITUDE", "LONGITUDE"}.issubset(df.columns):
         return "LATITUDE", "LONGITUDE"
@@ -211,49 +396,34 @@ def create_heatmap_html():
     for layer in risk_layers.values():
         layer.add_to(bangkok_map)
 
+    bangkok_map.get_root().header.add_child(folium.Element(HEATMAP_PANEL_STYLES))
+
     title_html = """
-    <div style="position: fixed;
-                top: 10px;
-                left: 50px;
-                width: 400px;
-                background: white;
-                padding: 10px;
-                border-radius: 8px;
-                box-shadow: 0 2px 8px rgba(0,0,0,0.2);
-                z-index: 9999;
-                font-family: Arial, sans-serif;">
-        <h4 style="margin: 0; font-size: 16px;">Bangkok Accident Risk Map (Heat + Segments)</h4>
-        <p style="margin: 5px 0 0 0; font-size: 12px; color: #666;">
-            Heat intensity plus color-coded risk segments from 2024 records
-        </p>
+    <div class="heatmap-floating-panel heatmap-title-panel">
+        <h4 class="heatmap-panel-title">Bangkok Accident Risk Map (Heat + Segments)</h4>
+        <p class="heatmap-panel-copy">Heat intensity plus color-coded risk segments from 2024 records</p>
     </div>
     """
     bangkok_map.get_root().html.add_child(folium.Element(title_html))
 
     legend_html = """
-    <div style="position: fixed;
-                bottom: 50px;
-                left: 50px;
-                background: white;
-                padding: 10px;
-                border-radius: 8px;
-                box-shadow: 0 2px 8px rgba(0,0,0,0.2);
-                z-index: 9999;
-                font-family: Arial, sans-serif;">
-        <div style="margin-bottom: 5px; font-weight: bold; font-size: 14px;">Segment Risk Level</div>
-        <div style="display: flex; align-items: center; margin: 3px 0;">
-            <div style="width: 20px; height: 20px; background: #28a745; margin-right: 8px; border-radius: 3px;"></div>
-            <span style="font-size: 12px;">Low (Green)</span>
+    <div class="heatmap-floating-panel heatmap-legend-panel">
+        <div class="heatmap-legend-title">Segment risk level</div>
+        <div class="heatmap-legend-list">
+            <div class="heatmap-legend-item">
+                <span class="heatmap-legend-swatch" style="background: #28a745;"></span>
+                <span class="heatmap-legend-text">Low (Green)</span>
+            </div>
+            <div class="heatmap-legend-item">
+                <span class="heatmap-legend-swatch" style="background: #fbbf24;"></span>
+                <span class="heatmap-legend-text">Medium (Yellow)</span>
+            </div>
+            <div class="heatmap-legend-item">
+                <span class="heatmap-legend-swatch" style="background: #dc2626;"></span>
+                <span class="heatmap-legend-text">High (Red)</span>
+            </div>
         </div>
-        <div style="display: flex; align-items: center; margin: 3px 0;">
-            <div style="width: 20px; height: 20px; background: #fbbf24; margin-right: 8px; border-radius: 3px;"></div>
-            <span style="font-size: 12px;">Medium (Yellow)</span>
-        </div>
-        <div style="display: flex; align-items: center; margin: 3px 0;">
-            <div style="width: 20px; height: 20px; background: #dc2626; margin-right: 8px; border-radius: 3px;"></div>
-            <span style="font-size: 12px;">High (Red)</span>
-        </div>
-        <div style="margin-top: 6px; font-size: 11px; color: #666;">Use top-right layer control to toggle segment layers.</div>
+        <div class="heatmap-legend-note">Use top-right layer control to toggle segment layers.</div>
     </div>
     """
     bangkok_map.get_root().html.add_child(folium.Element(legend_html))

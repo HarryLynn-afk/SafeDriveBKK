@@ -5,6 +5,7 @@ Flask web app for Bangkok Road Risk system.
 import json
 import math
 import os
+import re
 from concurrent.futures import ThreadPoolExecutor
 from datetime import datetime
 from pathlib import Path
@@ -93,6 +94,15 @@ _BKK_DISTRICTS = [
     ("Yan Nawa",        13.6974, 100.5310),
 ]
 
+_ROUTE_DISPLAY_NAMES = {
+    "7": "Motorway 7",
+    "9": "Outer Ring Rd 9",
+    "31": "Vibhavadi Rangsit Rd",
+    "35": "Rama II Rd",
+    "338": "Borommaratchachonnani Rd",
+    "304": "Suwinthawong Rd",
+}
+
 
 def _nearest_district(lat: float, lon: float) -> str:
     """Return the name of the Bangkok district whose centroid is closest to (lat, lon)."""
@@ -104,6 +114,170 @@ def _nearest_district(lat: float, lon: float) -> str:
             best_dist = d
             best_name = name
     return best_name
+
+
+def _latlon_to_grid_id(lat: float, lon: float):
+    """Convert lat/lon to the matching grid_id string (or None)."""
+    if pd.isna(lat) or pd.isna(lon):
+        return None
+    if lat < BKK_LAT_MIN or lat > BKK_LAT_MAX or lon < BKK_LON_MIN or lon > BKK_LON_MAX:
+        return None
+
+    lat_idx = int((lat - BKK_LAT_MIN) / CELL_SIZE_DEG)
+    lon_idx = int((lon - BKK_LON_MIN) / CELL_SIZE_DEG)
+
+    max_lat_idx = int((BKK_LAT_MAX - BKK_LAT_MIN) / CELL_SIZE_DEG) - 1
+    max_lon_idx = int((BKK_LON_MAX - BKK_LON_MIN) / CELL_SIZE_DEG) - 1
+    lat_idx = min(lat_idx, max_lat_idx)
+    lon_idx = min(lon_idx, max_lon_idx)
+    return f"G{lat_idx:03d}_{lon_idx:03d}"
+
+
+def _route_display_name(route_code) -> str | None:
+    """Return a human-readable road or route label from the route code."""
+    if pd.isna(route_code):
+        return None
+    route_key = str(route_code).strip()
+    if not route_key or route_key.lower() == "nan":
+        return None
+    return _ROUTE_DISPLAY_NAMES.get(route_key, f"Route {route_key}")
+
+
+def _build_zone_display_name(district: str, zone_accidents: pd.DataFrame) -> str:
+    """Create a user-facing location label for a grid from its dominant corridor."""
+    if zone_accidents is None or zone_accidents.empty:
+        return f"{district} corridor"
+
+    route_codes = (
+        zone_accidents.get("รหัสสายทาง", pd.Series(dtype=object))
+        .dropna()
+        .astype(str)
+        .str.strip()
+    )
+    route_code = route_codes.mode().iloc[0] if len(route_codes) else None
+    route_label = _route_display_name(route_code)
+
+    if route_label is None:
+        road_names = (
+            zone_accidents.get("สายทาง", pd.Series(dtype=object))
+            .dropna()
+            .astype(str)
+            .str.strip()
+        )
+        if len(road_names):
+            route_label = road_names.mode().iloc[0]
+
+    km_values = pd.to_numeric(
+        zone_accidents.get("KM", pd.Series(dtype=float)),
+        errors="coerce",
+    ).dropna()
+    km_label = f"Km {km_values.median():.1f}" if len(km_values) else None
+
+    if route_label and km_label:
+        return f"{route_label} ({km_label})"
+    if route_label:
+        return route_label
+    return f"{district} corridor"
+
+
+_CHAT_EMOJI_PATTERN = re.compile(
+    "["
+    "\U0001F1E6-\U0001F1FF"
+    "\U0001F300-\U0001F5FF"
+    "\U0001F600-\U0001F64F"
+    "\U0001F680-\U0001F6FF"
+    "\U0001F700-\U0001F77F"
+    "\U0001F780-\U0001F7FF"
+    "\U0001F800-\U0001F8FF"
+    "\U0001F900-\U0001F9FF"
+    "\U0001FA00-\U0001FAFF"
+    "\U000024C2-\U0001F251"
+    "\U00002600-\U000026FF"
+    "\U00002700-\U000027BF"
+    "]+",
+    flags=re.UNICODE,
+)
+_CHAT_BOLD_SEGMENT_PATTERN = re.compile(r"(\*\*.*?\*\*)", flags=re.DOTALL)
+_CHAT_FILLER_OPENING_PATTERN = re.compile(
+    r"^\s*(?:(?:great|good)\s+question|sure|absolutely|of course|certainly|happy to help|"
+    r"here(?:'s| is)(?:\s+(?:the answer|what I found))?|let me explain|let(?:'|’)s break (?:this )?down)"
+    r"[\s!,:.\-]+",
+    flags=re.IGNORECASE,
+)
+_CHAT_TIME_STAT_PATTERN = re.compile(
+    r"\b\d{1,2}:\d{2}(?:\s*[-–]\s*\d{1,2}:\d{2})\b|"
+    r"\b\d{1,2}(?::\d{2})?(?:\s?(?:AM|PM|am|pm))?(?:\s*[-–]\s*\d{1,2}(?::\d{2})?\s?(?:AM|PM|am|pm))\b|"
+    r"\b\d{1,2}(?::\d{2})?\s?(?:AM|PM|am|pm)\b"
+)
+_CHAT_PERCENT_STAT_PATTERN = re.compile(
+    r"\b\d[\d,]*(?:\.\d+)?(?:\s*[-–]\s*\d[\d,]*(?:\.\d+)?)?%"
+)
+_CHAT_MULTIPLIER_STAT_PATTERN = re.compile(r"\b\d[\d,]*(?:\.\d+)?(?:×|x)\b")
+_CHAT_RATIO_STAT_PATTERN = re.compile(r"\b\d[\d,]*(?:\.\d+)?/\d[\d,]*(?:\.\d+)?\b")
+_CHAT_OUT_OF_STAT_PATTERN = re.compile(r"\b\d+\s+out\s+of\s+\d+\b", flags=re.IGNORECASE)
+_CHAT_RANKING_STAT_PATTERN = re.compile(r"#\d+\b")
+_CHAT_COUNT_STAT_PATTERN = re.compile(
+    r"\b\d[\d,]*(?:\.\d+)?(?:\s*[-–]\s*\d[\d,]*(?:\.\d+)?)?\s*"
+    r"(?:accidents?|deaths?|injuries?|incidents?|zones?|records?|hours?|days?|weekdays?|"
+    r"weekends?|months?|years?|km²?|km|risk(?: score)?|accuracy|recall|lift)\b",
+    flags=re.IGNORECASE,
+)
+
+
+def _strip_chat_emojis(text: str) -> str:
+    """Remove emoji from chatbot text while keeping spacing readable."""
+    cleaned = _CHAT_EMOJI_PATTERN.sub("", text)
+    cleaned = cleaned.replace("\u200d", "").replace("\ufe0f", "")
+    cleaned = re.sub(r" {2,}", " ", cleaned)
+    cleaned = re.sub(r"[ \t]+\n", "\n", cleaned)
+    cleaned = re.sub(r"\n{3,}", "\n\n", cleaned)
+    return cleaned.strip()
+
+
+def _apply_chat_markdown_bold(text: str, pattern: re.Pattern) -> str:
+    """Wrap matched stat expressions in markdown bold, skipping existing bold spans."""
+    segments = _CHAT_BOLD_SEGMENT_PATTERN.split(text)
+    for idx, segment in enumerate(segments):
+        if not segment or segment.startswith("**"):
+            continue
+        segments[idx] = pattern.sub(lambda match: f"**{match.group(0).strip()}**", segment)
+    return "".join(segments)
+
+
+def _normalize_chatbot_rich_text(text: str) -> str:
+    """Tighten chatbot voice and emphasize numeric facts for UI rendering."""
+    cleaned = _strip_chat_emojis(text)
+    cleaned = _CHAT_FILLER_OPENING_PATTERN.sub("", cleaned).strip()
+
+    for pattern in (
+        _CHAT_TIME_STAT_PATTERN,
+        _CHAT_PERCENT_STAT_PATTERN,
+        _CHAT_MULTIPLIER_STAT_PATTERN,
+        _CHAT_RATIO_STAT_PATTERN,
+        _CHAT_OUT_OF_STAT_PATTERN,
+        _CHAT_RANKING_STAT_PATTERN,
+        _CHAT_COUNT_STAT_PATTERN,
+    ):
+        cleaned = _apply_chat_markdown_bold(cleaned, pattern)
+
+    cleaned = re.sub(r" {2,}", " ", cleaned)
+    cleaned = re.sub(r"[ \t]+\n", "\n", cleaned)
+    cleaned = re.sub(r"\n{3,}", "\n\n", cleaned)
+    return cleaned.strip()
+
+
+def _sanitize_chatbot_payload(payload, rich_text: bool = False):
+    """Recursively sanitize chatbot responses before returning them to the UI."""
+    if isinstance(payload, str):
+        return _normalize_chatbot_rich_text(payload) if rich_text else _strip_chat_emojis(payload)
+    if isinstance(payload, list):
+        return [_sanitize_chatbot_payload(item, rich_text=rich_text) for item in payload]
+    if isinstance(payload, dict):
+        return {
+            key: _sanitize_chatbot_payload(value, rich_text=key in {"message", "followup"})
+            for key, value in payload.items()
+        }
+    return payload
 
 
 app = Flask(
@@ -1147,6 +1321,8 @@ def analytics_data():
     try:
         df = _load_bangkok_accidents()
         grid_df = _load_grid_stats()
+        total_accidents = int(len(df))
+        total_grids = int(len(grid_df))
 
         # Accidents by hour
         hour_col = pd.to_numeric(df["hour"], errors="coerce").dropna().astype(int)
@@ -1167,6 +1343,22 @@ def analytics_data():
         }
         by_month = {month_names.get(int(m), str(m)): int(c) for m, c in month_counts.items()}
 
+        zone_context_lookup = {}
+        if {"LATITUDE", "LONGITUDE"}.issubset(df.columns):
+            zone_context = df[["LATITUDE", "LONGITUDE", "รหัสสายทาง", "สายทาง", "KM"]].copy()
+            zone_context["_lat"] = pd.to_numeric(zone_context["LATITUDE"], errors="coerce")
+            zone_context["_lon"] = pd.to_numeric(zone_context["LONGITUDE"], errors="coerce")
+            zone_context = zone_context.dropna(subset=["_lat", "_lon"])
+            zone_context["grid_id"] = zone_context.apply(
+                lambda row: _latlon_to_grid_id(row["_lat"], row["_lon"]),
+                axis=1,
+            )
+            zone_context = zone_context.dropna(subset=["grid_id"])
+            zone_context_lookup = {
+                grid_id: group.copy()
+                for grid_id, group in zone_context.groupby("grid_id", sort=False)
+            }
+
         # Top 10 most dangerous zones
         top_zones = (
             grid_df[grid_df["total_accidents"] > 0]
@@ -1175,6 +1367,10 @@ def analytics_data():
         )
         for zone in top_zones:
             zone["district"] = _nearest_district(zone["center_lat"], zone["center_lon"])
+            zone["zone_name"] = _build_zone_display_name(
+                zone["district"],
+                zone_context_lookup.get(zone["grid_id"]),
+            )
 
         # Accidents by Bangkok area (derived from lat/lon)
         by_area = {}
@@ -1232,8 +1428,23 @@ def analytics_data():
         severity = {"Deaths": deaths, "Serious Injuries": serious, "Minor Injuries": minor}
 
         # Risk level distribution
-        risk_dist = grid_df[grid_df["total_accidents"] > 0]["risk_level"].value_counts().to_dict()
+        risk_level_series = grid_df["risk_level"].astype(str).str.lower()
+        active_grid_mask = grid_df["total_accidents"] > 0
+        risk_dist = risk_level_series[active_grid_mask].value_counts().to_dict()
         risk_distribution = {str(k): int(v) for k, v in risk_dist.items()}
+        active_zones = int(active_grid_mask.sum())
+        high_risk_zones = int((risk_level_series == "high").sum())
+        total_mapped_accidents = int(
+            pd.to_numeric(grid_df["total_accidents"], errors="coerce").fillna(0).sum()
+        )
+        high_risk_accidents = int(
+            pd.to_numeric(
+                grid_df.loc[risk_level_series == "high", "total_accidents"],
+                errors="coerce",
+            ).fillna(0).sum()
+        )
+        high_risk_grid_share_percent = round((high_risk_zones / total_grids) * 100, 1) if total_grids else 0.0
+        high_risk_accident_share = round((high_risk_accidents / total_mapped_accidents) * 100, 1) if total_mapped_accidents else 0.0
 
         # Weekend vs weekday
         weekend_col = df.get("is_weekend")
@@ -1248,8 +1459,8 @@ def analytics_data():
             weekday_count = int(len(df) - weekend_count)
 
         return jsonify({
-            "total_accidents": int(len(df)),
-            "total_grids": int(len(grid_df)),
+            "total_accidents": total_accidents,
+            "total_grids": total_grids,
             "by_hour": by_hour,
             "by_day": by_day,
             "by_month": by_month,
@@ -1259,6 +1470,13 @@ def analytics_data():
             "severity": severity,
             "risk_distribution": risk_distribution,
             "weekend_vs_weekday": {"Weekend": weekend_count, "Weekday": weekday_count},
+            "summary": {
+                "active_zones": active_zones,
+                "high_risk_zones": high_risk_zones,
+                "mapped_accidents": total_mapped_accidents,
+                "high_risk_grid_share_percent": high_risk_grid_share_percent,
+                "high_risk_accident_share": high_risk_accident_share,
+            },
         })
     except Exception as exc:
         return jsonify({"error": str(exc)}), 500
@@ -1925,6 +2143,7 @@ def chatbot():
                 # Step 3: AI response (flexible, open-ended)
                 response = get_groq_response(user_message, CHATBOT_DATA)
 
+        response = _sanitize_chatbot_payload(response)
         return jsonify({"success": True, "response": response})
 
     except Exception as e:

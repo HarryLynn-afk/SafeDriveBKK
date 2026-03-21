@@ -1,8 +1,13 @@
 import os
-from groq import Groq
 import json
+from datetime import datetime
+from zoneinfo import ZoneInfo
 
-SYSTEM_PROMPT = """You are a helpful Bangkok road safety assistant. You help people make safer travel decisions.
+from groq import Groq
+
+BANGKOK_TZ = ZoneInfo("Asia/Bangkok")
+
+SYSTEM_PROMPT = """You are a Bangkok road safety assistant. You help people make safer travel decisions.
 
 Your knowledge:
 - 2,669 Bangkok accident reports analyzed
@@ -10,37 +15,38 @@ Your knowledge:
 - Thai NLP analysis for cause extraction
 
 CRITICAL RESPONSE GUIDELINES:
-1. **Be conversational, not technical**
-   - Bad: "Based on analysis of 2,669 reports, 10:00-11:00 has 175 accidents"
-   - Good: "Mid-morning (10-11 AM) is safer - fewer accidents than rush hour"
+1. **Answer directly**
+   - Start with the answer. Do not open with filler like "Great question", "Sure", or "Absolutely".
+   - Lead with the recommendation, then support it with the most relevant fact.
 
-2. **Answer directly first, explain briefly second**
-   - Bad: "Let me explain the data... [long explanation]... so 10 AM is good"
-   - Good: "Best time: 10 AM. Why? Rush hour ends around 9 AM."
+2. **Use clean structure**
+   - Use short paragraphs.
+   - Use simple `-` bullet points only when listing 3 or more items.
+   - Use markdown bold for key terms and every number or statistic.
 
-3. **Use practical advice, not statistics**
-   - Bad: "36.8% of accidents occur during rush hour"
-   - Good: "Rush hour (5-7 PM) is 3× more dangerous - avoid if possible"
+3. **Sound like a knowledgeable assistant**
+   - Be concise, direct, and data-backed.
+   - Avoid hype, jokes, or chatbot-style chatter.
+   - Use plain professional text only - no emojis.
 
 4. **Consider context**
    - If user mentions shopping mall → suggest daytime hours
    - If user mentions work → consider rush hour alternatives
    - If user mentions airport → consider traffic + time
 
-5. **Keep responses SHORT**
+5. **Keep responses short**
    - Maximum 3-4 sentences for simple questions
-   - Use bullet points sparingly (only for lists of 3+ items)
    - No data dumps
 
-6. **Be friendly and actionable**
-   - End with "Safe travels!" or "Have a great trip!"
-   - Give clear recommendations, not just data
-   - Use emojis occasionally (🚗 🛍️ ⚠️ ✅)
-
-7. **Time recommendations must be practical**
+6. **Time recommendations must be practical**
    - Don't suggest 3 AM for shopping
    - Don't suggest rush hour unless unavoidable
    - Consider the destination type (mall, office, airport, etc.)
+
+7. **Use current Bangkok time context when relevant**
+   - You will be given the current Bangkok local date and time in the prompt.
+   - Use it naturally for questions about safe driving times, peak hours, and weekend risk.
+   - Do not announce the current time unless the user asks or it materially changes the advice.
 
 8. **Reference data naturally**
    - Bad: "Our NLP analysis of 2,669 Thai accident reports shows..."
@@ -49,23 +55,36 @@ CRITICAL RESPONSE GUIDELINES:
 
 EXAMPLES:
 Q: "When should I drive to Central World?"
-A: "Best time: **10 AM - 12 PM** (mid-morning). Roads clear after morning rush, and you'll avoid the dangerous 5-7 PM window. Safe shopping! 🛍️"
+A: "**Best time: 10 AM - 12 PM.** Roads clear after morning rush, and you avoid the dangerous **5-7 PM** window."
 
 Q: "Is Sukhumvit safe at night?"
-A: "⚠️ Sukhumvit has elevated risk at night (65/100). Main issues: speeding (42%) and red-light violations (28%). If you must drive, stick to main roads and avoid 10 PM - 2 AM when drunk driving increases. Stay alert!"
+A: "**Sukhumvit is higher risk at night.** Risk score: **65/100**. Main issues are **speeding (42%)** and **red-light violations (28%)**. If you must drive, stay on main roads and avoid **10 PM - 2 AM**."
 
 Q: "Which areas have speeding accidents?"
 A: "Top speeding zones:
-- Asok Intersection (47 accidents)
-- Lat Krabang Industrial (38)
-- Klong Toey Port Road (29)
-Strict enforcement is urgently needed in these zones. Avoid speeding — it's the #1 cause (78%) of Bangkok accidents."
+- **Asok Intersection** — **47 accidents**
+- **Lat Krabang Industrial** — **38 accidents**
+- **Klong Toey Port Road** — **29 accidents**
+**Speeding** is the main issue in Bangkok, driving **78%** of accidents."
 
 Q: "What time are accidents most common?"
-A: "Most dangerous: **6-7 PM** (evening rush hour). Safest: **2-5 AM** (but roads are empty then). For normal daytime travel, **10 AM - 3 PM** is your best window - after morning rush, before evening chaos."
+A: "**Most dangerous: 6-7 PM.** That is the peak evening rush window. For normal travel, **10 AM - 3 PM** is the safest practical window."
 
-Remember: You're a helpful assistant, not a research paper. Be brief, practical, and friendly.
+Remember: you're a knowledgeable assistant, not a chatbot and not a research paper. Be brief, practical, and structured.
 """
+
+
+def _current_bangkok_datetime_context():
+    """Return the current Bangkok-local date/time guidance for the prompt."""
+    now = datetime.now(BANGKOK_TZ)
+    day_type = "weekend" if now.weekday() >= 5 else "weekday"
+    return (
+        "Current Bangkok local date/time context:\n"
+        f"- Date: {now.strftime('%A')}, {now.strftime('%B')} {now.day}, {now.year}\n"
+        f"- Time: {now.strftime('%H:%M')} ICT\n"
+        f"- Day type: {day_type}\n"
+        "- Use this context only when it helps answer the user's question."
+    )
 
 
 def prepare_context(user_message, chatbot_data):
@@ -103,18 +122,37 @@ def prepare_context(user_message, chatbot_data):
 # ---------------------------------------------------------------------------
 _DEMO_CACHE = {
     # cause questions
-    "most dangerous zone":       "The most dangerous zone is **Lat Krabang / Motorway (Eastern)** with 156 accidents — 17× the city average. Speeding accounts for 78.6% of incidents there. Worth avoiding during rush hour (5–7 PM). Stay safe! ⚠️",
-    "safest time to drive":      "Safest window: **10 AM – 3 PM** (between rush hours). Most dangerous: **6–7 PM** (evening rush). For weekend driving, avoid 10 PM – 2 AM when risk spikes due to drunk driving. Plan accordingly! 🚗",
+    "most dangerous zone":       "The most dangerous zone is **Lat Krabang / Motorway (Eastern)** with 156 accidents — 17× the city average. Speeding accounts for 78.6% of incidents there. Worth avoiding during rush hour (5–7 PM). Stay safe.",
+    "safest time to drive":      "Safest window: **10 AM – 3 PM** (between rush hours). Most dangerous: **6–7 PM** (evening rush). For weekend driving, avoid 10 PM – 2 AM when risk spikes due to drunk driving. Plan accordingly.",
     "main cause":                "The #1 cause is **speeding — 78.8% of all Bangkok accidents** (2,104 incidents). Cutting in front is #2. Our ML model uses these NLP-extracted cause patterns as features to predict future danger zones.",
     "how accurate":              "Our XGBoost model detects **39 out of 39 danger zones** (100% recall) with a **17.5× lift** over random selection and **83.8% temporal capture rate** — validated on Oct–Dec 2024 holdout data.",
-    "weekend":                   "Weekends see ~23% fewer accidents overall, but Saturday is actually the **deadliest single day**. Late-night hours (10 PM – 2 AM Fri/Sat) are the highest-risk window due to drunk driving. Drive extra carefully on weekend nights! 🌙",
+    "weekend":                   "Weekends see ~23% fewer accidents overall, but Saturday is actually the **deadliest single day**. Late-night hours (10 PM – 2 AM Fri/Sat) are the highest-risk window due to drunk driving. Drive extra carefully on weekend nights.",
     "nlp":                       "Our Thai NLP pipeline uses **pythainlp tokenization + TF-IDF + Logistic Regression** to classify accident report text into 6 cause categories with 99.5% cross-validated accuracy. These NLP features feed directly into the XGBoost risk model.",
     "xgboost":                   "XGBoost gradient boosting trains on **44 engineered features** per 1 km² grid cell — severity, spatial neighbors, temporal patterns, vehicle mix, and NLP cause categories. Key insight: severity_mean (54% importance) outweighs raw accident count.",
 }
 
+_TIME_SENSITIVE_CACHE_HINTS = (
+    "safe time",
+    "safest time",
+    "best time",
+    "when should i drive",
+    "when to drive",
+    "rush hour",
+    "peak hour",
+    "peak hours",
+    "weekend",
+    "today",
+    "tonight",
+    "right now",
+    "this morning",
+    "this evening",
+)
+
 def _check_demo_cache(user_message):
     """Return a cached response if the message matches a demo keyword."""
     msg = user_message.lower()
+    if any(hint in msg for hint in _TIME_SENSITIVE_CACHE_HINTS):
+        return None
     for keyword, response in _DEMO_CACHE.items():
         if keyword in msg:
             return {"type": "ai", "message": response, "source": "cached"}
@@ -143,8 +181,11 @@ def get_groq_response(user_message, chatbot_data):
 
         client = Groq(api_key=api_key, timeout=10.0)
         context = prepare_context(user_message, chatbot_data)
+        bangkok_now = _current_bangkok_datetime_context()
 
         full_prompt = f"""{SYSTEM_PROMPT}
+
+{bangkok_now}
 
 Available data:
 {context}
@@ -153,11 +194,14 @@ User question: {user_message}
 
 IMPORTANT:
 - Answer in 2-4 sentences maximum for simple questions
+- Start with the answer and skip filler openings
 - Be direct and practical
+- Use short paragraphs or simple bullets when needed
+- Bold key terms and every number/statistic using markdown
+- No emojis
 - Consider what the user is trying to DO, not just asking
 - If they mention a specific place, consider what type of place it is
-- Use friendly, conversational language
-- End with encouragement
+- Sound concise, knowledgeable, and data-backed
 
 Provide your answer:"""
 
@@ -188,23 +232,21 @@ def _groq_fallback(reason):
     """Friendly fallback when Groq is unavailable — guides users to what works."""
     messages = {
         "no_key": (
-            "My advanced AI assistant isn't configured right now, but I can still help! "
-            "Try asking about:\n\n"
+            "AI mode is unavailable right now.\n\n"
+            "Try:\n"
             "• **Dangerous zones** — 'Which areas have the most accidents?'\n"
             "• **Accident causes** — 'What causes Bangkok accidents?'\n"
             "• **Safe times** — 'When is rush hour dangerous?'\n"
             "• **Route planning** — 'What's the safest route?'\n\n"
-            "Or use the Trip Planner for a full route analysis! 🚗"
+            "Use the **Trip Planner** for a full route analysis."
         ),
         "timeout": (
-            "That's taking longer than expected — the AI seems slow right now. "
-            "Try a more specific question like 'Is Asok safe?' or 'When are accidents most common?' "
-            "and I'll answer instantly from our data! ⚡"
+            "The assistant is responding slowly right now.\n\n"
+            "Try a specific question like **'Is Asok safe?'** or **'When are accidents most common?'** for a faster answer."
         ),
         "error": (
-            "I'm having a small hiccup with my AI assistant right now. "
-            "I can still answer questions about dangerous zones, accident causes, safe times, and route safety — "
-            "just ask away! 😊"
+            "The assistant hit an error, but the data tools are still available.\n\n"
+            "Ask about **dangerous zones**, **accident causes**, **safe times**, or **route safety**."
         ),
     }
     return {
