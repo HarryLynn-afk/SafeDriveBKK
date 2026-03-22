@@ -21,9 +21,11 @@ let lastAlertSegmentIndex = -1;
 let lastAlertSeverity = null;  // track risk level to only alert on changes
 let spokenAlerts = new Set();
 let lastAlertTime = 0;
-let safeAlertFadeTimeout = null;
+let navAlertHideTimeout = null;
+let navBannerSuppressed = false;
 const ALERT_COOLDOWN = 5000; // 5 seconds between alerts minimum
-const TRIP_PLANNER_JS_VERSION = "2026-03-20.2";
+const NAVIGATION_ALERT_DURATION_MS = 3200;
+const TRIP_PLANNER_JS_VERSION = "2026-03-22.1";
 const ANALYSIS_STEP_MIN_MS = 1500;
 // Animation speed: adaptive so all routes finish in ~18 seconds
 const SIMULATION_TARGET_SECONDS = 18;
@@ -53,6 +55,67 @@ const BACKUP_DESTINATIONS = [
     { name: "Ratchada", lat: 13.73, lon: 100.72 }
 ];
 
+const TRIP_PLANNER_MAP_STYLES = {
+    light: [
+        { elementType: "geometry", stylers: [{ color: "#eef4f1" }] },
+        { elementType: "labels.text.fill", stylers: [{ color: "#334155" }] },
+        { elementType: "labels.text.stroke", stylers: [{ color: "#f8fafc" }] },
+        { featureType: "landscape.natural", elementType: "geometry", stylers: [{ color: "#e2f7e8" }] },
+        { featureType: "poi", elementType: "labels.icon", stylers: [{ visibility: "off" }] },
+        { featureType: "road", elementType: "geometry", stylers: [{ color: "#ffffff" }] },
+        { featureType: "road.arterial", elementType: "geometry", stylers: [{ color: "#e2e8f0" }] },
+        { featureType: "transit", stylers: [{ visibility: "off" }] },
+        { featureType: "water", elementType: "geometry", stylers: [{ color: "#dbeafe" }] },
+    ],
+    dark: [
+        { elementType: "geometry", stylers: [{ color: "#08111f" }] },
+        { elementType: "labels.text.fill", stylers: [{ color: "#cbd5e1" }] },
+        { elementType: "labels.text.stroke", stylers: [{ color: "#08111f" }] },
+        { featureType: "landscape.natural", elementType: "geometry", stylers: [{ color: "#0b1822" }] },
+        { featureType: "poi", elementType: "labels.icon", stylers: [{ visibility: "off" }] },
+        { featureType: "road", elementType: "geometry", stylers: [{ color: "#132133" }] },
+        { featureType: "road.arterial", elementType: "geometry", stylers: [{ color: "#1e293b" }] },
+        { featureType: "transit", stylers: [{ visibility: "off" }] },
+        { featureType: "water", elementType: "geometry", stylers: [{ color: "#0f3c57" }] },
+    ],
+};
+
+function getTripPlannerTheme() {
+    return document.documentElement.getAttribute("data-theme") === "dark" ? "dark" : "light";
+}
+
+function getTripPlannerMapStyles(theme = getTripPlannerTheme()) {
+    return TRIP_PLANNER_MAP_STYLES[theme] || TRIP_PLANNER_MAP_STYLES.light;
+}
+
+function getTripPlannerMapBackground(theme = getTripPlannerTheme()) {
+    return theme === "dark" ? "#08111f" : "#eef4f1";
+}
+
+function applyTripPlannerMapTheme() {
+    const options = {
+        styles: getTripPlannerMapStyles(),
+        backgroundColor: getTripPlannerMapBackground(),
+    };
+
+    if (tripCompareMap) {
+        tripCompareMap.setOptions(options);
+    }
+
+    if (tripNavigationMap) {
+        tripNavigationMap.setOptions(options);
+    }
+}
+
+function formatRiskScoreCopy(score, guidance) {
+    const normalizedScore = Math.round(Number(score) || 0);
+    return guidance
+        ? `Risk score: ${normalizedScore} · ${guidance}`
+        : `Risk score: ${normalizedScore}`;
+}
+
+window.addEventListener("rr-theme-change", applyTripPlannerMapTheme);
+
 // ===== ADDRESS AUTOCOMPLETE =====
 let searchTimeout = null;
 let startSearchTimeout = null;
@@ -78,6 +141,8 @@ window.initGooglePlaces = function () {
             mapTypeControl: false,
             streetViewControl: false,
             fullscreenControl: false,
+            styles: getTripPlannerMapStyles(),
+            backgroundColor: getTripPlannerMapBackground(),
         });
         // Wait for tiles to load, then place marker
         google.maps.event.addListenerOnce(tripCompareMap, "tilesloaded", function () {
@@ -590,6 +655,8 @@ function initCompareMap() {
             mapTypeControl: false,
             streetViewControl: false,
             fullscreenControl: false,
+            styles: getTripPlannerMapStyles(),
+            backgroundColor: getTripPlannerMapBackground(),
         });
     }
     return tripCompareMap;
@@ -1602,8 +1669,11 @@ function initializeNavigationMap() {
             streetViewControl: false,
             fullscreenControl: false,
             gestureHandling: "greedy",
+            styles: getTripPlannerMapStyles(),
+            backgroundColor: getTripPlannerMapBackground(),
         });
     }
+    applyTripPlannerMapTheme();
     google.maps.event.trigger(tripNavigationMap, "resize");
 
     // Clear existing nav polylines and markers
@@ -1683,6 +1753,11 @@ function startNavigationSimulation() {
     lastAlertSegmentIndex = -1;
     lastAlertSeverity = null;
     tripPreviousDistance = 0;
+    navBannerSuppressed = false;
+    if (navAlertHideTimeout) {
+        clearTimeout(navAlertHideTimeout);
+        navAlertHideTimeout = null;
+    }
 
     // Reset state
     tripCurrentDistance = 0;
@@ -1720,10 +1795,8 @@ function startNavigationSimulation() {
         zIndex: 999,
     });
 
-    // Show initial safe alert and initialize top banner
-    showNavigationAlert("safe", "✓", "Ready to Navigate", "Drive safely");
+    hideNavigationAlert();
     updateNavTopBanner();
-    // console.log(`[TripPlanner ${TRIP_PLANNER_JS_VERSION}] simulation active: ${SIMULATION_STEP_KM.toFixed(2)} km per ${SIMULATION_TICK_MS}ms`);
 
     // Adaptive step: route finishes in ~SIMULATION_TARGET_SECONDS regardless of length
     const ticksNeeded = (SIMULATION_TARGET_SECONDS * 1000) / SIMULATION_TICK_MS;
@@ -1745,7 +1818,9 @@ function startNavigationSimulation() {
 
         if (tripCurrentDistance >= totalDistance) {
             clearInterval(tripNavigationInterval);
-            showNavigationAlert("safe", "🎉", "Destination Reached!", "You have arrived safely");
+            tripNavigationInterval = null;
+            hideNavigationAlert();
+            setNavTopBannerState("", "OK", "Destination reached", "You have arrived safely");
 
             setTimeout(() => {
                 showTripSummaryModal();
@@ -1789,6 +1864,78 @@ function updateNavigationUI(totalDistance, waypoints) {
     tripNavigationMap.panTo(newLatLng);
 }
 
+function setNavTopBannerState(severity, icon, title, subtitle) {
+    const banner = document.getElementById("nav-top-banner");
+    const bannerIcon = document.getElementById("nav-banner-icon");
+    const bannerTitle = document.getElementById("nav-banner-title");
+    const bannerSubtitle = document.getElementById("nav-banner-subtitle");
+
+    if (!banner || !bannerIcon || !bannerTitle || !bannerSubtitle) return;
+
+    banner.className = severity ? `nav-top-banner ${severity}` : "nav-top-banner";
+    if (navBannerSuppressed) {
+        banner.classList.add("is-hidden");
+    }
+
+    bannerIcon.textContent = icon;
+    bannerTitle.textContent = title;
+    bannerSubtitle.textContent = subtitle;
+}
+
+function setNavTopBannerVisible(isVisible) {
+    const banner = document.getElementById("nav-top-banner");
+    if (!banner) return;
+    banner.classList.toggle("is-hidden", !isVisible);
+}
+
+function hideNavigationAlert() {
+    const alertBox = document.getElementById("nav-alert-box");
+    if (!alertBox) return;
+
+    if (navAlertHideTimeout) {
+        clearTimeout(navAlertHideTimeout);
+        navAlertHideTimeout = null;
+    }
+
+    alertBox.className = "nav-alert-box";
+    alertBox.setAttribute("aria-hidden", "true");
+    navBannerSuppressed = false;
+    updateNavTopBanner();
+}
+
+function showNavigationAlert(severity, icon, title, subtitle, options = {}) {
+    const {
+        duration = NAVIGATION_ALERT_DURATION_MS,
+        suppressBanner = false,
+    } = options;
+    const alertBox = document.getElementById("nav-alert-box");
+
+    if (!alertBox) return;
+
+    if (navAlertHideTimeout) {
+        clearTimeout(navAlertHideTimeout);
+        navAlertHideTimeout = null;
+    }
+
+    navBannerSuppressed = Boolean(suppressBanner);
+    setNavTopBannerVisible(!navBannerSuppressed);
+
+    document.getElementById("nav-alert-icon").textContent = icon;
+    document.getElementById("nav-alert-title").textContent = title;
+    document.getElementById("nav-alert-subtitle").textContent = subtitle;
+
+    alertBox.className = "nav-alert-box";
+    void alertBox.offsetWidth;
+    alertBox.className = `nav-alert-box ${severity} is-visible`;
+    alertBox.setAttribute("aria-hidden", "false");
+
+    if (duration > 0) {
+        navAlertHideTimeout = setTimeout(() => {
+            hideNavigationAlert();
+        }, duration);
+    }
+}
+
 function checkNavigationAlerts() {
     if (!tripPlannerRouteData || !tripPlannerRouteData.segments) return;
 
@@ -1805,17 +1952,16 @@ function checkNavigationAlerts() {
     // Only alert when risk LEVEL changes (not on every zone entry)
     if (severity === lastAlertSeverity) return;
 
-    const prevSeverity = lastAlertSeverity;
     lastAlertSeverity = severity;
 
-    let icon;
-    let title;
-    let subtitle;
-
     if (severity === "danger") {
-        icon = "🔴";
-        title = "High risk zone";
-        subtitle = `Risk score ${currentSegment.risk_score}/100 — slow down`;
+        showNavigationAlert(
+            "danger",
+            "!",
+            "Entering high-risk zone",
+            formatRiskScoreCopy(currentSegment.risk_score, "Slow down"),
+            { suppressBanner: true }
+        );
 
         // Voice alert with cooldown
         const now = Date.now();
@@ -1823,30 +1969,10 @@ function checkNavigationAlerts() {
             lastAlertTime = now;
             setTimeout(() => speakAlert("Warning: high risk zone ahead. Drive carefully."), 0);
         }
-    } else if (severity === "warning") {
-        icon = "⚠️";
-        title = prevSeverity === "danger" ? "Risk easing" : "Caution zone";
-        subtitle = `Risk score ${currentSegment.risk_score}/100`;
-    } else {
-        icon = "✅";
-        title = prevSeverity ? "Safe zone" : "Ready";
-        subtitle = "Clear conditions ahead";
+        return;
     }
 
-    showNavigationAlert(severity, icon, title, subtitle);
-
-    // Clear any pending safe-zone fadeout so it doesn't hide a danger/warning alert
-    if (safeAlertFadeTimeout) {
-        clearTimeout(safeAlertFadeTimeout);
-        safeAlertFadeTimeout = null;
-    }
-
-    if (severity === "safe") {
-        safeAlertFadeTimeout = setTimeout(() => {
-            fadeOutCurrentAlert();
-            safeAlertFadeTimeout = null;
-        }, 4000);
-    }
+    hideNavigationAlert();
 }
 
 function speakAlert(message) {
@@ -1863,40 +1989,6 @@ function speakAlert(message) {
             // console.log("Voice synthesis failed:", error);
         }
     }
-}
-
-function fadeOutCurrentAlert() {
-    const alertBox = document.getElementById("nav-alert-box");
-    alertBox.style.transition = "opacity 0.5s ease";
-    alertBox.style.opacity = "0";
-
-    setTimeout(() => {
-        alertBox.style.opacity = "1";
-        alertBox.style.transition = "";
-    }, 500);
-}
-
-function showNavigationAlert(severity, icon, title, subtitle) {
-    const alertBox = document.getElementById("nav-alert-box");
-
-    // Reset any leftover opacity from fadeOutCurrentAlert
-    alertBox.style.opacity = "1";
-    alertBox.style.transition = "";
-
-    alertBox.className = "nav-alert-box " + severity;
-    document.getElementById("nav-alert-icon").textContent = icon;
-    document.getElementById("nav-alert-title").textContent = title;
-    document.getElementById("nav-alert-subtitle").textContent = subtitle;
-
-    // Trigger entrance animation; for danger zones, also run the continuous dangerPulse
-    alertBox.style.animation = "none";
-    setTimeout(() => {
-        if (severity === "danger") {
-            alertBox.style.animation = "slideUp 0.4s ease, dangerPulse 2s ease infinite";
-        } else {
-            alertBox.style.animation = "slideUp 0.4s ease";
-        }
-    }, 10);
 }
 
 function exitNavigation() {
@@ -1926,10 +2018,13 @@ function exitNavigation() {
     lastAlertSegmentIndex = -1;
     lastAlertSeverity = null;
     spokenAlerts.clear();
-    if (safeAlertFadeTimeout) {
-        clearTimeout(safeAlertFadeTimeout);
-        safeAlertFadeTimeout = null;
+    navBannerSuppressed = false;
+    if (navAlertHideTimeout) {
+        clearTimeout(navAlertHideTimeout);
+        navAlertHideTimeout = null;
     }
+    hideNavigationAlert();
+    setNavTopBannerState("", "AI", "Scanning route...", "No hazards detected ahead");
 
     // Remove moving marker
     if (tripMovingMarker) { tripMovingMarker.setMap(null); tripMovingMarker = null; }
@@ -1941,15 +2036,23 @@ function exitNavigation() {
 
 // ===== NAV TOP BANNER (lookahead) =====
 function updateNavTopBanner() {
-    const banner = document.getElementById("nav-top-banner");
-    const bannerIcon = document.getElementById("nav-banner-icon");
-    const bannerTitle = document.getElementById("nav-banner-title");
-    const bannerSubtitle = document.getElementById("nav-banner-subtitle");
-    if (!banner || !tripPlannerRouteData || !tripPlannerRouteData.segments) return;
+    if (!tripPlannerRouteData || !tripPlannerRouteData.segments) return;
+
+    if (navBannerSuppressed) {
+        setNavTopBannerVisible(false);
+        return;
+    }
+
+    setNavTopBannerVisible(true);
 
     const segments = tripPlannerRouteData.segments;
     const segIdx = findSegmentIndexForDistance(tripCurrentDistance);
     const LOOKAHEAD = 4;
+
+    if (segIdx < 0) {
+        setNavTopBannerState("", "AI", "Scanning route...", "Checking conditions ahead");
+        return;
+    }
 
     let nextDanger = null;
     let nextWarning = null;
@@ -1960,20 +2063,21 @@ function updateNavTopBanner() {
     }
 
     if (nextDanger) {
-        banner.className = "nav-top-banner danger";
-        bannerIcon.textContent = "🔴";
-        bannerTitle.textContent = "HIGH RISK ZONE AHEAD";
-        bannerSubtitle.textContent = `Risk score: ${nextDanger.risk_score}/100 — slow down`;
+        setNavTopBannerState(
+            "danger",
+            "!",
+            "High-risk zone ahead",
+            formatRiskScoreCopy(nextDanger.risk_score, "Slow down")
+        );
     } else if (nextWarning) {
-        banner.className = "nav-top-banner warning";
-        bannerIcon.textContent = "⚠️";
-        bannerTitle.textContent = "Caution zone approaching";
-        bannerSubtitle.textContent = `Moderate risk | Score: ${nextWarning.risk_score}/100`;
+        setNavTopBannerState(
+            "warning",
+            "!",
+            "Caution zone ahead",
+            formatRiskScoreCopy(nextWarning.risk_score, "Stay alert")
+        );
     } else {
-        banner.className = "nav-top-banner";
-        bannerIcon.textContent = "✅";
-        bannerTitle.textContent = "All clear ahead";
-        bannerSubtitle.textContent = "Safe conditions on your route";
+        setNavTopBannerState("", "OK", "All clear ahead", "Safe conditions on your route");
     }
 }
 

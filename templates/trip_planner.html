@@ -3,7 +3,7 @@
 {% block title %}Plan Your Trip{% endblock %}
 
 {% block extra_css %}
-<link rel="stylesheet" href="{{ url_for('static', filename='css/trip-planner.css', v='20260322c') }}">
+<link rel="stylesheet" href="{{ url_for('static', filename='css/trip-planner.css', v='20260322d') }}">
 <style>
 /* ── Trip planner page: break out of base layout ── */
 .rr-navbar, .rr-footer, footer { display: none !important; }
@@ -261,7 +261,7 @@ main { background: transparent !important; position: relative; z-index: auto; }
     <!-- Top banner: what's ahead on the route -->
     <div id="nav-top-banner" class="nav-top-banner">
         <div class="nav-banner-content">
-            <div id="nav-banner-icon" class="nav-banner-icon">🔮</div>
+            <div id="nav-banner-icon" class="nav-banner-icon" aria-hidden="true">AI</div>
             <div>
                 <div id="nav-banner-title" class="nav-banner-title">Scanning route...</div>
                 <div id="nav-banner-subtitle" class="nav-banner-subtitle">No hazards detected ahead</div>
@@ -270,12 +270,12 @@ main { background: transparent !important; position: relative; z-index: auto; }
     </div>
 
     <!-- Alert box: current zone status (floating above bottom bar) -->
-    <div id="nav-alert-box" class="nav-alert-box safe" role="alert" aria-live="assertive">
+    <div id="nav-alert-box" class="nav-alert-box" role="alert" aria-live="assertive" aria-hidden="true">
         <div class="alert-content">
-            <div class="alert-icon" id="nav-alert-icon" aria-hidden="true">✓</div>
+            <div class="alert-icon" id="nav-alert-icon" aria-hidden="true">!</div>
             <div class="alert-text">
-                <div class="alert-title" id="nav-alert-title">Ready to navigate</div>
-                <div class="alert-subtitle" id="nav-alert-subtitle">Drive safely</div>
+                <div class="alert-title" id="nav-alert-title">Entering high-risk zone</div>
+                <div class="alert-subtitle" id="nav-alert-subtitle">Risk score: 0 · Slow down</div>
             </div>
         </div>
     </div>
@@ -393,7 +393,7 @@ main { background: transparent !important; position: relative; z-index: auto; }
 {% if google_maps_api_key %}
 <script>window.__GMAPS_KEY__ = "{{ google_maps_api_key }}";</script>
 {% endif %}
-<script src="{{ url_for('static', filename='js/trip-planner.js', v='20260322f') }}"></script>
+<script src="{{ url_for('static', filename='js/trip-planner.js', v='20260322g') }}"></script>
 {% if google_maps_api_key %}
 <script src="https://maps.googleapis.com/maps/api/js?key={{ google_maps_api_key }}&libraries=places,geometry&loading=async&callback=initGooglePlaces" async></script>
 {% endif %}
