@@ -6,6 +6,7 @@
     "use strict";
 
     // DOM refs
+    const pageEl = document.getElementById("assistantPage");
     const shellEl = document.getElementById("chatShell");
     const messagesEl = document.getElementById("chatMessages");
     const inputEl = document.getElementById("chatInput");
@@ -13,6 +14,7 @@
     const suggestionsEl = document.getElementById("chatSuggestions");
     const sugButtonsEl = document.getElementById("suggestionsButtons");
     const typingEl = document.getElementById("typingIndicator");
+    const composerEl = document.getElementById("assistantComposer");
     const fileButtonEl = document.getElementById("chatFileButton");
     const fileInputEl = document.getElementById("chatFileInput");
     const accordionBtn = document.getElementById("howItWorksToggle");
@@ -64,6 +66,16 @@
         suggestionsEl.classList.add("is-hidden");
     }
 
+    function setConversationStarted() {
+        if (shellEl) shellEl.classList.add("has-messages");
+        if (pageEl) pageEl.classList.add("has-messages");
+    }
+
+    function updateComposerOffset() {
+        if (!composerEl || !pageEl) return;
+        pageEl.style.setProperty("--assistant-composer-offset", composerEl.offsetHeight + "px");
+    }
+
     // ------------------------------------------------------------------
     // Messages
     // ------------------------------------------------------------------
@@ -101,11 +113,11 @@
         wrapper.appendChild(avatar);
         wrapper.appendChild(contentDiv);
         messagesEl.appendChild(wrapper);
-        if (shellEl) shellEl.classList.add("has-messages");
-        scrollToBottom(true);
+        setConversationStarted();
+        scrollToBottom(true, wrapper);
         if (wasCollapsed && !prefersReducedMotion()) {
             window.setTimeout(function () {
-                scrollToBottom(true);
+                scrollToBottom(true, wrapper);
             }, 220);
         }
     }
@@ -208,12 +220,21 @@
         return '<div class="message-actions">' + buttons + "</div>";
     }
 
-    function scrollToBottom(smooth) {
+    function scrollToBottom(smooth, targetEl) {
         requestAnimationFrame(function () {
             if (!messagesEl) return;
             var behavior = smooth && !prefersReducedMotion() ? "smooth" : "auto";
-            messagesEl.scrollTo({
-                top: messagesEl.scrollHeight,
+            var scrollTarget = targetEl || messagesEl.lastElementChild;
+            if (scrollTarget && typeof scrollTarget.scrollIntoView === "function") {
+                scrollTarget.scrollIntoView({
+                    block: "end",
+                    behavior: behavior,
+                });
+                return;
+            }
+
+            window.scrollTo({
+                top: document.documentElement.scrollHeight,
                 behavior: behavior,
             });
         });
@@ -222,8 +243,10 @@
     function autoResizeInput() {
         if (!inputEl || inputEl.tagName !== "TEXTAREA") return;
         inputEl.style.height = "0px";
-        var nextHeight = Math.min(inputEl.scrollHeight, 220);
+        var minHeight = parseFloat(window.getComputedStyle(inputEl).minHeight) || 0;
+        var nextHeight = Math.min(Math.max(inputEl.scrollHeight, minHeight), 220);
         inputEl.style.height = nextHeight + "px";
+        updateComposerOffset();
     }
 
     // ------------------------------------------------------------------
@@ -231,7 +254,7 @@
     // ------------------------------------------------------------------
     function showTyping() {
         typingEl.style.display = "flex";
-        scrollToBottom(true);
+        scrollToBottom(true, typingEl);
     }
 
     function hideTyping() {
@@ -347,5 +370,16 @@
     // ------------------------------------------------------------------
     loadSuggestions();
     autoResizeInput();
+    updateComposerOffset();
+
+    if ("ResizeObserver" in window && composerEl) {
+        var composerObserver = new ResizeObserver(function () {
+            updateComposerOffset();
+        });
+        composerObserver.observe(composerEl);
+    }
+
+    window.addEventListener("resize", updateComposerOffset);
+
     inputEl.focus();
 })();

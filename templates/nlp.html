@@ -8,12 +8,18 @@
 {% endblock %}
 
 {% block content %}
-<div class="assistant-page">
+<div class="assistant-page" id="assistantPage">
     <section class="assistant-stage">
         <div class="assistant-copy">
             <p class="assistant-kicker">Bangkok Safety Assistant</p>
             <h1>How can I help today?</h1>
             <p class="assistant-subtitle">Ask about dangerous zones, safer travel windows, crash causes, or route risk across Bangkok.</p>
+        </div>
+
+        <div class="chat-suggestions" id="chatSuggestions">
+            <div class="suggestions-buttons" id="suggestionsButtons">
+                <!-- Populated by JavaScript -->
+            </div>
         </div>
 
         <div class="chatbot-container" id="chatShell">
@@ -25,13 +31,17 @@
                 <div class="typing-dot"></div>
                 <span>Thinking...</span>
             </div>
+        </div>
+    </section>
 
+    <div class="assistant-composer" id="assistantComposer">
+        <div class="assistant-composer-inner">
             <div class="chat-input">
                 <label class="visually-hidden" for="chatInput">Ask about Bangkok road safety</label>
                 <input class="visually-hidden" id="chatFileInput" type="file">
                 <textarea
                     id="chatInput"
-                    rows="3"
+                    rows="1"
                     placeholder="Ask anything about Bangkok road safety..."
                     autocomplete="off"
                 ></textarea>
@@ -62,13 +72,7 @@
                 </div>
             </div>
         </div>
-
-        <div class="chat-suggestions" id="chatSuggestions">
-            <div class="suggestions-buttons" id="suggestionsButtons">
-                <!-- Populated by JavaScript -->
-            </div>
-        </div>
-    </section>
+    </div>
 </div>
 {% endblock %}
 
