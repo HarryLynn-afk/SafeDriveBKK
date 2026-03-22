@@ -24,6 +24,7 @@ let lastAlertTime = 0;
 let safeAlertFadeTimeout = null;
 const ALERT_COOLDOWN = 5000; // 5 seconds between alerts minimum
 const TRIP_PLANNER_JS_VERSION = "2026-03-20.2";
+const ANALYSIS_STEP_MIN_MS = 1500;
 // Animation speed: adaptive so all routes finish in ~18 seconds
 const SIMULATION_TARGET_SECONDS = 18;
 const SIMULATION_TICK_MS = 100;
@@ -297,17 +298,21 @@ function detectMyLocation() {
     // Show loading state
     startInput.value = "Detecting location...";
     if (gpsBtn) {
-        gpsBtn.textContent = "...";
+        gpsBtn.classList.add("is-loading");
+        gpsBtn.classList.remove("is-success");
         gpsBtn.disabled = true;
+        gpsBtn.setAttribute("aria-busy", "true");
     }
 
     // Called when we have lat/lon from any source
     function applyLocation(lat, lon) {
         console.log("[GPS] Location found:", lat, lon);
         if (gpsBtn) {
-            gpsBtn.textContent = "OK";
+            gpsBtn.classList.remove("is-loading");
+            gpsBtn.classList.add("is-success");
             gpsBtn.disabled = false;
-            setTimeout(() => { gpsBtn.textContent = "GPS"; }, 2000);
+            gpsBtn.removeAttribute("aria-busy");
+            setTimeout(() => { gpsBtn.classList.remove("is-success"); }, 2000);
         }
         window.startLat = lat;
         window.startLon = lon;
@@ -331,7 +336,11 @@ function detectMyLocation() {
 
     function applyDefault(reason) {
         console.warn("[GPS] All methods failed:", reason);
-        if (gpsBtn) { gpsBtn.textContent = "GPS"; gpsBtn.disabled = false; }
+        if (gpsBtn) {
+            gpsBtn.classList.remove("is-loading", "is-success");
+            gpsBtn.disabled = false;
+            gpsBtn.removeAttribute("aria-busy");
+        }
         startInput.value = DEFAULT_START.name;
         window.startLat = DEFAULT_START.lat;
         window.startLon = DEFAULT_START.lon;
@@ -421,44 +430,52 @@ async function calculateRoute(startLat, startLon, endLat, endLon, destName) {
 
     try {
         // ── Step 1: real network call (duration is genuine) ──────────────
-        updateAnalysisStep(1, "active");
-        updateStatus("Requesting route alternatives from OSRM...");
+        const data = await runAnalysisStep(
+            1,
+            "Requesting route alternatives from OSRM...",
+            async () => {
+                const response = await fetch("/api/compare-routes", {
+                    method: "POST",
+                    headers: { "Content-Type": "application/json" },
+                    body: JSON.stringify({
+                        start_lat: startLat,
+                        start_lon: startLon,
+                        end_lat: endLat,
+                        end_lon: endLon,
+                        destination_name: destName
+                    })
+                });
 
-        const response = await fetch("/api/compare-routes", {
-            method: "POST",
-            headers: { "Content-Type": "application/json" },
-            body: JSON.stringify({
-                start_lat: startLat,
-                start_lon: startLon,
-                end_lat: endLat,
-                end_lon: endLon,
-                destination_name: destName
-            })
-        });
+                if (!response.ok) throw new Error("Route comparison failed");
+                const result = await response.json();
+                if (result.error) throw new Error(result.error);
+                return result;
+            }
+        );
 
-        if (!response.ok) throw new Error("Route comparison failed");
-        const data = await response.json();
-        if (data.error) throw new Error(data.error);
-
-        updateAnalysisStep(1, "complete");
+        const routesAnalyzed = data.alternatives_analyzed || 5;
+        const analyzedCounter = document.getElementById("routes-analyzed");
+        if (analyzedCounter) analyzedCounter.textContent = routesAnalyzed;
 
         // ── Step 2: XGBoost risk analysis (show ML working) ──────────────
-        updateAnalysisStep(2, "active");
-        updateStatus("XGBoost analyzing accident risk patterns...");
-        document.getElementById("routes-analyzed").textContent =
-            data.alternatives_analyzed || 5;
-        await sleep(200);
-
-        updateAnalysisStep(2, "complete");
+        await runAnalysisStep(
+            2,
+            "XGBoost analyzing accident risk patterns...",
+            async () => {
+                const counter = document.getElementById("routes-analyzed");
+                if (counter) counter.textContent = routesAnalyzed;
+            }
+        );
 
         // ── Step 3: route comparison ──────────────────────────────────────
-        updateAnalysisStep(3, "active");
-        updateStatus("Comparing routes for optimal safety...");
-        await sleep(150);
+        await runAnalysisStep(
+            3,
+            "Comparing routes for optimal safety...",
+            async () => {}
+        );
 
-        updateAnalysisStep(3, "complete");
         updateStatus("Analysis complete!");
-        await sleep(100);
+        await sleep(180);
 
         hideAIAnalyzing();
         displayMultipleRoutes(data);
@@ -481,13 +498,8 @@ function showAIAnalyzing() {
     const overlay = document.getElementById("ai-analyzing-overlay");
     if (!overlay) return;
     overlay.style.display = "flex";
-    // Reset all steps to pending
-    document.querySelectorAll(".progress-step").forEach((s) =>
-        s.classList.remove("active", "complete")
-    );
-    document.querySelectorAll(".step-status").forEach((s) => {
-        s.textContent = "...";
-    });
+    updateStatus("Preparing route analysis...");
+    [1, 2, 3].forEach((stepNumber) => updateAnalysisStep(stepNumber, "pending"));
     const counter = document.getElementById("routes-analyzed");
     if (counter) counter.textContent = "0";
 }
@@ -520,19 +532,44 @@ function updateAnalysisStep(stepNumber, status) {
     const step = document.getElementById(`step-${stepNumber}`);
     if (!step) return;
     const icon = step.querySelector(".step-status");
-    step.classList.remove("active", "complete");
-    if (status === "active") {
-        step.classList.add("active");
-        if (icon) icon.textContent = "...";
-    } else if (status === "complete") {
-        step.classList.add("complete");
-        if (icon) icon.textContent = "done";
-    }
+    step.classList.remove("pending", "active", "complete");
+    step.classList.add(status);
+    if (icon) icon.setAttribute(
+        "aria-label",
+        status === "active" ? "In progress" : status === "complete" ? "Completed" : "Pending"
+    );
 }
 
 function updateStatus(text) {
     const el = document.getElementById("analysis-status");
     if (el) el.textContent = text;
+}
+
+async function runAnalysisStep(stepNumber, statusText, task, minimumDuration = ANALYSIS_STEP_MIN_MS) {
+    updateAnalysisStep(stepNumber, "active");
+    updateStatus(statusText);
+
+    const startedAt = Date.now();
+    let result;
+    let thrownError = null;
+
+    try {
+        result = await task();
+    } catch (error) {
+        thrownError = error;
+    }
+
+    const elapsed = Date.now() - startedAt;
+    if (elapsed < minimumDuration) {
+        await sleep(minimumDuration - elapsed);
+    }
+
+    if (thrownError) {
+        throw thrownError;
+    }
+
+    updateAnalysisStep(stepNumber, "complete");
+    return result;
 }
 
 function sleep(ms) {
@@ -845,7 +882,7 @@ function showRouteSelectionUI(data) {
                         ${safeHighRisk > 0
                             ? `<div class="warning-note">! ${safeHighRisk} danger zone${safeHighRisk > 1 ? "s" : ""}</div>`
                             : '<div class="safe-note">No danger zones</div>'}
-                        <button class="select-route-btn primary" onclick="selectRoute('safe'); event.stopPropagation();">
+                        <button class="select-route-btn primary select-safe-btn" onclick="selectRoute('safe'); event.stopPropagation();">
                             Select This Route
                         </button>
                     </div>
@@ -899,7 +936,7 @@ function selectRoute(routeId) {
 }
 
 function showRouteDetails(route) {
-    const routeLabel = selectedRoute === "fast" ? "🚀 Fastest Route" : "🛡️ Safest Route";
+    const routeLabel = selectedRoute === "fast" ? "Fastest Route" : "Safest Route";
     const riskClass  = route.risk_level || "medium";
     const riskLabel  = (route.risk_level || "").toUpperCase();
 
@@ -1348,6 +1385,12 @@ function selectQuickDestination(name, lat, lon) {
 }
 
 function selectDemoRoute(startName, startLat, startLon, endName, endLat, endLon) {
+    // Reset any prior comparison state; demo chips should only prefill the form.
+    selectedRoute = null;
+    routeOptions = {};
+    hideElement("route-error");
+    setSheetState(1);
+
     document.getElementById("start-location").value = startName;
     window.startLat = startLat;
     window.startLon = startLon;
@@ -1356,19 +1399,16 @@ function selectDemoRoute(startName, startLat, startLon, endName, endLat, endLon)
     window.endLon = endLon;
     updateFindSaferRouteButton();
 
+    const btn = document.getElementById("findSaferRouteBtn");
+    if (btn) {
+        btn.textContent = "Find Safer Route";
+    }
+
     // Place markers if map is ready
     if (tripCompareMap) {
         setPreviewMarker(startLat, startLon, true);
         setPreviewMarker(endLat, endLon, false);
     }
-
-    // Auto-trigger route calculation (short delay so map markers render first)
-    setTimeout(() => {
-        const btn = document.getElementById("findSaferRouteBtn");
-        if (btn && !btn.disabled) {
-            calculateRoute(startLat, startLon, endLat, endLon, endName);
-        }
-    }, 200);
 }
 
 function haversineKm(lat1, lon1, lat2, lon2) {

@@ -400,7 +400,7 @@ def create_heatmap_html():
 
     title_html = """
     <div class="heatmap-floating-panel heatmap-title-panel">
-        <h4 class="heatmap-panel-title">Bangkok Accident Risk Map (Heat + Segments)</h4>
+        <h4 class="heatmap-panel-title">Bangkok Risk Map</h4>
         <p class="heatmap-panel-copy">Heat intensity plus color-coded risk segments from 2024 records</p>
     </div>
     """
@@ -423,7 +423,6 @@ def create_heatmap_html():
                 <span class="heatmap-legend-text">High (Red)</span>
             </div>
         </div>
-        <div class="heatmap-legend-note">Use top-right layer control to toggle segment layers.</div>
     </div>
     """
     bangkok_map.get_root().html.add_child(folium.Element(legend_html))

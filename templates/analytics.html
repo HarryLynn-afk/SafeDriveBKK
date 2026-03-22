@@ -89,11 +89,11 @@ body.analytics-theme .rr-footer {
 }
 
 .analytics-hero::after {
-    width: 260px;
-    height: 260px;
-    right: -56px;
-    top: -100px;
-    background: radial-gradient(circle, rgba(219, 234, 254, 0.95) 0%, rgba(219, 234, 254, 0) 70%);
+    width: 170px;
+    height: 170px;
+    right: 24px;
+    top: -44px;
+    background: radial-gradient(circle, rgba(191, 219, 254, 0.42) 0%, rgba(219, 234, 254, 0) 72%);
 }
 
 .hero-kicker,
@@ -145,10 +145,10 @@ body.analytics-theme .rr-footer {
 
 .hero-copy h1 {
     margin: 0;
-    max-width: 15ch;
-    font-size: clamp(24px, 3.2vw, 38px);
-    font-weight: 700;
-    line-height: 0.98;
+    max-width: 18ch;
+    font-size: clamp(21px, 2.4vw, 30px);
+    font-weight: 650;
+    line-height: 1.02;
     letter-spacing: -0.04em;
     color: var(--ink);
 }
@@ -206,6 +206,7 @@ body.analytics-theme .rr-footer {
 
 .metrics-grid {
     margin-top: 28px;
+    align-items: stretch;
 }
 
 .metric-card {
@@ -213,6 +214,7 @@ body.analytics-theme .rr-footer {
     display: flex;
     flex-direction: column;
     min-height: 188px;
+    height: 100%;
     padding: 22px;
 }
 
@@ -234,6 +236,26 @@ body.analytics-theme .rr-footer {
     font-size: 15px;
     line-height: 1.65;
     color: var(--ink-soft);
+}
+
+.metrics-scroll-indicator {
+    grid-column: 1 / -1;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 44px;
+    height: 44px;
+    margin: 8px auto 0;
+    border-radius: 999px;
+    border: 1px solid var(--line);
+    background: rgba(255, 255, 255, 0.76);
+    color: var(--muted);
+    text-decoration: none;
+    box-shadow: 0 10px 24px rgba(15, 23, 42, 0.05);
+}
+
+.metrics-scroll-indicator svg {
+    display: block;
 }
 
 .story-section {
@@ -630,6 +652,17 @@ body.analytics-theme .rr-footer {
     }
 }
 
+@keyframes indicatorBounce {
+    0%, 100% {
+        transform: translateY(0);
+        opacity: 0.72;
+    }
+    50% {
+        transform: translateY(4px);
+        opacity: 1;
+    }
+}
+
 @media (prefers-reduced-motion: no-preference) {
     .analytics-hero,
     .metric-card,
@@ -640,6 +673,7 @@ body.analytics-theme .rr-footer {
     .metrics-grid .metric-card:nth-child(2) { animation-delay: 40ms; }
     .metrics-grid .metric-card:nth-child(3) { animation-delay: 80ms; }
     .metrics-grid .metric-card:nth-child(4) { animation-delay: 120ms; }
+    .metrics-scroll-indicator svg { animation: indicatorBounce 1.8s cubic-bezier(0.4, 0, 0.2, 1) infinite; }
 }
 
 @media (max-width: 1100px) {
@@ -682,8 +716,8 @@ body.analytics-theme .rr-footer {
     }
 
     .hero-copy h1 {
-        max-width: 12ch;
-        font-size: clamp(24px, 8vw, 34px);
+        max-width: 14ch;
+        font-size: clamp(22px, 8vw, 30px);
     }
 
     .hero-rail {
@@ -759,9 +793,17 @@ html[data-theme="dark"] .panel {
     box-shadow: 0 22px 60px rgba(2, 6, 23, 0.38);
 }
 
+html[data-theme="dark"] .analytics-hero::after {
+    background: radial-gradient(circle, rgba(59, 130, 246, 0.2) 0%, rgba(59, 130, 246, 0) 74%);
+}
+
 html[data-theme="dark"] .hero-rail-item,
 html[data-theme="dark"] .risk-legend-row,
 html[data-theme="dark"] .severity-summary-item {
+    background: rgba(15, 23, 42, 0.72);
+}
+
+html[data-theme="dark"] .metrics-scroll-indicator {
     background: rgba(15, 23, 42, 0.72);
 }
 
@@ -828,26 +870,31 @@ html[data-theme="dark"] .zone-spotlight {
             <article class="metric-card">
                 <p class="metric-label">High-risk zones</p>
                 <div class="metric-value" id="stat-high-risk">126</div>
-                <p class="metric-context" id="stat-high-risk-copy">Just 5.2% of monitored grids absorb most of the city’s mapped crash load.</p>
+                <p class="metric-context" id="stat-high-risk-copy">A small share of monitored grids holds most of the city’s mapped crash load.</p>
             </article>
             <article class="metric-card">
                 <p class="metric-label">Deaths recorded</p>
                 <div class="metric-value" id="stat-deaths">45</div>
-                <p class="metric-context" id="stat-deaths-copy">Fatal harm remains the sharpest signal in the severity stack.</p>
+                <p class="metric-context" id="stat-deaths-copy">Fatal outcomes sit inside the same concentrated corridors as the city’s worst crashes.</p>
             </article>
             <article class="metric-card">
                 <p class="metric-label">Serious injuries</p>
                 <div class="metric-value" id="stat-serious">45</div>
-                <p class="metric-context" id="stat-serious-copy">Severe trauma matches fatalities one-for-one in the 2024 record.</p>
+                <p class="metric-context" id="stat-serious-copy">Severe trauma stays clustered in the same recurring high-pressure corridors.</p>
             </article>
             <article class="metric-card">
                 <p class="metric-label">Active crash zones</p>
                 <div class="metric-value" id="stat-active-zones">276</div>
-                <p class="metric-context" id="stat-active-zones-copy">Only a small share of monitored grids recorded crashes, showing how concentrated the footprint really is.</p>
+                <p class="metric-context" id="stat-active-zones-copy">Only a limited share of monitored grids recorded crashes across the city.</p>
             </article>
+            <a class="metrics-scroll-indicator" href="#analytics-story-time" aria-label="Scroll to detailed analytics">
+                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" aria-hidden="true">
+                    <path d="m6 9 6 6 6-6" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"></path>
+                </svg>
+            </a>
         </section>
 
-        <section class="story-section">
+        <section class="story-section" id="analytics-story-time">
             <div class="section-intro">
                 <p class="section-kicker">Time</p>
                 <h2>When crash pressure rises across the city</h2>
@@ -979,7 +1026,7 @@ html[data-theme="dark"] .zone-spotlight {
                     <div class="zone-spotlight">
                         <span>Zone under highest pressure</span>
                         <strong id="top-zone-name">Borommaratchachonnani Rd (Km 11.2)</strong>
-                        <p id="top-zone-copy">Thawi Watthana holds 85 crashes inside high-risk grid G020_002.</p>
+                        <p id="top-zone-copy">85 crashes recorded — the most dangerous stretch in Bangkok's western corridor.</p>
                     </div>
                 </article>
 
@@ -1150,6 +1197,18 @@ function flattenAxisLabel(label) {
     return Array.isArray(label) ? label.join(' ') : String(label || '');
 }
 
+function topZoneNarrative(zone) {
+    const crashCount = formatNumber(zone?.total_accidents || 0);
+    const locationFingerprint = `${zone?.zone_name || ''} ${zone?.district || ''}`.toLowerCase();
+
+    if (locationFingerprint.includes('thawi watthana')) {
+        return `${crashCount} crashes recorded — the most dangerous stretch in Bangkok's western corridor.`;
+    }
+
+    const placeName = zone?.district || zone?.zone_name || 'Bangkok';
+    return `${crashCount} crashes recorded — the most dangerous stretch around ${placeName}.`;
+}
+
 function riskColorForLevel(level, chartTheme) {
     const normalizedLevel = String(level || '').toLowerCase();
     if (normalizedLevel === 'high') return chartTheme.danger;
@@ -1234,21 +1293,19 @@ function renderMetrics(data) {
     setText('stat-high-risk', formatNumber(highRiskZones));
     setText(
         'stat-high-risk-copy',
-        `Just ${formatPercent(highRiskGridShare)} of monitored grids absorb ${formatPercent(highRiskAccidentShare)} of mapped crashes.`
+        `Just ${formatPercent(highRiskGridShare)} of monitored grids hold ${formatPercent(highRiskAccidentShare)} of mapped crashes citywide.`
     );
     setText('stat-deaths', formatNumber(deaths));
     setText(
         'stat-deaths-copy',
-        serious === deaths
-            ? 'Fatal harm matches serious injuries one-for-one in the 2024 record.'
-            : 'Fatal harm remains the sharpest signal in the severity stack.'
+        'Fatal outcomes sit inside the same concentrated corridors as the city’s worst crashes.'
     );
     setText('stat-serious', formatNumber(serious));
-    setText('stat-serious-copy', 'Severe trauma sits far below the minor-injury stack, but still marks the city’s highest-cost incidents.');
+    setText('stat-serious-copy', 'Severe trauma stays clustered in the same recurring high-pressure corridors.');
     setText('stat-active-zones', formatNumber(activeZones));
     setText(
         'stat-active-zones-copy',
-        `Only ${formatPercent(activeZoneShare)} of monitored grids recorded a crash, keeping the spatial footprint tightly concentrated.`
+        `Just ${formatPercent(activeZoneShare)} of monitored grids recorded crashes across the city.`
     );
 }
 
@@ -1371,7 +1428,6 @@ function renderTopZonesChart(data, chartTheme) {
     const topZoneShare = data.total_accidents ? (totalTopZoneAccidents / data.total_accidents) * 100 : 0;
     const topZone = zones[0];
     const topZoneName = topZone.zone_name || topZone.grid_id;
-    const topZoneDistrict = topZone.district || `${Number(topZone.center_lat).toFixed(4)}, ${Number(topZone.center_lon).toFixed(4)}`;
 
     setText(
         'insight-top-zones',
@@ -1380,7 +1436,7 @@ function renderTopZonesChart(data, chartTheme) {
     setText('top-zone-name', topZoneName);
     setText(
         'top-zone-copy',
-        `${topZoneDistrict} holds ${formatNumber(topZone.total_accidents)} crashes inside ${titleCase(topZone.risk_level)} risk grid ${topZone.grid_id}.`
+        topZoneNarrative(topZone)
     );
 
     container.innerHTML = `
