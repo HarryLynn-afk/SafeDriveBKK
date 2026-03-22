@@ -2250,7 +2250,7 @@ function showTripSummaryModal() {
         arrivedText    = "Arrived safely";
         row1Label      = "Fast route";
         row2Label      = "Your route";
-        tryBtnText     = "Try another route";
+        tryBtnText     = "Plan a new route";
 
         verdictText = avoided > 0 && timeCost > 0
             ? `+${timeCost} min kept you out of ${avoided} danger zone${avoided !== 1 ? "s" : ""}`
@@ -2269,7 +2269,7 @@ function showTripSummaryModal() {
         pctStatLabel   = "higher risk<br>than safe route";
         pctColor       = "#f97316";
         timeStat       = timeSaved;
-        timeStatLabel  = "min saved<br>going fast";
+        timeStatLabel  = "min<br>faster";
         timePrefix     = "";
         timeCostColor  = "#22c55e";
         arrivedText    = "Arrived on time";
@@ -2416,7 +2416,7 @@ function _summaryArcAnimate(pct, duration) {
 function closeSummaryModal() {
     const modal = document.getElementById("nav-summary-modal");
     if (modal) modal.style.display = "none";
-    exitNavigation();
+    window.location.assign("/");
 }
 
 function closeSummaryAndFindRoute() {

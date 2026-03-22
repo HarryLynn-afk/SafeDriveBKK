@@ -852,15 +852,15 @@
 /* Arc gauge */
 .arc-wrap {
     position: relative;
-    width: 80px;
+    width: auto;
+    min-height: 24px;
     display: flex;
     flex-direction: column;
     align-items: center;
 }
 
 .arc-svg {
-    width: 80px;
-    height: 48px;
+    display: none;
 }
 
 #s-gauge-arc {
@@ -868,19 +868,17 @@
 }
 
 .arc-label-wrap {
-    position: absolute;
-    bottom: 2px;
-    left: 50%;
-    transform: translateX(-50%);
+    position: static;
     display: flex;
     align-items: baseline;
-    gap: 1px;
+    gap: 0;
 }
 
 .arc-pct-sign {
     font-size: 14px;
     font-weight: 700;
     color: #22c55e;
+    margin-left: 1px;
 }
 
 .arc-label-wrap .s2-num {
@@ -980,21 +978,22 @@
 .nav-summary-btn-primary:hover { background: var(--planner-go-hover); }
 
 .nav-summary-btn-secondary {
-    background: var(--planner-surface-muted);
-    color: var(--planner-muted);
+    background: var(--planner-chip-bg);
+    color: var(--planner-text);
     border: 1px solid var(--planner-border);
     border-radius: 12px;
     padding: 11px 20px;
     font-size: 13px;
-    font-weight: 500;
+    font-weight: 600;
     cursor: pointer;
-    transition: background 0.2s;
+    transition: background 0.2s, color 0.2s, border-color 0.2s;
     width: 100%;
 }
 
 .nav-summary-btn-secondary:hover {
-    background: var(--planner-chip-bg);
+    background: var(--planner-surface-muted);
     color: var(--planner-text);
+    border-color: var(--planner-control-border);
 }
 
 /* ===== RESPONSIVE ===== */
@@ -2387,29 +2386,39 @@ html[data-theme="light"] .planner-bg-map .gm-style .gm-fullscreen-control:hover 
 
 /* GPS button inside dark input */
 .planner-sheet .gps-button {
-    background: transparent;
-    border: 1px solid var(--planner-border);
+    background: linear-gradient(135deg, var(--planner-soft-success-bg-strong) 0%, var(--planner-soft-success-bg) 100%);
+    border: 1.5px solid var(--planner-soft-success-border);
     border-radius: 999px;
-    width: 36px;
-    height: 36px;
+    width: 44px;
+    height: 44px;
     padding: 0;
     cursor: pointer;
-    color: var(--planner-muted);
+    color: var(--planner-soft-success-text);
     line-height: 1;
     display: inline-flex;
     align-items: center;
     justify-content: center;
-    transition: background 0.2s, color 0.2s, border-color 0.2s, transform 0.2s;
+    box-shadow: 0 10px 20px rgba(15, 23, 42, 0.08);
+    transition: background 0.2s, color 0.2s, border-color 0.2s, transform 0.2s, box-shadow 0.2s;
     flex-shrink: 0;
 }
 .planner-sheet .gps-button:hover {
-    background: var(--planner-menu-hover);
-    border-color: var(--rr-primary);
-    color: var(--planner-text);
+    background: var(--planner-soft-success-bg-strong);
+    border-color: var(--planner-go-bg);
+    color: var(--planner-go-bg);
+    box-shadow: 0 14px 28px rgba(15, 23, 42, 0.12);
+    transform: translateY(-1px);
+}
+
+.planner-sheet .gps-button:active {
+    transform: translateY(0);
+    box-shadow: 0 8px 16px rgba(15, 23, 42, 0.08);
 }
 
 .planner-sheet .gps-button svg {
     display: block;
+    width: 18px;
+    height: 18px;
 }
 
 .planner-sheet .gps-button.is-loading svg {
@@ -2417,9 +2426,9 @@ html[data-theme="light"] .planner-bg-map .gm-style .gm-fullscreen-control:hover 
 }
 
 .planner-sheet .gps-button.is-success {
-    border-color: var(--safe-green);
-    color: var(--safe-green);
-    background: rgba(22, 163, 74, 0.1);
+    border-color: var(--planner-go-bg);
+    color: var(--planner-go-bg);
+    background: var(--planner-soft-success-bg-strong);
 }
 
 /* ── Demo chips — dark ── */
