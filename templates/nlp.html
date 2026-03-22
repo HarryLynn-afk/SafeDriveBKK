@@ -4,21 +4,23 @@
 {% block title %}Bangkok Safety Assistant - SafeDrive BKK{% endblock %}
 
 {% block extra_css %}
-<link rel="stylesheet" href="{{ url_for('static', filename='css/chatbot.css') }}">
+<link rel="stylesheet" href="{{ url_for('static', filename='css/chatbot.css', v='20260322a') }}">
 {% endblock %}
 
 {% block content %}
 <div class="assistant-page" id="assistantPage">
-    <section class="assistant-stage">
-        <div class="assistant-copy">
-            <p class="assistant-kicker">Bangkok Safety Assistant</p>
-            <h1>How can I help today?</h1>
-            <p class="assistant-subtitle">Ask about dangerous zones, safer travel windows, crash causes, or route risk across Bangkok.</p>
-        </div>
+    <section class="assistant-stage" id="assistantStage">
+        <div class="assistant-intro" id="assistantIntro">
+            <div class="assistant-copy">
+                <p class="assistant-kicker">Bangkok Safety Assistant</p>
+                <h1>How can I help today?</h1>
+                <p class="assistant-subtitle">Ask about dangerous zones, safer travel windows, crash causes, or route risk across Bangkok.</p>
+            </div>
 
-        <div class="chat-suggestions" id="chatSuggestions">
-            <div class="suggestions-buttons" id="suggestionsButtons">
-                <!-- Populated by JavaScript -->
+            <div class="chat-suggestions" id="chatSuggestions">
+                <div class="suggestions-buttons" id="suggestionsButtons">
+                    <!-- Populated by JavaScript -->
+                </div>
             </div>
         </div>
 
@@ -32,50 +34,50 @@
                 <span>Thinking...</span>
             </div>
         </div>
-    </section>
 
-    <div class="assistant-composer" id="assistantComposer">
-        <div class="assistant-composer-inner">
-            <div class="chat-input">
-                <label class="visually-hidden" for="chatInput">Ask about Bangkok road safety</label>
-                <input class="visually-hidden" id="chatFileInput" type="file">
-                <textarea
-                    id="chatInput"
-                    rows="1"
-                    placeholder="Ask anything about Bangkok road safety..."
-                    autocomplete="off"
-                ></textarea>
+        <div class="assistant-composer" id="assistantComposer">
+            <div class="assistant-composer-inner" id="assistantComposerInner">
+                <div class="chat-input">
+                    <label class="visually-hidden" for="chatInput">Ask about Bangkok road safety</label>
+                    <input class="visually-hidden" id="chatFileInput" type="file">
+                    <textarea
+                        id="chatInput"
+                        rows="1"
+                        placeholder="Ask anything about Bangkok road safety..."
+                        autocomplete="off"
+                    ></textarea>
 
-                <div class="chat-input-bar">
-                    <div class="chat-input-tools">
-                        <button type="button" class="composer-tool has-tooltip" id="chatFileButton" aria-label="Upload a file" data-tooltip="Upload a file">
+                    <div class="chat-input-bar">
+                        <div class="chat-input-tools">
+                            <button type="button" class="composer-tool has-tooltip" id="chatFileButton" aria-label="Upload a file" data-tooltip="Upload a file">
+                                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" aria-hidden="true">
+                                    <path d="M21.44 11.05 12.25 20.24a6 6 0 0 1-8.49-8.49l9.19-9.19a4 4 0 0 1 5.66 5.66l-9.2 9.2a2 2 0 0 1-2.82-2.83l8.48-8.48" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"></path>
+                                </svg>
+                            </button>
+                            <a href="/trip-planner" class="composer-tool has-tooltip" id="chatRouteShortcut" aria-label="Open Trip Planner" data-tooltip="Open Trip Planner">
+                                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" aria-hidden="true">
+                                    <path d="m3 12 7-7 4 4 7-7" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"></path>
+                                    <path d="M14 2h7v7" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"></path>
+                                    <path d="M5 17h14" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"></path>
+                                </svg>
+                            </a>
+                        </div>
+
+                        <button id="chatSend" class="btn-send" type="button">
                             <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" aria-hidden="true">
-                                <path d="M21.44 11.05 12.25 20.24a6 6 0 0 1-8.49-8.49l9.19-9.19a4 4 0 0 1 5.66 5.66l-9.2 9.2a2 2 0 0 1-2.82-2.83l8.48-8.48" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"></path>
+                                <path d="M22 2 11 13" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"></path>
+                                <path d="m22 2-7 20-4-9-9-4 20-7Z" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"></path>
                             </svg>
+                            <span>Send</span>
                         </button>
-                        <a href="/trip-planner" class="composer-tool has-tooltip" id="chatRouteShortcut" aria-label="Open Trip Planner" data-tooltip="Open Trip Planner">
-                            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" aria-hidden="true">
-                                <path d="m3 12 7-7 4 4 7-7" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"></path>
-                                <path d="M14 2h7v7" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"></path>
-                                <path d="M5 17h14" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"></path>
-                            </svg>
-                        </a>
                     </div>
-
-                    <button id="chatSend" class="btn-send" type="button">
-                        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" aria-hidden="true">
-                            <path d="M22 2 11 13" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"></path>
-                            <path d="m22 2-7 20-4-9-9-4 20-7Z" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"></path>
-                        </svg>
-                        <span>Send</span>
-                    </button>
                 </div>
             </div>
         </div>
-    </div>
+    </section>
 </div>
 {% endblock %}
 
 {% block extra_js %}
-<script src="{{ url_for('static', filename='js/chatbot.js') }}"></script>
+<script src="{{ url_for('static', filename='js/chatbot.js', v='20260322a') }}"></script>
 {% endblock %}

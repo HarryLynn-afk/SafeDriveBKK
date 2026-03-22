@@ -795,6 +795,57 @@ function clearPreviewMap() {
 
 // ===== ROUTE SELECTION UI =====
 
+function buildRouteComparisonCopy(fastRoute, safeRoute) {
+    const fastRiskScore = Number(fastRoute && fastRoute.risk_score) || 0;
+    const safeRiskScore = Number(safeRoute && safeRoute.risk_score) || 0;
+    const timeDiffMinutes = Math.round((Number(safeRoute && safeRoute.time_min) || 0) - (Number(fastRoute && fastRoute.time_min) || 0));
+    const absTimeDiff = Math.abs(timeDiffMinutes);
+    const minuteLabel = absTimeDiff === 1 ? "minute" : "minutes";
+    const riskReductionPct = fastRiskScore > 0
+        ? Math.max(0, Math.round(((fastRiskScore - safeRiskScore) / fastRiskScore) * 100))
+        : 0;
+
+    if (riskReductionPct <= 0) {
+        if (timeDiffMinutes > 0) {
+            return {
+                tradeoffHeadline: `Similar risk · only +${absTimeDiff} min longer`,
+                recommendationText: `Take the faster path — no meaningful risk reduction for ${absTimeDiff} extra ${minuteLabel}.`,
+            };
+        }
+
+        if (timeDiffMinutes < 0) {
+            return {
+                tradeoffHeadline: `Same risk · ${absTimeDiff} min faster`,
+                recommendationText: `Take the faster path — it matches the safer option on risk and saves ${absTimeDiff} ${minuteLabel}.`,
+            };
+        }
+
+        return {
+            tradeoffHeadline: "Same risk · same ETA",
+            recommendationText: "Fast route is already the safest available option.",
+        };
+    }
+
+    if (timeDiffMinutes > 0) {
+        return {
+            tradeoffHeadline: `${riskReductionPct}% safer · only +${absTimeDiff} min longer`,
+            recommendationText: `Take the safer path — ${riskReductionPct}% lower risk for just ${absTimeDiff} extra ${minuteLabel}.`,
+        };
+    }
+
+    if (timeDiffMinutes < 0) {
+        return {
+            tradeoffHeadline: `${riskReductionPct}% safer · ${absTimeDiff} min faster`,
+            recommendationText: `Take the safer path — ${riskReductionPct}% lower risk and ${absTimeDiff} ${minuteLabel} faster.`,
+        };
+    }
+
+    return {
+        tradeoffHeadline: `${riskReductionPct}% safer · same ETA`,
+        recommendationText: `Take the safer path — ${riskReductionPct}% lower risk with no extra time.`,
+    };
+}
+
 function showRouteSelectionUI(data) {
     const fastRoute = data.fast_route;
     const safeRoute = data.safe_route;
@@ -805,23 +856,7 @@ function showRouteSelectionUI(data) {
     const safeRiskScore = Math.round(safeRoute.risk_score || 0);
     const fastHighRisk = fastRoute.high_risk_zones || 0;
     const safeHighRisk = safeRoute.high_risk_zones || 0;
-
-    const timeDiff = safeTime - fastTime;
-    const timeDiffText = timeDiff > 0
-        ? `+${timeDiff} min longer`
-        : timeDiff < 0
-            ? `${Math.abs(timeDiff)} min faster`
-            : "Same time";
-
-    const riskDelta = fastRiskScore - safeRiskScore;
-    const riskDeltaText = riskDelta > 0 ? `${riskDelta} pt lower risk` : "similar risk";
-    const tradeoffHeadline = timeDiff > 0
-        ? `+${timeDiff} min · ${riskDeltaText}`
-        : timeDiff < 0
-            ? `${Math.abs(timeDiff)} min faster · ${riskDeltaText}`
-            : `Same time · ${riskDeltaText}`;
-
-    const altCount = data.alternatives_analyzed || 5;
+    const comparisonCopy = buildRouteComparisonCopy(fastRoute, safeRoute);
     const fastTrafficSrc = fastRoute.traffic_source || "estimated";
     const safeTrafficSrc = safeRoute.traffic_source || "estimated";
     const trafficBadge = (src) => {
@@ -848,7 +883,7 @@ function showRouteSelectionUI(data) {
             </div>
 
             <!-- Fix 4: tradeoff line OUTSIDE cards, centered above grid -->
-            <div class="tradeoff-between">${tradeoffHeadline}</div>
+            <div class="tradeoff-between">${comparisonCopy.tradeoffHeadline}</div>
 
             <div class="route-options-grid">
                 <!-- Fix 1: Fast card — red border + bg -->
@@ -889,8 +924,8 @@ function showRouteSelectionUI(data) {
                 </div>
             </div>
 
-            ${data.recommendation
-                ? `<div class="ai-recommendation">${data.recommendation}</div>`
+            ${comparisonCopy.recommendationText
+                ? `<div class="ai-recommendation">${comparisonCopy.recommendationText}</div>`
                 : ""}
         </div>
     `;

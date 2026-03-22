@@ -1599,15 +1599,15 @@ body.demo-mode .start-nav-button {
     align-items: center;
     justify-content: center;
     border-radius: 999px;
-    background: var(--rr-primary);
-    border: 1px solid var(--rr-primary-dark);
+    background: var(--planner-go-bg);
+    border: 1px solid var(--planner-go-hover);
     color: #ffffff;
     font-size: 1rem;
     font-weight: 800;
     letter-spacing: 0.08em;
     text-transform: uppercase;
     line-height: 1;
-    box-shadow: 0 12px 24px rgba(37, 99, 235, 0.18);
+    box-shadow: var(--planner-go-shadow);
     animation: ai-pulse 2s ease-in-out infinite;
 }
 
@@ -2117,6 +2117,34 @@ html[data-theme="dark"] {
     transform: translateY(-1px);
 }
 
+html[data-theme="light"] .planner-icon-btn {
+    background: rgba(240, 253, 244, 0.82);
+    border-color: var(--planner-soft-success-border);
+    color: var(--planner-soft-success-text);
+    box-shadow: 0 14px 30px rgba(22, 101, 52, 0.12);
+}
+
+html[data-theme="light"] .planner-icon-btn:hover {
+    background: rgba(220, 252, 231, 0.94);
+    border-color: rgba(22, 163, 74, 0.26);
+    color: #14532d;
+}
+
+html[data-theme="light"] .planner-bg-map .gm-style .gm-control-active,
+html[data-theme="light"] .planner-bg-map .gm-style .gm-fullscreen-control {
+    background: rgba(240, 253, 244, 0.88) !important;
+    border: 1px solid var(--planner-soft-success-border) !important;
+    border-radius: 18px !important;
+    box-shadow: 0 14px 30px rgba(22, 101, 52, 0.12) !important;
+    backdrop-filter: blur(16px);
+    -webkit-backdrop-filter: blur(16px);
+}
+
+html[data-theme="light"] .planner-bg-map .gm-style .gm-control-active:hover,
+html[data-theme="light"] .planner-bg-map .gm-style .gm-fullscreen-control:hover {
+    background: rgba(220, 252, 231, 0.96) !important;
+}
+
 .planner-theme-icon {
     position: relative;
     width: 18px;
@@ -2449,20 +2477,44 @@ html[data-theme="dark"] {
 .planner-sheet .subtitle { color: var(--planner-muted); }
 
 .planner-sheet .ml-analysis-badge {
-    background: var(--planner-surface);
-    border: 1px solid var(--planner-border);
-    border-radius: 20px;
+    background: transparent;
+    border: none;
+    border-radius: 0;
     box-shadow: none;
-    color: var(--planner-text);
+    color: var(--planner-compare-copy);
+    gap: 8px 10px;
+    margin-bottom: 16px;
+    padding: 0;
+    flex-wrap: wrap;
 }
 
 .planner-sheet .ml-analysis-badge strong {
-    color: var(--planner-text);
+    display: inline-flex;
+    align-items: center;
+    min-height: 38px;
+    padding: 0 14px;
+    border-radius: 999px;
+    border: 1px solid var(--planner-soft-success-border);
+    background: var(--planner-soft-success-bg);
+    box-shadow: 0 12px 24px rgba(22, 101, 52, 0.08);
+    backdrop-filter: blur(14px);
+    -webkit-backdrop-filter: blur(14px);
+    color: var(--planner-soft-success-text);
 }
 
 .planner-sheet .ml-model {
-    color: var(--rr-primary);
-    background: rgba(37, 99, 235, 0.1);
+    margin-left: 0;
+    color: var(--planner-soft-success-text);
+    background: rgba(255, 255, 255, 0.58);
+    border: 1px solid var(--planner-soft-success-border);
+}
+
+html[data-theme="dark"] .planner-sheet .ml-analysis-badge strong {
+    box-shadow: none;
+}
+
+html[data-theme="dark"] .planner-sheet .ml-model {
+    background: rgba(15, 23, 42, 0.58);
 }
 
 /* ── Step 5: Dark route cards ── */
@@ -2645,17 +2697,27 @@ body .pac-matched { color: var(--rr-primary); }
 
 /* Fix 6: back button */
 .sheet-back-btn {
-    background: transparent;
-    border: none;
-    color: var(--planner-muted);
+    display: inline-flex;
+    align-items: center;
+    min-height: 38px;
+    padding: 0 14px;
+    margin: 0 0 14px;
+    background: var(--planner-surface);
+    border: 1px solid var(--planner-border);
+    border-radius: 999px;
+    color: var(--planner-text);
     font-size: 13px;
-    font-weight: 500;
+    font-weight: 600;
     cursor: pointer;
-    padding: 0 0 10px;
-    display: block;
-    transition: color 0.2s;
+    box-shadow: var(--planner-chip-shadow);
+    transition: background 0.2s, color 0.2s, border-color 0.2s, transform 0.2s;
 }
-.sheet-back-btn:hover { color: var(--planner-text); }
+.sheet-back-btn:hover {
+    background: var(--planner-soft-success-bg);
+    border-color: var(--planner-soft-success-border);
+    color: var(--planner-soft-success-text);
+    transform: translateY(-1px);
+}
 
 /* Fix 4: tradeoff line outside and above both cards */
 .tradeoff-between {

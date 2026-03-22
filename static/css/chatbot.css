@@ -87,7 +87,8 @@ html[data-theme="dark"] body.page-nlp .rr-footer {
     --assistant-input-focus: rgba(59, 130, 246, 0.22);
     position: relative;
     min-height: calc(100vh - 210px);
-    padding: 24px 20px calc(var(--assistant-composer-offset, 184px) + 56px);
+    padding: 24px 20px 56px;
+    transition: padding 420ms cubic-bezier(0.22, 1, 0.36, 1);
 }
 
 html[data-theme="dark"] .assistant-page {
@@ -138,16 +139,56 @@ html[data-theme="dark"] .assistant-page {
     --assistant-input-focus: rgba(96, 165, 250, 0.18);
 }
 
+.assistant-page.has-messages {
+    padding-bottom: calc(var(--assistant-composer-offset, 184px) + 56px);
+}
+
 .assistant-stage {
     width: min(100%, 980px);
     margin: 0 auto;
-    padding: clamp(40px, 7vw, 84px) 0 0;
+    min-height: calc(100vh - 250px);
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    transition:
+        min-height 420ms cubic-bezier(0.22, 1, 0.36, 1),
+        padding-top 420ms cubic-bezier(0.22, 1, 0.36, 1);
+}
+
+.assistant-page.has-messages .assistant-stage {
+    min-height: auto;
+    justify-content: flex-start;
+    padding-top: clamp(40px, 7vw, 84px);
+}
+
+.assistant-intro {
+    display: grid;
+    gap: 24px;
+    justify-items: center;
+    width: 100%;
+    max-height: 520px;
+    opacity: 1;
+    overflow: hidden;
+    transform: translateY(0);
+    transition:
+        max-height 420ms cubic-bezier(0.22, 1, 0.36, 1),
+        opacity 240ms ease,
+        transform 360ms cubic-bezier(0.22, 1, 0.36, 1),
+        margin-bottom 420ms cubic-bezier(0.22, 1, 0.36, 1);
+}
+
+.assistant-page.has-messages .assistant-intro {
+    max-height: 0;
+    margin-bottom: 0;
+    opacity: 0;
+    transform: translateY(-24px);
+    pointer-events: none;
 }
 
 .assistant-copy {
     width: min(100%, var(--assistant-copy-width));
     text-align: center;
-    margin: 0 auto 32px;
+    margin: 0 auto;
 }
 
 .assistant-kicker {
@@ -229,11 +270,25 @@ html[data-theme="dark"] .assistant-page {
 .chatbot-container {
     width: min(100%, var(--assistant-shell-width));
     margin: 0 auto;
-    transition: margin-top 220ms ease;
+    max-height: 0;
+    opacity: 0;
+    overflow: hidden;
+    transform: translateY(18px);
+    pointer-events: none;
+    transition:
+        max-height 520ms cubic-bezier(0.22, 1, 0.36, 1),
+        opacity 240ms ease,
+        transform 360ms cubic-bezier(0.22, 1, 0.36, 1),
+        margin-top 320ms cubic-bezier(0.22, 1, 0.36, 1);
 }
 
 .chatbot-container.has-messages {
-    margin-top: 32px;
+    max-height: 4000px;
+    margin-top: 18px;
+    opacity: 1;
+    overflow: visible;
+    transform: translateY(0);
+    pointer-events: auto;
 }
 
 .chat-messages {
@@ -452,17 +507,27 @@ html[data-theme="dark"] .assistant-page {
 }
 
 .assistant-composer {
+    position: relative;
+    width: 100%;
+    margin-top: 24px;
+    transition:
+        padding 420ms cubic-bezier(0.22, 1, 0.36, 1),
+        background 280ms ease;
+}
+
+.assistant-page.has-messages .assistant-composer {
     position: fixed;
     left: 0;
     right: 0;
     bottom: 0;
     z-index: 1040;
+    margin-top: 0;
     padding: 20px 20px calc(20px + env(safe-area-inset-bottom));
     background: linear-gradient(180deg, rgba(247, 247, 248, 0) 0%, rgba(247, 247, 248, 0.72) 24%, rgba(247, 247, 248, 0.92) 48%, rgba(247, 247, 248, 0.98) 100%);
     pointer-events: none;
 }
 
-html[data-theme="dark"] .assistant-composer {
+html[data-theme="dark"] .assistant-page.has-messages .assistant-composer {
     background: linear-gradient(180deg, rgba(6, 11, 22, 0) 0%, rgba(6, 11, 22, 0.72) 24%, rgba(6, 11, 22, 0.9) 48%, rgba(6, 11, 22, 0.98) 100%);
 }
 
@@ -470,6 +535,7 @@ html[data-theme="dark"] .assistant-composer {
     width: min(100%, 820px);
     margin: 0 auto;
     pointer-events: auto;
+    will-change: transform;
 }
 
 .chat-input {
@@ -639,15 +705,23 @@ html[data-theme="dark"] .assistant-composer {
 @media (max-width: 768px) {
     .assistant-page {
         min-height: auto;
-        padding: 8px 16px calc(var(--assistant-composer-offset, 168px) + 32px);
+        padding: 8px 16px 32px;
+    }
+
+    .assistant-page.has-messages {
+        padding-bottom: calc(var(--assistant-composer-offset, 168px) + 32px);
     }
 
     .assistant-stage {
+        min-height: calc(100vh - 180px);
+    }
+
+    .assistant-page.has-messages .assistant-stage {
         padding-top: 32px;
     }
 
     .assistant-copy {
-        margin-bottom: 24px;
+        width: 100%;
     }
 
     .assistant-copy h1 {
@@ -680,7 +754,7 @@ html[data-theme="dark"] .assistant-composer {
         max-width: calc(100% - 42px);
     }
 
-    .assistant-composer {
+    .assistant-page.has-messages .assistant-composer {
         padding: 12px 12px calc(12px + env(safe-area-inset-bottom));
     }
 

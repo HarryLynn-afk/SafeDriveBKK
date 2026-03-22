@@ -15,6 +15,7 @@
     const sugButtonsEl = document.getElementById("suggestionsButtons");
     const typingEl = document.getElementById("typingIndicator");
     const composerEl = document.getElementById("assistantComposer");
+    const composerInnerEl = document.getElementById("assistantComposerInner");
     const fileButtonEl = document.getElementById("chatFileButton");
     const fileInputEl = document.getElementById("chatFileInput");
     const accordionBtn = document.getElementById("howItWorksToggle");
@@ -66,9 +67,38 @@
         suggestionsEl.classList.add("is-hidden");
     }
 
+    function animateLayoutShift(el, firstRect) {
+        if (!el || !firstRect || prefersReducedMotion()) return;
+
+        requestAnimationFrame(function () {
+            var lastRect = el.getBoundingClientRect();
+            var deltaX = firstRect.left - lastRect.left;
+            var deltaY = firstRect.top - lastRect.top;
+
+            if (Math.abs(deltaX) < 1 && Math.abs(deltaY) < 1) return;
+
+            el.animate(
+                [
+                    { transform: "translate(" + deltaX + "px, " + deltaY + "px)" },
+                    { transform: "translate(0, 0)" },
+                ],
+                {
+                    duration: 460,
+                    easing: "cubic-bezier(0.22, 1, 0.36, 1)",
+                }
+            );
+        });
+    }
+
     function setConversationStarted() {
+        if (!pageEl || pageEl.classList.contains("has-messages")) return;
+
+        var composerRect = composerInnerEl ? composerInnerEl.getBoundingClientRect() : null;
+
         if (shellEl) shellEl.classList.add("has-messages");
-        if (pageEl) pageEl.classList.add("has-messages");
+        pageEl.classList.add("has-messages");
+        updateComposerOffset();
+        animateLayoutShift(composerInnerEl, composerRect);
     }
 
     function updateComposerOffset() {
