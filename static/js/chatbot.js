@@ -16,8 +16,6 @@
     const typingEl = document.getElementById("typingIndicator");
     const composerEl = document.getElementById("assistantComposer");
     const composerInnerEl = document.getElementById("assistantComposerInner");
-    const fileButtonEl = document.getElementById("chatFileButton");
-    const fileInputEl = document.getElementById("chatFileInput");
     const accordionBtn = document.getElementById("howItWorksToggle");
     const accordionBody = document.getElementById("howItWorksContent");
 
@@ -382,18 +380,6 @@
     sendBtn.addEventListener("click", function () {
         sendMessage(inputEl.value);
     });
-
-    if (fileButtonEl && fileInputEl) {
-        fileButtonEl.addEventListener("click", function () {
-            fileInputEl.click();
-        });
-
-        fileInputEl.addEventListener("change", function () {
-            if (!fileInputEl.files || !fileInputEl.files.length) return;
-            fileInputEl.value = "";
-            inputEl.focus();
-        });
-    }
 
     inputEl.addEventListener("keydown", function (e) {
         if (e.key === "Enter" && !e.shiftKey) {
