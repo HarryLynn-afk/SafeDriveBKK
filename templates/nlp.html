@@ -4,7 +4,7 @@
 {% block title %}Bangkok Safety Assistant - SafeDrive BKK{% endblock %}
 
 {% block extra_css %}
-<link rel="stylesheet" href="{{ url_for('static', filename='css/chatbot.css', v='20260322a') }}">
+<link rel="stylesheet" href="{{ url_for('static', filename='css/chatbot.css', v='20260322b') }}">
 {% endblock %}
 
 {% block content %}
@@ -20,6 +20,23 @@
             <div class="chat-suggestions" id="chatSuggestions">
                 <div class="suggestions-buttons" id="suggestionsButtons">
                     <!-- Populated by JavaScript -->
+                </div>
+            </div>
+
+            <div class="assistant-evidence" aria-label="NLP evidence">
+                <div class="assistant-evidence-list">
+                    <div class="assistant-evidence-item">
+                        <strong>2,669</strong>
+                        <span>Thai accident reports analyzed</span>
+                    </div>
+                    <div class="assistant-evidence-item">
+                        <strong>6</strong>
+                        <span>cause categories identified</span>
+                    </div>
+                    <div class="assistant-evidence-item">
+                        <strong>TF-IDF + Logistic Regression</strong>
+                        <span>classifier</span>
+                    </div>
                 </div>
             </div>
         </div>

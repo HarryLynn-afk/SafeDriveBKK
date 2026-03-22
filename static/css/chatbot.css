@@ -78,6 +78,12 @@ html[data-theme="dark"] body.page-nlp .rr-footer {
     --assistant-chip-bg: rgba(255, 255, 255, 0.72);
     --assistant-chip-border: rgba(148, 163, 184, 0.18);
     --assistant-chip-text: #334155;
+    --assistant-evidence-bg: rgba(255, 255, 255, 0.56);
+    --assistant-evidence-border: rgba(148, 163, 184, 0.14);
+    --assistant-evidence-pill-bg: rgba(248, 250, 252, 0.78);
+    --assistant-evidence-pill-border: rgba(148, 163, 184, 0.14);
+    --assistant-evidence-text: rgba(71, 85, 105, 0.82);
+    --assistant-evidence-strong: #1f2937;
     --assistant-tooltip-bg: rgba(255, 255, 255, 0.98);
     --assistant-tooltip-border: rgba(148, 163, 184, 0.2);
     --assistant-tooltip-text: #111827;
@@ -130,6 +136,12 @@ html[data-theme="dark"] .assistant-page {
     --assistant-chip-bg: rgba(255, 255, 255, 0.04);
     --assistant-chip-border: rgba(255, 255, 255, 0.08);
     --assistant-chip-text: rgba(226, 232, 240, 0.78);
+    --assistant-evidence-bg: rgba(255, 255, 255, 0.03);
+    --assistant-evidence-border: rgba(255, 255, 255, 0.08);
+    --assistant-evidence-pill-bg: rgba(255, 255, 255, 0.04);
+    --assistant-evidence-pill-border: rgba(255, 255, 255, 0.08);
+    --assistant-evidence-text: rgba(203, 213, 225, 0.64);
+    --assistant-evidence-strong: rgba(248, 250, 252, 0.94);
     --assistant-tooltip-bg: rgba(15, 23, 42, 0.98);
     --assistant-tooltip-border: rgba(148, 163, 184, 0.18);
     --assistant-tooltip-text: #f8fafc;
@@ -236,6 +248,46 @@ html[data-theme="dark"] .assistant-page {
     opacity: 0;
     transform: translateY(-8px);
     pointer-events: none;
+}
+
+.assistant-evidence {
+    width: min(100%, 720px);
+    margin: 0 auto;
+    padding: 8px;
+    border: 1px solid var(--assistant-evidence-border);
+    border-radius: 22px;
+    background: var(--assistant-evidence-bg);
+    backdrop-filter: blur(16px);
+    box-shadow: 0 12px 28px rgba(15, 23, 42, 0.05);
+}
+
+.assistant-evidence-list {
+    display: flex;
+    flex-wrap: wrap;
+    justify-content: center;
+    gap: 8px;
+}
+
+.assistant-evidence-item {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    min-height: 34px;
+    padding: 7px 12px;
+    border: 1px solid var(--assistant-evidence-pill-border);
+    border-radius: 999px;
+    background: var(--assistant-evidence-pill-bg);
+    color: var(--assistant-evidence-text);
+    font-size: 12px;
+    line-height: 1.35;
+    text-align: center;
+}
+
+.assistant-evidence-item strong {
+    color: var(--assistant-evidence-strong);
+    font-size: 12px;
+    font-weight: 600;
+    letter-spacing: -0.01em;
 }
 
 .suggestions-buttons {
@@ -733,7 +785,8 @@ html[data-theme="dark"] .assistant-page.has-messages .assistant-composer {
     }
 
     .chatbot-container,
-    .chat-suggestions {
+    .chat-suggestions,
+    .assistant-evidence {
         width: 100%;
     }
 
@@ -801,6 +854,16 @@ html[data-theme="dark"] .assistant-page.has-messages .assistant-composer {
         gap: 10px;
     }
 
+    .assistant-evidence-list {
+        flex-direction: column;
+    }
+
+    .assistant-evidence-item {
+        width: 100%;
+        justify-content: center;
+        padding: 9px 12px;
+    }
+
     .suggestions-buttons {
         flex-direction: column;
     }
@@ -813,6 +876,7 @@ html[data-theme="dark"] .assistant-page.has-messages .assistant-composer {
 @media (prefers-reduced-motion: no-preference) {
     .assistant-copy,
     .chat-suggestions,
+    .assistant-evidence,
     .assistant-composer-inner {
         animation: fadeLift 360ms cubic-bezier(0.4, 0, 0.2, 1) both;
     }
@@ -827,6 +891,10 @@ html[data-theme="dark"] .assistant-page.has-messages .assistant-composer {
 
     .chat-suggestions {
         animation-delay: 60ms;
+    }
+
+    .assistant-evidence {
+        animation-delay: 90ms;
     }
 
     .assistant-composer-inner {

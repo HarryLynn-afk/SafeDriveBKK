@@ -106,6 +106,11 @@
         pageEl.style.setProperty("--assistant-composer-offset", composerEl.offsetHeight + "px");
     }
 
+    function syncChatShellHeight() {
+        if (!shellEl || !shellEl.classList.contains("has-messages")) return;
+        shellEl.style.maxHeight = shellEl.scrollHeight + "px";
+    }
+
     // ------------------------------------------------------------------
     // Messages
     // ------------------------------------------------------------------
@@ -144,9 +149,11 @@
         wrapper.appendChild(contentDiv);
         messagesEl.appendChild(wrapper);
         setConversationStarted();
+        syncChatShellHeight();
         scrollToBottom(true, wrapper);
         if (wasCollapsed && !prefersReducedMotion()) {
             window.setTimeout(function () {
+                syncChatShellHeight();
                 scrollToBottom(true, wrapper);
             }, 220);
         }
@@ -251,22 +258,38 @@
     }
 
     function scrollToBottom(smooth, targetEl) {
-        requestAnimationFrame(function () {
+        function performScroll() {
             if (!messagesEl) return;
+            syncChatShellHeight();
+
             var behavior = smooth && !prefersReducedMotion() ? "smooth" : "auto";
-            var scrollTarget = targetEl || messagesEl.lastElementChild;
-            if (scrollTarget && typeof scrollTarget.scrollIntoView === "function") {
-                scrollTarget.scrollIntoView({
-                    block: "end",
+            var scrollTarget = targetEl || messagesEl.lastElementChild || typingEl;
+            var composerOffset = composerEl ? composerEl.offsetHeight + 24 : 24;
+            var maxScrollTop = Math.max(
+                document.documentElement.scrollHeight,
+                document.body ? document.body.scrollHeight : 0
+            ) - window.innerHeight;
+
+            if (scrollTarget) {
+                var targetRect = scrollTarget.getBoundingClientRect();
+                var targetBottom = targetRect.bottom + window.scrollY;
+                var nextTop = Math.max(0, Math.min(maxScrollTop, targetBottom - window.innerHeight + composerOffset));
+                window.scrollTo({
+                    top: nextTop,
                     behavior: behavior,
                 });
                 return;
             }
 
             window.scrollTo({
-                top: document.documentElement.scrollHeight,
+                top: Math.max(0, maxScrollTop),
                 behavior: behavior,
             });
+        }
+
+        requestAnimationFrame(function () {
+            performScroll();
+            window.setTimeout(performScroll, 120);
         });
     }
 
@@ -284,11 +307,13 @@
     // ------------------------------------------------------------------
     function showTyping() {
         typingEl.style.display = "flex";
+        syncChatShellHeight();
         scrollToBottom(true, typingEl);
     }
 
     function hideTyping() {
         typingEl.style.display = "none";
+        syncChatShellHeight();
     }
 
     // ------------------------------------------------------------------
@@ -405,11 +430,15 @@
     if ("ResizeObserver" in window && composerEl) {
         var composerObserver = new ResizeObserver(function () {
             updateComposerOffset();
+            syncChatShellHeight();
         });
         composerObserver.observe(composerEl);
     }
 
-    window.addEventListener("resize", updateComposerOffset);
+    window.addEventListener("resize", function () {
+        updateComposerOffset();
+        syncChatShellHeight();
+    });
 
     inputEl.focus();
 })();
