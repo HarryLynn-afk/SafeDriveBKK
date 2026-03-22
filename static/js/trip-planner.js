@@ -16,16 +16,23 @@ let tripNavigationInterval = null;
 let tripCurrentDistance = 0;
 let tripMovingMarker = null;
 let tripPreviousDistance = 0;
+let tripSimulationSpeedKmPerSecond = 0;
 let tripWaypointCumulativeKm = [];
 let lastAlertSegmentIndex = -1;
 let lastAlertSeverity = null;  // track risk level to only alert on changes
 let spokenAlerts = new Set();
-let lastAlertTime = 0;
 let navAlertHideTimeout = null;
 let navBannerSuppressed = false;
-const ALERT_COOLDOWN = 5000; // 5 seconds between alerts minimum
+let navVoiceAlertActive = false;
+let navVoiceUtterance = null;
 const NAVIGATION_ALERT_DURATION_MS = 3200;
-const TRIP_PLANNER_JS_VERSION = "2026-03-22.1";
+const NAVIGATION_VOICE_RATE = 0.9;
+const VOICE_ALERT_WORDS_PER_SECOND = 2.15;
+const VOICE_ALERT_LEAD_BUFFER_SECONDS = 0.85;
+const VOICE_ALERT_CLUSTER_BUFFER_SECONDS = 1.4;
+const VOICE_ALERT_MIN_LOOKAHEAD_KM = 0.18;
+const DANGER_VOICE_MESSAGE = "Warning: high risk zone ahead. Drive carefully.";
+const TRIP_PLANNER_JS_VERSION = "2026-03-22.2";
 const ANALYSIS_STEP_MIN_MS = 1500;
 // Animation speed: adaptive so all routes finish in ~18 seconds
 const SIMULATION_TARGET_SECONDS = 18;
@@ -1764,14 +1771,18 @@ function initializeNavigationMap() {
 function startNavigationSimulation() {
     // Reset alert tracking
     spokenAlerts.clear();
-    lastAlertTime = 0;
     lastAlertSegmentIndex = -1;
     lastAlertSeverity = null;
     tripPreviousDistance = 0;
+    tripSimulationSpeedKmPerSecond = 0;
     navBannerSuppressed = false;
     if (navAlertHideTimeout) {
         clearTimeout(navAlertHideTimeout);
         navAlertHideTimeout = null;
+    }
+    finalizeNavigationVoiceAlert();
+    if ("speechSynthesis" in window) {
+        speechSynthesis.cancel();
     }
 
     // Reset state
@@ -1816,6 +1827,7 @@ function startNavigationSimulation() {
     // Adaptive step: route finishes in ~SIMULATION_TARGET_SECONDS regardless of length
     const ticksNeeded = (SIMULATION_TARGET_SECONDS * 1000) / SIMULATION_TICK_MS;
     const simStepKm = Math.max(0.05, totalDistance / ticksNeeded);
+    tripSimulationSpeedKmPerSecond = totalDistance > 0 ? totalDistance / SIMULATION_TARGET_SECONDS : 0;
 
     // Start simulation interval
     if (tripNavigationInterval) {
@@ -1830,10 +1842,15 @@ function startNavigationSimulation() {
 
         // Check for alerts
         checkNavigationAlerts();
+        maybeSpeakUpcomingDangerAlert();
 
         if (tripCurrentDistance >= totalDistance) {
             clearInterval(tripNavigationInterval);
             tripNavigationInterval = null;
+            finalizeNavigationVoiceAlert();
+            if ("speechSynthesis" in window) {
+                speechSynthesis.cancel();
+            }
             hideNavigationAlert();
             setNavTopBannerState("", "OK", "Destination reached", "You have arrived safely");
 
@@ -1951,6 +1968,90 @@ function showNavigationAlert(severity, icon, title, subtitle, options = {}) {
     }
 }
 
+function getVoiceAlertSegmentKey(segmentIndex, segment) {
+    return `${segmentIndex}:${Number(segment.start_km) || 0}:${Number(segment.end_km) || 0}`;
+}
+
+function estimateSpeechDurationSeconds(message) {
+    const wordCount = String(message || "")
+        .trim()
+        .split(/\s+/)
+        .filter(Boolean)
+        .length;
+
+    return Math.max(2.8, (wordCount / VOICE_ALERT_WORDS_PER_SECOND) + 0.65);
+}
+
+function finalizeNavigationVoiceAlert() {
+    navVoiceAlertActive = false;
+    navVoiceUtterance = null;
+}
+
+function maybeSpeakUpcomingDangerAlert() {
+    if (!tripPlannerRouteData || !Array.isArray(tripPlannerRouteData.segments)) return;
+    if (!("speechSynthesis" in window) || tripSimulationSpeedKmPerSecond <= 0) return;
+    if (navVoiceAlertActive || speechSynthesis.speaking || speechSynthesis.pending) return;
+
+    const speechDurationSeconds = estimateSpeechDurationSeconds(DANGER_VOICE_MESSAGE);
+    const leadDistanceKm = Math.max(
+        VOICE_ALERT_MIN_LOOKAHEAD_KM,
+        tripSimulationSpeedKmPerSecond * (speechDurationSeconds + VOICE_ALERT_LEAD_BUFFER_SECONDS)
+    );
+    const clusterDistanceKm = Math.max(
+        leadDistanceKm,
+        tripSimulationSpeedKmPerSecond * (speechDurationSeconds + VOICE_ALERT_CLUSTER_BUFFER_SECONDS)
+    );
+
+    const upcomingDangerSegments = tripPlannerRouteData.segments
+        .map((segment, segmentIndex) => {
+            const startKm = Number(segment.start_km) || 0;
+            return {
+                segment,
+                segmentIndex,
+                alertKey: getVoiceAlertSegmentKey(segmentIndex, segment),
+                distanceToStart: startKm - tripCurrentDistance,
+                severity: segment.ui_severity || getSegmentSeverity(segment),
+            };
+        })
+        .filter((item) =>
+            item.severity === "danger"
+            && item.distanceToStart > 0
+            && !spokenAlerts.has(item.alertKey)
+        )
+        .sort((a, b) => a.distanceToStart - b.distanceToStart);
+
+    if (!upcomingDangerSegments.length) return;
+
+    const leadSegment = upcomingDangerSegments.find((item) => item.distanceToStart <= leadDistanceKm);
+    if (!leadSegment) return;
+
+    const clusterStartKm = Number(leadSegment.segment.start_km) || 0;
+    const clusterSegments = upcomingDangerSegments.filter((item) =>
+        ((Number(item.segment.start_km) || 0) - clusterStartKm) <= clusterDistanceKm
+    );
+
+    const highestRiskSegment = clusterSegments.reduce((best, current) => {
+        const bestRisk = Number(best.segment.risk_score) || 0;
+        const currentRisk = Number(current.segment.risk_score) || 0;
+        if (currentRisk !== bestRisk) {
+            return currentRisk > bestRisk ? current : best;
+        }
+        return current.distanceToStart < best.distanceToStart ? current : best;
+    }, clusterSegments[0]);
+
+    const voiceMessage = clusterSegments.length > 1 && Number(highestRiskSegment.segment.risk_score) > 0
+        ? "Warning: highest risk zone ahead. Drive carefully."
+        : DANGER_VOICE_MESSAGE;
+
+    if (!speakAlert(voiceMessage)) {
+        return;
+    }
+
+    clusterSegments.forEach((item) => {
+        spokenAlerts.add(item.alertKey);
+    });
+}
+
 function checkNavigationAlerts() {
     if (!tripPlannerRouteData || !tripPlannerRouteData.segments) return;
 
@@ -1977,13 +2078,6 @@ function checkNavigationAlerts() {
             formatRiskScoreCopy(currentSegment.risk_score, "Slow down"),
             { suppressBanner: true }
         );
-
-        // Voice alert with cooldown
-        const now = Date.now();
-        if (now - lastAlertTime >= ALERT_COOLDOWN) {
-            lastAlertTime = now;
-            setTimeout(() => speakAlert("Warning: high risk zone ahead. Drive carefully."), 0);
-        }
         return;
     }
 
@@ -1991,18 +2085,29 @@ function checkNavigationAlerts() {
 }
 
 function speakAlert(message) {
-    // Only speak if browser supports it and not currently speaking
-    if ("speechSynthesis" in window && !speechSynthesis.speaking) {
-        try {
-            const utterance = new SpeechSynthesisUtterance(message);
-            utterance.rate = 0.9;
-            utterance.volume = 0.8;
-            utterance.lang = "en-US";
-            speechSynthesis.speak(utterance);
-            // console.log("Voice alert:", message);
-        } catch (error) {
-            // console.log("Voice synthesis failed:", error);
-        }
+    if (!("speechSynthesis" in window)) {
+        return false;
+    }
+
+    if (navVoiceAlertActive || speechSynthesis.speaking || speechSynthesis.pending) {
+        return false;
+    }
+
+    try {
+        const utterance = new SpeechSynthesisUtterance(message);
+        utterance.rate = NAVIGATION_VOICE_RATE;
+        utterance.volume = 0.8;
+        utterance.lang = "en-US";
+        utterance.onend = finalizeNavigationVoiceAlert;
+        utterance.onerror = finalizeNavigationVoiceAlert;
+
+        navVoiceAlertActive = true;
+        navVoiceUtterance = utterance;
+        speechSynthesis.speak(utterance);
+        return true;
+    } catch (error) {
+        finalizeNavigationVoiceAlert();
+        return false;
     }
 }
 
@@ -2015,6 +2120,7 @@ function exitNavigation() {
     if ("speechSynthesis" in window) {
         speechSynthesis.cancel();
     }
+    finalizeNavigationVoiceAlert();
 
     // Stop simulation
     simulationPaused = false;
@@ -2031,6 +2137,7 @@ function exitNavigation() {
     // Reset state
     tripCurrentDistance = 0;
     tripPreviousDistance = 0;
+    tripSimulationSpeedKmPerSecond = 0;
     tripWaypointCumulativeKm = [];
     lastAlertSegmentIndex = -1;
     lastAlertSeverity = null;
