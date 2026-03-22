@@ -1066,6 +1066,8 @@ function showRouteDetails(route) {
         const sheet = document.getElementById("planner-sheet");
         if (sheet) sheet.scrollTop = sheet.scrollHeight;
     }, 100);
+
+    resetStartNavigationButton();
 }
 
 function changeRoute() {
@@ -1188,6 +1190,20 @@ function buildSyntheticSegments(route) {
     return segments;
 }
 
+function resetStartNavigationButton() {
+    const btn = document.getElementById("start-navigation-btn") || document.querySelector(".start-navigation-btn");
+    if (!btn) return;
+    btn.textContent = "Start Navigation";
+    btn.disabled = false;
+}
+
+function setStartNavigationButtonLoading() {
+    const btn = document.getElementById("start-navigation-btn") || document.querySelector(".start-navigation-btn");
+    if (!btn) return;
+    btn.textContent = "Loading route...";
+    btn.disabled = true;
+}
+
 async function startNavigationWithSelected() {
     if (!selectedRoute) {
         alert("Please select a route first");
@@ -1195,11 +1211,7 @@ async function startNavigationWithSelected() {
     }
 
     const route = routeOptions[selectedRoute];
-    const btn = document.querySelector(".start-navigation-btn");
-    if (btn) {
-        btn.textContent = "⏳ Loading route...";
-        btn.disabled = true;
-    }
+    setStartNavigationButtonLoading();
 
     try {
         // Fetch full segment analysis for the selected route's waypoints
@@ -1640,9 +1652,12 @@ function startNavigation() {
     // console.log("Starting navigation...");
 
     if (!tripPlannerRouteData) {
+        resetStartNavigationButton();
         alert("Please calculate a route first");
         return;
     }
+
+    resetStartNavigationButton();
 
     // Show fullscreen
     const navScreen = document.getElementById("navigation-fullscreen");
@@ -1993,6 +2008,8 @@ function speakAlert(message) {
 
 function exitNavigation() {
     // console.log("Exiting navigation");
+
+    resetStartNavigationButton();
 
     // Stop any ongoing speech
     if ("speechSynthesis" in window) {

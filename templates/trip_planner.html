@@ -3,7 +3,7 @@
 {% block title %}Plan Your Trip{% endblock %}
 
 {% block extra_css %}
-<link rel="stylesheet" href="{{ url_for('static', filename='css/trip-planner.css', v='20260322d') }}">
+<link rel="stylesheet" href="{{ url_for('static', filename='css/trip-planner.css', v='20260322e') }}">
 <style>
 /* ── Trip planner page: break out of base layout ── */
 .rr-navbar, .rr-footer, footer { display: none !important; }
@@ -29,9 +29,6 @@ main { background: transparent !important; position: relative; z-index: auto; }
 
 <!-- ── Step 7: Dark top bar ── -->
 <div class="planner-topbar">
-    <div class="planner-topbar-left">
-        <span class="planner-brand">SafeDrive BKK</span>
-    </div>
     <div class="planner-topbar-actions">
         <button
             type="button"
@@ -393,7 +390,7 @@ main { background: transparent !important; position: relative; z-index: auto; }
 {% if google_maps_api_key %}
 <script>window.__GMAPS_KEY__ = "{{ google_maps_api_key }}";</script>
 {% endif %}
-<script src="{{ url_for('static', filename='js/trip-planner.js', v='20260322g') }}"></script>
+<script src="{{ url_for('static', filename='js/trip-planner.js', v='20260322h') }}"></script>
 {% if google_maps_api_key %}
 <script src="https://maps.googleapis.com/maps/api/js?key={{ google_maps_api_key }}&libraries=places,geometry&loading=async&callback=initGooglePlaces" async></script>
 {% endif %}
