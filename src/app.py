@@ -21,14 +21,24 @@ from flask import Flask, jsonify, render_template, request, send_file
 import googlemaps
 from googlemaps.convert import decode_polyline
 
-from ml_model import RiskPredictor
-from chatbot_intents import (
-    detect_intent,
-    get_scripted_response,
-    detect_cause_from_question,
-    handle_ml_cause_response,
-)
-from chatbot_groq import get_groq_response
+try:
+    from .ml_model import RiskPredictor
+    from .chatbot_intents import (
+        detect_intent,
+        get_scripted_response,
+        detect_cause_from_question,
+        handle_ml_cause_response,
+    )
+    from .chatbot_groq import get_groq_response
+except ImportError:
+    from ml_model import RiskPredictor
+    from chatbot_intents import (
+        detect_intent,
+        get_scripted_response,
+        detect_cause_from_question,
+        handle_ml_cause_response,
+    )
+    from chatbot_groq import get_groq_response
 
 BASE_DIR = Path(__file__).resolve().parent.parent
 DATA_DIR = BASE_DIR / "data" / "processed"
