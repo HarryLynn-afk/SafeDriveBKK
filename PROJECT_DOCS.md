@@ -34,7 +34,9 @@ python src/app.py
 
 Environment variables needed in `.env`:
 - `GROQ_API_KEY` — For AI chatbot
-- `GOOGLE_MAPS_API_KEY` — For routing and places autocomplete
+- `GOOGLE_MAPS_BROWSER_KEY` — For Maps JavaScript + Places autocomplete in the browser
+- `GOOGLE_MAPS_SERVER_KEY` — For server-side routing and geolocation calls
+- `GOOGLE_MAPS_API_KEY` — Legacy fallback supported for local/dev compatibility
 
 ---
 

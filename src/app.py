@@ -32,6 +32,9 @@ from chatbot_groq import get_groq_response
 
 BASE_DIR = Path(__file__).resolve().parent.parent
 DATA_DIR = BASE_DIR / "data" / "processed"
+LEGACY_GOOGLE_MAPS_API_KEY = os.getenv("GOOGLE_MAPS_API_KEY")
+GOOGLE_MAPS_BROWSER_KEY = os.getenv("GOOGLE_MAPS_BROWSER_KEY") or LEGACY_GOOGLE_MAPS_API_KEY
+GOOGLE_MAPS_SERVER_KEY = os.getenv("GOOGLE_MAPS_SERVER_KEY") or LEGACY_GOOGLE_MAPS_API_KEY
 
 BANGKOK_ACCIDENTS_PATH = DATA_DIR / "bangkok_accidents_clean.csv"
 GRID_STATS_PATH = DATA_DIR / "bangkok_grid_stats.csv"
@@ -365,13 +368,15 @@ except Exception as exc:
 # ---------------------------------------------------------------------------
 # Google Maps client — for traffic-aware travel times
 # ---------------------------------------------------------------------------
-GOOGLE_MAPS_API_KEY = os.getenv("GOOGLE_MAPS_API_KEY")
-if GOOGLE_MAPS_API_KEY:
-    gmaps_client = googlemaps.Client(key=GOOGLE_MAPS_API_KEY)
-    print("Google Maps: API key loaded (traffic-aware travel times enabled)")
+if GOOGLE_MAPS_SERVER_KEY:
+    gmaps_client = googlemaps.Client(key=GOOGLE_MAPS_SERVER_KEY)
+    if os.getenv("GOOGLE_MAPS_SERVER_KEY"):
+        print("Google Maps: Server API key loaded (traffic-aware travel times enabled)")
+    else:
+        print("Google Maps: Using legacy GOOGLE_MAPS_API_KEY for server-side calls")
 else:
     gmaps_client = None
-    print("Google Maps: No API key found. Using OSRM/estimated travel times.")
+    print("Google Maps: No server API key found. Using OSRM/estimated travel times.")
 
 
 # ---------------------------------------------------------------------------
@@ -1334,7 +1339,7 @@ def trip_planner():
     """New Grab-style trip planner page."""
     return render_template(
         "trip_planner.html",
-        google_maps_api_key=os.getenv("GOOGLE_MAPS_API_KEY", ""),
+        google_maps_api_key=GOOGLE_MAPS_BROWSER_KEY or "",
     )
 
 
@@ -1342,7 +1347,7 @@ def trip_planner():
 def geolocate():
     """Server-side geolocation using Google Geolocation API.
     Bypasses browser permission/HTTPS restrictions."""
-    key = os.getenv("GOOGLE_MAPS_API_KEY", "")
+    key = GOOGLE_MAPS_SERVER_KEY or ""
     if not key:
         return jsonify(success=False, error="No API key"), 500
     try:
