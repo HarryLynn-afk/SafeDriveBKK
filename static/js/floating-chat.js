@@ -12,10 +12,55 @@ class FloatingChat {
         if (!this.fab || !this.widget) return;
 
         this.isOpen = false;
+        this.history = [];
         this.init();
     }
 
+    getAvatarSvg(role) {
+        if (role === 'user') {
+            return `
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round">
+                    <path d="M15.4 8.6a3.4 3.4 0 1 1-6.8 0 3.4 3.4 0 0 1 6.8 0Z"></path>
+                    <path d="M5.6 18.2c1.55-2.4 3.74-3.65 6.4-3.65s4.85 1.25 6.4 3.65"></path>
+                </svg>
+            `;
+        }
+
+        return `
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round">
+                <path d="M12 3.25 18 5.75v5.6c0 4.2-2.7 7.97-6 9.4-3.3-1.43-6-5.2-6-9.4v-5.6L12 3.25Z"></path>
+                <path d="m9.2 12.1 1.8 1.8 3.8-4"></path>
+            </svg>
+        `;
+    }
+
+    createAvatar(role) {
+        const avatar = document.createElement('div');
+        avatar.className = `message-avatar message-avatar--${role}`;
+        avatar.setAttribute('aria-hidden', 'true');
+        avatar.innerHTML = this.getAvatarSvg(role);
+        return avatar;
+    }
+
+    createMessageShell(role, bubbleHtml) {
+        const div = document.createElement('div');
+        div.className = `message ${role}`;
+
+        const content = document.createElement('div');
+        content.className = 'message-content';
+
+        const bubble = document.createElement('div');
+        bubble.className = 'message-bubble';
+        bubble.innerHTML = bubbleHtml;
+
+        content.appendChild(bubble);
+        div.appendChild(this.createAvatar(role));
+        div.appendChild(content);
+        return div;
+    }
+
     init() {
+        this.syncFabState();
         this.fab.addEventListener('click', () => this.toggle());
         this.closeBtn.addEventListener('click', () => this.close());
 
@@ -26,6 +71,16 @@ class FloatingChat {
 
         // Set context-aware suggestions based on current page
         this.setContextualSuggestions();
+    }
+
+    syncFabState() {
+        const label = this.isOpen ? 'Close Safety Assistant' : 'Open Safety Assistant';
+        this.fab.classList.toggle('active', this.isOpen);
+        this.fab.setAttribute('aria-expanded', String(this.isOpen));
+        this.fab.setAttribute('aria-label', label);
+        this.fab.setAttribute('title', label);
+        this.widget.classList.toggle('active', this.isOpen);
+        this.widget.setAttribute('aria-hidden', String(!this.isOpen));
     }
 
     setContextualSuggestions() {
@@ -79,18 +134,14 @@ class FloatingChat {
     }
 
     open() {
-        this.widget.classList.add('active');
-        this.fab.classList.add('active');
-        this.fab.innerHTML = '&#x2715;';
         this.isOpen = true;
+        this.syncFabState();
         setTimeout(() => this.input.focus(), 100);
     }
 
     close() {
-        this.widget.classList.remove('active');
-        this.fab.classList.remove('active');
-        this.fab.innerHTML = '&#x1F4AC;';
         this.isOpen = false;
+        this.syncFabState();
     }
 
     async sendMessage(text) {
@@ -110,7 +161,10 @@ class FloatingChat {
             const response = await fetch('/api/chatbot', {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ message })
+                body: JSON.stringify({
+                    message,
+                    history: this.history.slice(-8),
+                })
             });
 
             const data = await response.json();
@@ -118,6 +172,8 @@ class FloatingChat {
             this.sendBtn.disabled = false;
 
             if (data.success && data.response) {
+                this.recordHistoryTurn('user', message);
+                this.recordHistoryTurn('assistant', this.flattenResponseText(data.response));
                 this.addBotResponse(data.response);
             } else {
                 this.addMessage('bot', 'Sorry, something went wrong. Please try again.');
@@ -130,66 +186,97 @@ class FloatingChat {
     }
 
     addMessage(role, text) {
-        const div = document.createElement('div');
-        div.className = `message ${role}`;
-
-        const avatar = document.createElement('div');
-        avatar.className = 'message-avatar';
-        avatar.innerHTML = role === 'bot' ? '&#x1F916;' : '&#x1F464;';
-
-        const content = document.createElement('div');
-        content.className = 'message-content';
-
-        const bubble = document.createElement('div');
-        bubble.className = 'message-bubble';
-        bubble.innerHTML = `<p>${this.escapeHtml(text)}</p>`;
-
-        content.appendChild(bubble);
-        div.appendChild(avatar);
-        div.appendChild(content);
+        const bodyHtml = `<div class="message-body">${this.renderRichText(text)}</div>`;
+        const div = this.createMessageShell(role, bodyHtml);
         this.messages.appendChild(div);
         this.scrollToBottom();
     }
 
     addBotResponse(response) {
-        const div = document.createElement('div');
-        div.className = 'message bot';
+        let html = `<div class="message-body">${this.renderRichText(response.message || '')}</div>`;
 
-        const avatar = document.createElement('div');
-        avatar.className = 'message-avatar';
-        avatar.innerHTML = '&#x1F916;';
-
-        const content = document.createElement('div');
-        content.className = 'message-content';
-
-        const bubble = document.createElement('div');
-        bubble.className = 'message-bubble';
-
-        // Format the message - convert markdown-style bold and newlines
-        let html = this.formatText(response.message || '');
-
-        // Add followup if present
         if (response.followup) {
-            html += `<p style="margin-top:8px;opacity:0.8;font-size:13px;">${this.formatText(response.followup)}</p>`;
+            html += `<div class="message-followup">${this.renderRichText(response.followup)}</div>`;
         }
 
-        bubble.innerHTML = html;
-        content.appendChild(bubble);
-        div.appendChild(avatar);
-        div.appendChild(content);
+        if (Array.isArray(response.actions) && response.actions.length) {
+            html += this.renderActions(response.actions);
+        }
+
+        const div = this.createMessageShell('bot', html);
         this.messages.appendChild(div);
         this.scrollToBottom();
     }
 
-    formatText(text) {
-        // Escape HTML first, then apply formatting
+    renderActions(actions) {
+        const links = actions
+            .map((action) => {
+                const href = this.normalizeActionHref(action && action.href);
+                const label = this.escapeHtml((action && action.label) || 'Open');
+                const style = action && action.style === 'secondary' ? 'secondary' : 'primary';
+                return `<a class="message-action message-action--${style}" href="${href}">${label}</a>`;
+            })
+            .join('');
+
+        return `<div class="message-actions">${links}</div>`;
+    }
+
+    renderRichText(text) {
+        const blocks = [];
+        const lines = String(text || '').split('\n');
+        let listType = null;
+        let listItems = [];
+
+        const flushList = () => {
+            if (!listItems.length || !listType) return;
+            const tag = listType === 'ordered' ? 'ol' : 'ul';
+            const items = listItems
+                .map(item => `<li>${this.formatInline(item)}</li>`)
+                .join('');
+            blocks.push(`<${tag} class="message-list">${items}</${tag}>`);
+            listItems = [];
+            listType = null;
+        };
+
+        lines.forEach((rawLine) => {
+            const line = rawLine.trim();
+            if (!line) {
+                flushList();
+                return;
+            }
+
+            const bulletMatch = line.match(/^[•*-]\s+(.+)$/);
+            if (bulletMatch) {
+                if (listType && listType !== 'unordered') {
+                    flushList();
+                }
+                listType = 'unordered';
+                listItems.push(bulletMatch[1]);
+                return;
+            }
+
+            const orderedMatch = line.match(/^\d+[.)]\s+(.+)$/);
+            if (orderedMatch) {
+                if (listType && listType !== 'ordered') {
+                    flushList();
+                }
+                listType = 'ordered';
+                listItems.push(orderedMatch[1]);
+                return;
+            }
+
+            flushList();
+            blocks.push(`<p>${this.formatInline(line)}</p>`);
+        });
+
+        flushList();
+        return blocks.join('');
+    }
+
+    formatInline(text) {
         let safe = this.escapeHtml(text);
-        // Bold: **text**
         safe = safe.replace(/\*\*(.+?)\*\*/g, '<strong>$1</strong>');
-        // Newlines to <br> / paragraphs
-        safe = safe.replace(/\n\n/g, '</p><p>');
-        safe = safe.replace(/\n/g, '<br>');
-        return `<p>${safe}</p>`;
+        return safe;
     }
 
     escapeHtml(text) {
@@ -198,20 +285,42 @@ class FloatingChat {
         return el.innerHTML;
     }
 
+    flattenResponseText(response) {
+        if (!response || typeof response !== 'object') return '';
+        const parts = [response.message, response.followup]
+            .filter((value) => typeof value === 'string' && value.trim());
+        return parts.join('\n\n').trim();
+    }
+
+    recordHistoryTurn(role, content) {
+        const text = String(content || '').trim();
+        if (!text || !['user', 'assistant'].includes(role)) return;
+        this.history.push({ role, content: text });
+        if (this.history.length > 8) {
+            this.history = this.history.slice(-8);
+        }
+    }
+
+    normalizeActionHref(href) {
+        return typeof href === 'string' && href.startsWith('/') && !href.startsWith('//') ? href : '#';
+    }
+
     showTyping() {
         const div = document.createElement('div');
         div.className = 'message bot';
         div.id = 'widgetTyping';
-        div.innerHTML = `
-            <div class="message-avatar">&#x1F916;</div>
-            <div class="message-content">
-                <div class="typing-indicator-widget">
-                    <div class="typing-dot"></div>
-                    <div class="typing-dot"></div>
-                    <div class="typing-dot"></div>
-                </div>
+        div.appendChild(this.createAvatar('bot'));
+
+        const content = document.createElement('div');
+        content.className = 'message-content';
+        content.innerHTML = `
+            <div class="typing-indicator-widget">
+                <div class="typing-dot"></div>
+                <div class="typing-dot"></div>
+                <div class="typing-dot"></div>
             </div>
         `;
+        div.appendChild(content);
         this.messages.appendChild(div);
         this.scrollToBottom();
     }

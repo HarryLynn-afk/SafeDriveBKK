@@ -1,5 +1,5 @@
 /* ============================================================
-   RoadRisk Bangkok — Global Design Tokens & Base Styles
+   SafeDrive BKK — Global Design Tokens & Base Styles
    Single source of truth for all color, shadow, and typography
    ============================================================ */
 
@@ -42,6 +42,40 @@
     --border:         var(--rr-border);
 }
 
+html[data-theme="light"] {
+    color-scheme: light;
+}
+
+html[data-theme="dark"] {
+    color-scheme: dark;
+
+    /* Brand */
+    --rr-primary:      #60a5fa;
+    --rr-primary-dark: #3b82f6;
+
+    /* Semantic safety colors */
+    --rr-danger:   #f87171;
+    --rr-warning:  #fbbf24;
+    --rr-success:  #34d399;
+
+    /* Surfaces */
+    --rr-bg:   #0b1120;
+    --rr-card: #0f172a;
+
+    /* Text */
+    --rr-text:  #e5edf7;
+    --rr-muted: #94a3b8;
+
+    /* Borders */
+    --rr-border: rgba(148, 163, 184, 0.18);
+
+    /* Shadows */
+    --shadow-sm:    0 8px 20px rgba(2, 6, 23, 0.24);
+    --shadow-md:    0 16px 32px rgba(2, 6, 23, 0.32);
+    --shadow-lg:    0 24px 48px rgba(2, 6, 23, 0.42);
+    --shadow-hover: 0 28px 52px rgba(2, 6, 23, 0.48);
+}
+
 /* ── Base ──────────────────────────────────────────────────── */
 
 body {
@@ -49,22 +83,222 @@ body {
     color: var(--rr-text);
     font-family: 'Inter', system-ui, -apple-system, sans-serif;
     -webkit-font-smoothing: antialiased;
+    transition: background-color 0.2s ease, color 0.2s ease;
+}
+
+html[data-theme="dark"] body {
+    background-color: #0b1120;
 }
 
 /* ── Navigation ────────────────────────────────────────────── */
 
 .rr-navbar {
-    background: linear-gradient(90deg, var(--rr-primary-dark), var(--rr-primary));
+    position: sticky;
+    top: 0;
+    z-index: 1030;
+    background: transparent;
+    border-bottom: 0;
+    padding: 0.9rem 0 0.35rem;
+}
+
+.rr-navbar .container {
+    max-width: 1080px;
+    background: rgba(255, 255, 255, 0.78);
+    border: 1px solid rgba(148, 163, 184, 0.14);
+    border-radius: 999px;
+    padding: 0.45rem 0.8rem;
+    box-shadow: 0 10px 30px rgba(15, 23, 42, 0.05);
+    backdrop-filter: blur(16px);
+    transition: background-color 0.2s ease, border-color 0.2s ease, box-shadow 0.2s ease;
+}
+
+.rr-navbar .navbar-brand {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.55rem;
+    color: var(--rr-text) !important;
+    font-size: 0.95rem;
+    font-weight: 700;
+    letter-spacing: -0.02em;
+}
+
+.rr-navbar .navbar-brand::before {
+    content: "";
+    width: 0.72rem;
+    height: 0.72rem;
+    border-radius: 999px;
+    background: linear-gradient(135deg, #60a5fa, #2563eb);
+    box-shadow: 0 0 0 6px rgba(96, 165, 250, 0.12);
+    flex-shrink: 0;
 }
 
 .rr-navbar .nav-link {
-    color: rgba(255, 255, 255, 0.85);
-    transition: color 0.15s ease;
+    color: var(--rr-text) !important;
+    transition: color 0.15s ease, background-color 0.15s ease, box-shadow 0.15s ease;
 }
 
 .rr-navbar .nav-link.active,
 .rr-navbar .nav-link:hover {
-    color: #ffffff;
+    color: var(--rr-primary) !important;
+}
+
+.rr-navbar .navbar-toggler {
+    border-color: rgba(148, 163, 184, 0.3);
+}
+
+.rr-navbar .navbar-toggler-icon {
+    filter: invert(1) brightness(0.15);
+}
+
+.rr-navbar-tools {
+    display: flex;
+    align-items: center;
+    justify-content: flex-end;
+}
+
+.theme-toggle {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.55rem;
+    min-height: 44px;
+    padding: 0.55rem 0.95rem;
+    border: 1px solid rgba(148, 163, 184, 0.18);
+    border-radius: 999px;
+    background: rgba(255, 255, 255, 0.82);
+    color: var(--rr-text);
+    font-size: 0.86rem;
+    font-weight: 600;
+    line-height: 1;
+    box-shadow: 0 10px 24px rgba(15, 23, 42, 0.06);
+    transition:
+        transform 0.15s ease,
+        background-color 0.2s ease,
+        border-color 0.2s ease,
+        color 0.2s ease,
+        box-shadow 0.2s ease;
+}
+
+.theme-toggle:hover {
+    transform: translateY(-1px);
+    box-shadow: 0 14px 28px rgba(15, 23, 42, 0.1);
+}
+
+.theme-toggle:focus-visible {
+    outline: none;
+    box-shadow:
+        0 0 0 3px rgba(37, 99, 235, 0.2),
+        0 14px 28px rgba(15, 23, 42, 0.12);
+}
+
+.theme-toggle-icon {
+    position: relative;
+    width: 16px;
+    height: 16px;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.theme-toggle-icon svg {
+    position: absolute;
+    inset: 0;
+    margin: auto;
+    transition: opacity 0.18s ease, transform 0.18s ease;
+}
+
+.theme-icon-sun {
+    opacity: 0;
+    transform: scale(0.72) rotate(-18deg);
+}
+
+.theme-toggle.is-dark .theme-icon-moon {
+    opacity: 0;
+    transform: scale(0.72) rotate(18deg);
+}
+
+.theme-toggle.is-dark .theme-icon-sun {
+    opacity: 1;
+    transform: scale(1) rotate(0deg);
+}
+
+.theme-toggle-label {
+    white-space: nowrap;
+}
+
+html[data-theme="dark"] .rr-navbar .container {
+    background: rgba(12, 18, 34, 0.78);
+    border-color: rgba(148, 163, 184, 0.18);
+    box-shadow: 0 18px 40px rgba(2, 6, 23, 0.24);
+}
+
+html[data-theme="dark"] .rr-navbar .navbar-brand,
+html[data-theme="dark"] .rr-navbar .nav-link {
+    color: var(--rr-text) !important;
+}
+
+html[data-theme="dark"] .rr-navbar .nav-link.active,
+html[data-theme="dark"] .rr-navbar .nav-link:hover {
+    color: var(--rr-primary) !important;
+}
+
+html[data-theme="dark"] .rr-navbar .navbar-toggler {
+    border-color: rgba(148, 163, 184, 0.32);
+}
+
+html[data-theme="dark"] .rr-navbar .navbar-toggler-icon {
+    filter: invert(1) brightness(1.2);
+}
+
+html[data-theme="dark"] .theme-toggle {
+    background: rgba(15, 23, 42, 0.78);
+    border-color: rgba(148, 163, 184, 0.18);
+    color: var(--rr-text);
+    box-shadow: 0 12px 28px rgba(2, 6, 23, 0.24);
+}
+
+@media (min-width: 992px) {
+    .rr-navbar .navbar-nav {
+        align-items: center;
+        gap: 0.2rem;
+    }
+
+    .rr-navbar .nav-link {
+        padding: 0.45rem 0.8rem;
+        font-size: 0.88rem;
+        font-weight: 600;
+    }
+
+    .rr-navbar .nav-item:last-child .nav-link {
+        padding: 0.55rem 0.9rem;
+        border-radius: 999px;
+        background: linear-gradient(135deg, var(--rr-primary), var(--rr-primary-dark));
+        color: #ffffff !important;
+        box-shadow: 0 12px 24px rgba(37, 99, 235, 0.18);
+    }
+
+    .rr-navbar-tools {
+        margin-left: 0.7rem;
+    }
+}
+
+@media (max-width: 991.98px) {
+    .rr-navbar .container {
+        border-radius: 24px;
+    }
+
+    .rr-navbar .navbar-collapse {
+        padding-top: 0.55rem;
+    }
+
+    .rr-navbar-tools {
+        margin-top: 0.85rem;
+        padding-top: 0.75rem;
+        border-top: 1px solid rgba(148, 163, 184, 0.14);
+    }
+
+    html[data-theme="dark"] .rr-navbar-tools {
+        border-top-color: rgba(148, 163, 184, 0.16);
+    }
 }
 
 /* ── Hero section ──────────────────────────────────────────── */
@@ -185,8 +419,24 @@ body {
 /* ── Footer ────────────────────────────────────────────────── */
 
 .rr-footer {
-    border-top: 1px solid var(--rr-border);
-    background-color: #ffffff;
+    border-top: 1px solid rgba(148, 163, 184, 0.16);
+    background-color: rgba(255, 255, 255, 0.94);
+    transition: background-color 0.2s ease, border-color 0.2s ease;
+}
+
+html[data-theme="dark"] .rr-footer {
+    border-top-color: rgba(148, 163, 184, 0.18);
+    background-color: rgba(6, 11, 22, 0.92);
+}
+
+.rr-footer .text-muted,
+.rr-footer .text-muted a {
+    color: rgba(31, 41, 55, 0.78) !important;
+}
+
+html[data-theme="dark"] .rr-footer .text-muted,
+html[data-theme="dark"] .rr-footer .text-muted a {
+    color: #cbd5e1 !important;
 }
 
 /* Status dot — pulsing green "all systems operational" */
@@ -226,6 +476,34 @@ body {
     font-weight: 500;
     color: var(--rr-text);
     box-shadow: var(--shadow-sm);
+}
+
+html[data-theme="dark"] .hero-section {
+    background: linear-gradient(120deg, rgba(30, 64, 175, 0.18), rgba(15, 23, 42, 0.96));
+    border-color: rgba(96, 165, 250, 0.22);
+}
+
+html[data-theme="dark"] .hero-stat,
+html[data-theme="dark"] .stats-card,
+html[data-theme="dark"] .map-wrapper,
+html[data-theme="dark"] .trust-badge,
+html[data-theme="dark"] .route-map,
+html[data-theme="dark"] .recommendation-box,
+html[data-theme="dark"] .recommendation-box.has-data {
+    background: var(--rr-card);
+    border-color: var(--rr-border);
+    color: var(--rr-text);
+}
+
+html[data-theme="dark"] .hero-stat-label,
+html[data-theme="dark"] .stats-label,
+html[data-theme="dark"] .suggestion-address {
+    color: var(--rr-muted);
+}
+
+html[data-theme="dark"] .hero-stat-value,
+html[data-theme="dark"] .stats-value {
+    color: var(--rr-text);
 }
 
 /* ── Risk pills ────────────────────────────────────────────── */

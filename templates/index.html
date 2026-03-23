@@ -1,106 +1,1626 @@
 {% extends "base.html" %}
 
+{% block title %}SafeDrive BKK | Predict Safer Drives{% endblock %}
+{% block body_class %}landing-shell{% endblock %}
+
+{% block extra_css %}
+<style>
+:root {
+    --landing-base: #ffffff;
+    --landing-off-white: #f8f9fb;
+    --landing-ghost: #edf0f6;
+    --landing-ink: #111827;
+    --landing-copy: #374151;
+    --landing-meta: #9ca3af;
+    --landing-border: rgba(148, 163, 184, 0.2);
+    --landing-blue: #2563eb;
+    --landing-blue-deep: #1d4ed8;
+    --landing-blue-soft: #dbeafe;
+    --landing-blue-pale: #eef2ff;
+    --landing-green-soft: #dcfce7;
+    --landing-green-text: #166534;
+    --landing-red-soft: #fee2e2;
+    --landing-red-text: #dc2626;
+    --landing-gold-soft: #fef3c7;
+    --landing-gold-text: #b45309;
+    --landing-panel-bg: linear-gradient(180deg, #ffffff 0%, #fbfcff 68%, #f3f7ff 100%);
+    --landing-card-bg: rgba(255, 255, 255, 0.72);
+    --landing-card-border: rgba(219, 234, 254, 0.95);
+    --landing-shadow: 0 24px 80px rgba(15, 23, 42, 0.08);
+    --landing-shadow-soft: 0 16px 40px rgba(15, 23, 42, 0.06);
+}
+
+html {
+    scroll-behavior: smooth;
+}
+
+@media (prefers-reduced-motion: reduce) {
+    html {
+        scroll-behavior: auto;
+    }
+}
+
+.landing-shell {
+    background:
+        radial-gradient(circle at 50% 0%, rgba(219, 234, 254, 0.75), transparent 26rem),
+        linear-gradient(180deg, #f7f7f8 0%, #fbfbfc 22%, #ffffff 100%);
+    color: var(--landing-ink);
+}
+
+.landing-shell main {
+    padding-top: 0;
+    padding-bottom: 0;
+}
+
+.landing-shell .rr-navbar {
+    position: sticky;
+    top: 0;
+    z-index: 1030;
+    background: transparent;
+    border-bottom: 0;
+    padding: 0.9rem 0 0.35rem;
+}
+
+.landing-shell .rr-navbar .container {
+    max-width: 1080px;
+    background: rgba(255, 255, 255, 0.78);
+    border: 1px solid rgba(148, 163, 184, 0.14);
+    border-radius: 999px;
+    padding: 0.45rem 0.8rem;
+    box-shadow: 0 10px 30px rgba(15, 23, 42, 0.05);
+    backdrop-filter: blur(16px);
+}
+
+.landing-shell .rr-navbar .navbar-brand,
+.landing-shell .rr-navbar .nav-link {
+    color: var(--landing-ink) !important;
+}
+
+.landing-shell .rr-navbar .navbar-brand {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.55rem;
+    font-size: 0.95rem;
+    font-weight: 700;
+    letter-spacing: -0.02em;
+}
+
+.landing-shell .rr-navbar .navbar-brand::before {
+    content: "";
+    width: 0.72rem;
+    height: 0.72rem;
+    border-radius: 999px;
+    background: linear-gradient(135deg, #60a5fa, #2563eb);
+    box-shadow: 0 0 0 6px rgba(96, 165, 250, 0.12);
+}
+
+.landing-shell .rr-navbar .nav-link.active,
+.landing-shell .rr-navbar .nav-link:hover {
+    color: var(--landing-blue-deep) !important;
+}
+
+.landing-shell .navbar-toggler {
+    border-color: rgba(148, 163, 184, 0.3);
+}
+
+.landing-shell .navbar-toggler-icon {
+    filter: invert(1) brightness(0.15);
+}
+
+.landing-page {
+    position: relative;
+    overflow: clip;
+}
+
+.landing-page::before,
+.landing-page::after {
+    content: "";
+    position: absolute;
+    border-radius: 999px;
+    pointer-events: none;
+    filter: blur(12px);
+}
+
+.landing-page::before {
+    top: 17rem;
+    left: -10rem;
+    width: 14rem;
+    height: 14rem;
+    background: rgba(191, 219, 254, 0.18);
+}
+
+.landing-page::after {
+    right: -6rem;
+    bottom: 24rem;
+    width: 20rem;
+    height: 20rem;
+    background: rgba(224, 231, 255, 0.48);
+}
+
+.landing-ribbon {
+    padding: 0.9rem 1rem;
+    background: rgba(255, 255, 255, 0.72);
+    border-bottom: 1px solid rgba(148, 163, 184, 0.14);
+    backdrop-filter: blur(12px);
+}
+
+.landing-ribbon-inner {
+    max-width: 1320px;
+    margin: 0 auto;
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    justify-content: center;
+    gap: 0.85rem;
+    text-align: center;
+    font-size: 0.95rem;
+    color: var(--landing-copy);
+}
+
+.landing-ribbon-tag {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    padding: 0.35rem 0.7rem;
+    border-radius: 999px;
+    background: rgba(37, 99, 235, 0.1);
+    color: var(--landing-blue-deep);
+    font-weight: 700;
+    letter-spacing: 0.04em;
+    text-transform: uppercase;
+    font-size: 0.75rem;
+}
+
+.landing-ribbon a {
+    color: var(--landing-ink);
+    font-weight: 600;
+    text-decoration: none;
+}
+
+.landing-ribbon a:hover {
+    color: var(--landing-blue-deep);
+}
+
+.landing-ribbon-source {
+    font-size: 0.78rem;
+    font-weight: 600;
+    color: var(--landing-meta) !important;
+    text-decoration: none;
+    white-space: nowrap;
+}
+
+.landing-ribbon-source:hover {
+    color: var(--landing-ink) !important;
+}
+
+.landing-container {
+    position: relative;
+    z-index: 1;
+    max-width: 1320px;
+    margin: 0 auto;
+    padding: 1rem 1rem 6rem;
+}
+
+.surface-card {
+    background: var(--landing-panel-bg);
+    border: 1px solid var(--landing-border);
+    border-radius: 28px;
+    box-shadow: var(--landing-shadow-soft);
+    backdrop-filter: blur(10px);
+}
+
+.hero-shell {
+    position: relative;
+    margin-top: 0.55rem;
+    padding: 0;
+    overflow: hidden;
+    background:
+        radial-gradient(110% 58% at 50% 114%, rgba(147, 197, 253, 0.86) 0%, rgba(191, 219, 254, 0.48) 34%, rgba(255, 255, 255, 0) 66%),
+        linear-gradient(180deg, #ffffff 0%, #fbfcff 64%, #f3f7ff 100%);
+    border-radius: 28px;
+}
+
+.hero-shell::before {
+    content: "";
+    position: absolute;
+    inset: auto 10% 2.2rem 10%;
+    height: 1px;
+    background: linear-gradient(90deg, rgba(255, 255, 255, 0), rgba(96, 165, 250, 0.26), rgba(255, 255, 255, 0));
+    pointer-events: none;
+}
+
+.hero-shell::after {
+    content: "";
+    position: absolute;
+    inset: auto 0 0 0;
+    height: 38%;
+    background: linear-gradient(180deg, rgba(255, 255, 255, 0) 0%, rgba(219, 234, 254, 0.24) 100%);
+    pointer-events: none;
+}
+
+.hero-grid {
+    display: block;
+}
+
+.hero-copy,
+.hero-preview {
+    min-width: 0;
+}
+
+.hero-copy {
+    position: relative;
+    z-index: 1;
+    max-width: 780px;
+    margin: 0 auto;
+    padding: clamp(3.5rem, 8vw, 5rem) 1rem 2.5rem;
+    text-align: center;
+}
+
+.hero-problem-statement {
+    max-width: 40rem;
+    margin: 0 auto 0.9rem;
+    color: var(--landing-meta);
+    font-size: 0.82rem;
+    line-height: 1.7;
+}
+
+.eyebrow,
+.section-chip {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 0.35rem;
+    padding: 0.38rem 0.75rem;
+    border-radius: 999px;
+    background: rgba(255, 255, 255, 0.72);
+    border: 1px solid rgba(148, 163, 184, 0.12);
+    color: #8b5e3c;
+    font-size: 0.74rem;
+    font-weight: 700;
+    letter-spacing: 0.03em;
+    box-shadow: none;
+}
+
+.eyebrow-dot,
+.section-chip-dot {
+    width: 0.42rem;
+    height: 0.42rem;
+    border-radius: 999px;
+    background: linear-gradient(135deg, #fb923c, #f97316);
+    box-shadow: none;
+}
+
+.hero-title {
+    margin: 1.55rem auto 1rem;
+    max-width: 10ch;
+    font-size: clamp(3rem, 8vw, 5.6rem);
+    line-height: 0.9;
+    letter-spacing: -0.05em;
+    font-weight: 800;
+    text-wrap: balance;
+}
+
+.hero-title .headline-accent {
+    background: none;
+}
+
+.hero-title .headline-muted {
+    display: block;
+    color: var(--landing-meta);
+}
+
+.hero-lead {
+    max-width: 31rem;
+    margin: 0 auto 1.45rem;
+    font-size: 0.94rem;
+    line-height: 1.7;
+    color: var(--landing-copy);
+}
+
+.hero-actions {
+    display: flex;
+    flex-wrap: wrap;
+    justify-content: center;
+    gap: 0.85rem;
+    margin-bottom: 0.9rem;
+}
+
+.landing-btn {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 0.55rem;
+    padding: 0.78rem 1.2rem;
+    border-radius: 999px;
+    font-size: 0.92rem;
+    font-weight: 700;
+    text-decoration: none;
+    transition: transform 0.18s ease, box-shadow 0.18s ease, background 0.18s ease;
+}
+
+.landing-btn:hover {
+    transform: translateY(-2px);
+}
+
+.landing-btn.primary {
+    color: #ffffff;
+    background: linear-gradient(135deg, var(--landing-blue), var(--landing-blue-deep));
+    box-shadow: 0 12px 28px rgba(37, 99, 235, 0.2);
+}
+
+.landing-btn.secondary {
+    color: var(--landing-copy);
+    background: rgba(255, 255, 255, 0.64);
+    border: 1px solid rgba(148, 163, 184, 0.16);
+}
+
+.hero-meta {
+    display: none;
+}
+
+.hero-note {
+    margin: 0;
+    color: var(--landing-meta);
+    font-size: 0.82rem;
+    line-height: 1.6;
+}
+
+.meta-pill {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.45rem;
+    padding: 0.55rem 0.8rem;
+    border-radius: 999px;
+    background: rgba(248, 250, 252, 0.95);
+    border: 1px solid rgba(148, 163, 184, 0.18);
+    color: var(--landing-copy);
+    font-size: 0.82rem;
+    font-weight: 600;
+}
+
+.meta-pill strong {
+    color: var(--landing-ink);
+}
+
+.hero-proof-grid {
+    position: relative;
+    z-index: 1;
+    max-width: 1020px;
+    margin: 0 auto;
+    padding: 0 1rem 1.8rem;
+    display: grid;
+    grid-template-columns: repeat(4, minmax(0, 1fr));
+    grid-auto-rows: 1fr;
+    align-items: stretch;
+    gap: 1.15rem;
+}
+
+.proof-card {
+    display: flex;
+    flex-direction: column;
+    justify-content: space-between;
+    height: 100%;
+    padding: 0.95rem 1rem;
+    border-radius: 20px;
+    background: rgba(255, 255, 255, 0.72);
+    border: 1px solid rgba(219, 234, 254, 0.95);
+    backdrop-filter: blur(12px);
+}
+
+.proof-card strong {
+    display: block;
+    font-size: 1.3rem;
+    line-height: 1;
+    letter-spacing: -0.03em;
+    color: var(--landing-ink);
+}
+
+.proof-card span {
+    display: block;
+    margin-top: 0.45rem;
+    color: var(--landing-copy);
+    font-size: 0.82rem;
+    line-height: 1.55;
+}
+
+.landing-section {
+    margin-top: 1.75rem;
+    padding: clamp(5.4rem, 7.8vw, 6.6rem) clamp(1.4rem, 3vw, 2.25rem);
+}
+
+.landing-section-heading {
+    margin: 1rem auto 0;
+    max-width: 15ch;
+    font-size: clamp(1.95rem, 3.2vw, 2.8rem);
+    line-height: 1;
+    letter-spacing: -0.045em;
+    font-weight: 800;
+    text-wrap: balance;
+}
+
+.landing-section-subline {
+    max-width: 46rem;
+    margin: 1rem auto 0;
+    color: var(--landing-copy);
+    font-size: 0.98rem;
+    line-height: 1.7;
+}
+
+.landing-section-intro {
+    text-align: center;
+    margin-bottom: 2.35rem;
+}
+
+.heatmap-section {
+    background: var(--landing-panel-bg);
+}
+
+.heatmap-embed-shell {
+    --heatmap-iframe-filter: none;
+    width: 100%;
+    overflow: hidden;
+    border-radius: 24px;
+    border: 1px solid rgba(148, 163, 184, 0.14);
+    background: rgba(255, 255, 255, 0.84);
+    box-shadow: 0 12px 30px rgba(15, 23, 42, 0.05);
+}
+
+.heatmap-frame {
+    width: 100%;
+    height: 480px;
+    border: 0;
+    display: block;
+    background: #ffffff;
+    filter: var(--heatmap-iframe-filter);
+    transition: filter 0.24s ease;
+}
+
+.heatmap-fallback {
+    margin: 0;
+}
+
+.route-section {
+    background: var(--landing-panel-bg);
+}
+
+.route-showcase-grid {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 1.3rem;
+    align-items: stretch;
+}
+
+.route-preview-card {
+    position: relative;
+    display: flex;
+    flex-direction: column;
+    height: 100%;
+    padding: 1.2rem 1.25rem;
+    border-radius: 20px;
+    border: 1px solid var(--landing-card-border);
+    background: var(--landing-card-bg);
+    backdrop-filter: blur(12px);
+}
+
+.route-preview-card--recommended {
+    border-color: rgba(37, 99, 235, 0.22);
+    background: rgba(248, 251, 255, 0.8);
+}
+
+.route-card-head {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: start;
+    justify-content: space-between;
+    gap: 0.85rem;
+}
+
+.route-card-label {
+    display: block;
+    font-size: 0.78rem;
+    font-weight: 700;
+    letter-spacing: 0.05em;
+    text-transform: uppercase;
+    color: var(--landing-meta);
+}
+
+.route-card-title {
+    margin: 0.45rem 0 0;
+    font-size: 1.28rem;
+    line-height: 1.02;
+    letter-spacing: -0.04em;
+    font-weight: 800;
+}
+
+.route-card-marker {
+    display: inline-flex;
+    align-items: center;
+    margin-top: 0.7rem;
+    padding: 0.36rem 0.68rem;
+    border-radius: 999px;
+    font-size: 0.72rem;
+    font-weight: 700;
+    letter-spacing: 0.04em;
+}
+
+.route-card-marker.recommended {
+    background: rgba(37, 99, 235, 0.1);
+    color: var(--landing-blue-deep);
+}
+
+.route-badge {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    padding: 0.5rem 0.82rem;
+    border-radius: 999px;
+    font-size: 0.78rem;
+    font-weight: 700;
+    letter-spacing: 0.03em;
+    white-space: nowrap;
+}
+
+.route-badge.high {
+    background: rgba(220, 53, 69, 0.12);
+    color: #dc3545;
+}
+
+.route-badge.medium {
+    background: rgba(255, 193, 7, 0.18);
+    color: #a16207;
+}
+
+.route-badge.low {
+    background: rgba(40, 167, 69, 0.12);
+    color: #28a745;
+}
+
+.route-score-row {
+    display: flex;
+    align-items: end;
+    gap: 0.6rem;
+    margin-top: 1.45rem;
+}
+
+.route-score-number {
+    font-size: clamp(2.6rem, 4vw, 3.4rem);
+    line-height: 0.9;
+    letter-spacing: -0.06em;
+    font-weight: 800;
+    color: var(--landing-ink);
+}
+
+.route-score-copy {
+    padding-bottom: 0.25rem;
+}
+
+.route-score-copy span {
+    display: block;
+    color: var(--landing-meta);
+    font-size: 0.78rem;
+    font-weight: 700;
+    letter-spacing: 0.05em;
+    text-transform: uppercase;
+}
+
+.route-score-copy strong {
+    display: block;
+    margin-top: 0.3rem;
+    font-size: 0.98rem;
+    color: var(--landing-copy);
+}
+
+.route-metrics {
+    display: grid;
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+    gap: 1rem;
+    margin-top: 1.6rem;
+}
+
+.route-metric {
+    padding: 0.95rem;
+    border-radius: 18px;
+    background: rgba(248, 250, 252, 0.82);
+    border: 1px solid rgba(148, 163, 184, 0.12);
+}
+
+.route-metric span {
+    display: block;
+    color: var(--landing-meta);
+    font-size: 0.76rem;
+    font-weight: 700;
+    letter-spacing: 0.05em;
+    text-transform: uppercase;
+}
+
+.route-metric strong {
+    display: block;
+    margin-top: 0.5rem;
+    font-size: 1.05rem;
+    font-weight: 700;
+    color: var(--landing-ink);
+}
+
+.route-note {
+    margin: auto 0 0;
+    padding-top: 1.2rem;
+    color: var(--landing-copy);
+    line-height: 1.65;
+}
+
+.route-recommendation {
+    margin-top: 1rem;
+    padding: 0.85rem 0.95rem;
+    border-radius: 18px;
+    background: rgba(37, 99, 235, 0.06);
+    border: 1px solid rgba(37, 99, 235, 0.08);
+    color: var(--landing-blue-deep);
+    font-size: 0.9rem;
+    font-weight: 600;
+}
+
+.route-recommendation.warning {
+    background: rgba(220, 53, 69, 0.08);
+    border: 1px solid rgba(220, 53, 69, 0.1);
+    color: #b42318;
+}
+
+.section-action-row {
+    display: flex;
+    justify-content: center;
+    margin-top: 1.75rem;
+}
+
+.landing-close {
+    margin-top: 2rem;
+    padding: 2.4rem 1rem 0.65rem;
+    text-align: center;
+}
+
+.landing-close p {
+    margin: 0;
+    color: var(--landing-ink);
+    font-size: clamp(1.2rem, 2vw, 1.6rem);
+    font-weight: 700;
+    letter-spacing: -0.035em;
+    line-height: 1.2;
+}
+
+.landing-close a {
+    color: var(--landing-blue-deep);
+    text-decoration: none;
+    text-underline-offset: 0.16em;
+}
+
+.landing-close a:hover {
+    text-decoration: underline;
+}
+
+.hero-preview {
+    display: none;
+}
+
+.preview-grid {
+    position: relative;
+    z-index: 1;
+    display: grid;
+    gap: 1rem;
+}
+
+.preview-card {
+    border-radius: 24px;
+    border: 1px solid rgba(15, 23, 42, 0.08);
+    box-shadow: 0 18px 50px rgba(15, 23, 42, 0.08);
+}
+
+.preview-card.light {
+    background: rgba(255, 255, 255, 0.92);
+    color: var(--landing-ink);
+    padding: 1.1rem;
+}
+
+.preview-card.dark {
+    background: linear-gradient(180deg, #141416 0%, #0f1013 100%);
+    color: #f5f7fb;
+    padding: 1.1rem;
+}
+
+.preview-label {
+    display: inline-flex;
+    align-items: center;
+    padding: 0.32rem 0.62rem;
+    border-radius: 999px;
+    background: rgba(15, 23, 42, 0.06);
+    color: var(--landing-copy);
+    font-size: 0.72rem;
+    font-weight: 700;
+    letter-spacing: 0.04em;
+    text-transform: uppercase;
+}
+
+.preview-card.dark .preview-label {
+    background: rgba(255, 255, 255, 0.08);
+    color: rgba(255, 255, 255, 0.74);
+}
+
+.preview-card h3 {
+    margin: 0.8rem 0 0.45rem;
+    font-size: 1.18rem;
+    font-weight: 700;
+}
+
+.preview-card p {
+    margin: 0;
+    color: inherit;
+    opacity: 0.84;
+    line-height: 1.6;
+}
+
+.route-option {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 0.9rem;
+    padding: 0.85rem 0.95rem;
+    margin-top: 0.85rem;
+    border-radius: 18px;
+    font-size: 0.92rem;
+    font-weight: 600;
+}
+
+.route-option strong {
+    display: block;
+    font-size: 0.94rem;
+}
+
+.route-option small {
+    display: block;
+    color: inherit;
+    opacity: 0.72;
+}
+
+.route-option.high {
+    background: var(--landing-red-soft);
+    color: var(--landing-red-text);
+}
+
+.route-option.low {
+    background: var(--landing-green-soft);
+    color: var(--landing-green-text);
+}
+
+.signal-grid {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 0.8rem;
+    margin-top: 0.95rem;
+}
+
+.signal-tile {
+    padding: 0.85rem;
+    border-radius: 18px;
+    background: rgba(248, 250, 252, 0.8);
+    border: 1px solid rgba(148, 163, 184, 0.14);
+}
+
+.signal-tile strong {
+    display: block;
+    font-size: 1.2rem;
+    letter-spacing: -0.03em;
+}
+
+.signal-tile span {
+    display: block;
+    margin-top: 0.25rem;
+    font-size: 0.82rem;
+    color: var(--landing-copy);
+}
+
+.assistant-thread {
+    margin-top: 1rem;
+    display: grid;
+    gap: 0.75rem;
+}
+
+.assistant-bubble {
+    max-width: 88%;
+    padding: 0.85rem 1rem;
+    border-radius: 18px;
+    line-height: 1.55;
+    font-size: 0.92rem;
+}
+
+.assistant-bubble.prompt {
+    background: rgba(255, 255, 255, 0.08);
+    color: rgba(255, 255, 255, 0.92);
+    border-top-left-radius: 8px;
+}
+
+.assistant-bubble.reply {
+    margin-left: auto;
+    background: #ffffff;
+    color: var(--landing-ink);
+    border-bottom-right-radius: 8px;
+}
+
+.assistant-footer {
+    margin-top: 1rem;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 0.75rem;
+    padding: 0.82rem 0.95rem;
+    border-radius: 18px;
+    background: rgba(255, 255, 255, 0.06);
+    border: 1px solid rgba(255, 255, 255, 0.08);
+    color: rgba(255, 255, 255, 0.74);
+    font-size: 0.88rem;
+}
+
+.hero-marquee {
+    display: none;
+}
+
+.section-block {
+    margin-top: 1.4rem;
+    padding: clamp(1.35rem, 2.2vw, 1.8rem);
+}
+
+.section-head {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: end;
+    justify-content: space-between;
+    gap: 1rem;
+    margin-bottom: 1.25rem;
+}
+
+.section-head h2 {
+    margin: 0;
+    font-size: clamp(1.8rem, 3vw, 2.7rem);
+    line-height: 1.04;
+    letter-spacing: -0.04em;
+}
+
+.section-head p {
+    max-width: 36rem;
+    margin: 0;
+    color: var(--landing-copy);
+    line-height: 1.7;
+}
+
+.story-grid,
+.feature-grid {
+    display: grid;
+    gap: 1rem;
+}
+
+.story-grid {
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+}
+
+.story-card,
+.feature-card {
+    position: relative;
+    padding: 1.2rem;
+    border-radius: 24px;
+    border: 1px solid rgba(148, 163, 184, 0.16);
+    overflow: hidden;
+}
+
+.story-card {
+    background: linear-gradient(180deg, rgba(255, 255, 255, 0.95), rgba(248, 250, 252, 0.96));
+}
+
+.story-number {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 2.25rem;
+    height: 2.25rem;
+    border-radius: 999px;
+    background: rgba(37, 99, 235, 0.1);
+    color: var(--landing-blue-deep);
+    font-size: 0.78rem;
+    font-weight: 800;
+    letter-spacing: 0.06em;
+}
+
+.story-card h3,
+.feature-card h3 {
+    margin: 1rem 0 0.55rem;
+    font-size: 1.25rem;
+    font-weight: 700;
+}
+
+.story-card p,
+.feature-card p {
+    margin: 0;
+    color: var(--landing-copy);
+    line-height: 1.7;
+}
+
+.story-metric {
+    margin-top: 1rem;
+    display: inline-flex;
+    align-items: center;
+    gap: 0.45rem;
+    padding: 0.45rem 0.7rem;
+    border-radius: 999px;
+    background: rgba(15, 23, 42, 0.04);
+    color: var(--landing-ink);
+    font-size: 0.82rem;
+    font-weight: 600;
+}
+
+.feature-grid {
+    grid-template-columns: minmax(0, 1.15fr) minmax(0, 0.85fr);
+}
+
+.feature-stack {
+    display: grid;
+    gap: 1rem;
+}
+
+.feature-card.primary {
+    background: linear-gradient(135deg, rgba(219, 234, 254, 0.95), rgba(255, 255, 255, 0.98));
+}
+
+.feature-card.secondary {
+    background: linear-gradient(180deg, rgba(255, 255, 255, 0.98), rgba(239, 246, 255, 0.9));
+}
+
+.feature-card.dark {
+    background: linear-gradient(180deg, #121826 0%, #0f172a 100%);
+    color: #f8fafc;
+}
+
+.feature-card.dark p,
+.feature-card.dark .feature-detail {
+    color: rgba(248, 250, 252, 0.76);
+}
+
+.feature-points {
+    display: grid;
+    gap: 0.85rem;
+    margin-top: 1.15rem;
+}
+
+.feature-point {
+    display: flex;
+    gap: 0.8rem;
+    align-items: start;
+}
+
+.feature-point-badge {
+    flex-shrink: 0;
+    width: 2rem;
+    height: 2rem;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    border-radius: 999px;
+    background: #ffffff;
+    border: 1px solid rgba(148, 163, 184, 0.18);
+    color: var(--landing-blue-deep);
+    font-weight: 800;
+    font-size: 0.9rem;
+}
+
+.feature-detail {
+    color: var(--landing-copy);
+    line-height: 1.65;
+}
+
+.feature-highlight {
+    margin-top: 1.15rem;
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 0.8rem;
+}
+
+.highlight-chip {
+    padding: 0.9rem;
+    border-radius: 18px;
+    border: 1px solid rgba(148, 163, 184, 0.16);
+    background: rgba(255, 255, 255, 0.86);
+}
+
+.highlight-chip strong {
+    display: block;
+    font-size: 1.05rem;
+}
+
+.highlight-chip span {
+    display: block;
+    margin-top: 0.3rem;
+    color: var(--landing-copy);
+    font-size: 0.86rem;
+}
+
+.map-grid {
+    display: grid;
+    grid-template-columns: minmax(0, 0.8fr) minmax(0, 1.2fr);
+    gap: 1.1rem;
+    align-items: stretch;
+}
+
+.map-copy-card,
+.map-frame-card {
+    min-width: 0;
+}
+
+.map-copy-card {
+    padding: 1.25rem;
+    border-radius: 24px;
+    background: linear-gradient(180deg, rgba(255, 255, 255, 0.98), rgba(246, 248, 252, 0.94));
+    border: 1px solid rgba(148, 163, 184, 0.18);
+}
+
+.map-copy-card h3 {
+    margin: 0 0 0.65rem;
+    font-size: 1.35rem;
+    font-weight: 700;
+}
+
+.map-copy-card p {
+    margin: 0;
+    color: var(--landing-copy);
+    line-height: 1.7;
+}
+
+.map-insight-list {
+    display: grid;
+    gap: 0.8rem;
+    margin-top: 1.2rem;
+}
+
+.map-insight {
+    padding: 0.9rem;
+    border-radius: 18px;
+    background: rgba(248, 250, 252, 0.84);
+    border: 1px solid rgba(148, 163, 184, 0.14);
+}
+
+.map-insight strong {
+    display: block;
+    margin-bottom: 0.28rem;
+    font-size: 0.98rem;
+}
+
+.map-frame-card {
+    padding: 0.8rem;
+    border-radius: 26px;
+    background: linear-gradient(180deg, rgba(255, 255, 255, 0.98), rgba(239, 246, 255, 0.88));
+    border: 1px solid rgba(148, 163, 184, 0.18);
+    box-shadow: var(--landing-shadow);
+}
+
+.map-frame-card iframe {
+    width: 100%;
+    height: 660px;
+    border: 0;
+    border-radius: 20px;
+    background: #ffffff;
+}
+
+.decision-strip {
+    display: grid;
+    grid-template-columns: repeat(4, minmax(0, 1fr));
+    gap: 0.9rem;
+}
+
+.decision-card {
+    padding: 1rem;
+    border-radius: 22px;
+    background: linear-gradient(180deg, rgba(255, 255, 255, 0.98), rgba(248, 250, 252, 0.92));
+    border: 1px solid rgba(148, 163, 184, 0.16);
+}
+
+.decision-card .label {
+    display: block;
+    color: var(--landing-meta);
+    font-size: 0.78rem;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+    font-weight: 700;
+}
+
+.decision-card strong {
+    display: block;
+    margin-top: 0.45rem;
+    font-size: 1.4rem;
+    line-height: 1.08;
+    letter-spacing: -0.03em;
+}
+
+.decision-card p {
+    margin: 0.4rem 0 0;
+    color: var(--landing-copy);
+    font-size: 0.9rem;
+    line-height: 1.6;
+}
+
+.final-cta {
+    padding: clamp(1.5rem, 2.2vw, 1.9rem);
+    background: linear-gradient(135deg, rgba(15, 23, 42, 0.96), rgba(29, 78, 216, 0.9));
+    color: #f8fafc;
+}
+
+.final-cta-grid {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) auto;
+    gap: 1rem;
+    align-items: center;
+}
+
+.final-cta h2 {
+    margin: 0 0 0.5rem;
+    font-size: clamp(1.9rem, 3.5vw, 2.8rem);
+    line-height: 1.06;
+    letter-spacing: -0.04em;
+}
+
+.final-cta p {
+    max-width: 38rem;
+    margin: 0;
+    color: rgba(248, 250, 252, 0.8);
+    line-height: 1.7;
+}
+
+.final-cta .landing-btn.primary {
+    background: #ffffff;
+    color: var(--landing-ink);
+    box-shadow: none;
+}
+
+.final-cta .landing-btn.secondary {
+    color: #f8fafc;
+    border-color: rgba(255, 255, 255, 0.2);
+    background: rgba(255, 255, 255, 0.08);
+}
+
+.landing-shell .rr-footer {
+    border-top: 1px solid rgba(148, 163, 184, 0.16);
+    background: rgba(255, 255, 255, 0.92);
+}
+
+.landing-shell .rr-footer .text-muted,
+.landing-shell .rr-footer .text-muted a {
+    color: rgba(31, 41, 55, 0.82) !important;
+}
+
+.landing-shell .status-dot-green {
+    box-shadow: 0 0 0 6px rgba(34, 197, 94, 0.12);
+}
+
+html[data-theme="dark"] .landing-shell {
+    --landing-base: #0f172a;
+    --landing-off-white: #111827;
+    --landing-ghost: #172036;
+    --landing-ink: #f8fafc;
+    --landing-copy: #cbd5e1;
+    --landing-meta: #94a3b8;
+    --landing-border: rgba(148, 163, 184, 0.18);
+    --landing-blue: #60a5fa;
+    --landing-blue-deep: #3b82f6;
+    --landing-blue-soft: rgba(59, 130, 246, 0.18);
+    --landing-blue-pale: #172036;
+    --landing-green-soft: rgba(22, 163, 74, 0.18);
+    --landing-green-text: #86efac;
+    --landing-red-soft: rgba(220, 38, 38, 0.16);
+    --landing-red-text: #fca5a5;
+    --landing-gold-soft: rgba(245, 158, 11, 0.16);
+    --landing-gold-text: #fde68a;
+    --landing-panel-bg: linear-gradient(180deg, rgba(15, 23, 42, 0.96) 0%, rgba(15, 23, 42, 0.92) 68%, rgba(11, 17, 32, 0.96) 100%);
+    --landing-card-bg: rgba(15, 23, 42, 0.72);
+    --landing-card-border: rgba(148, 163, 184, 0.18);
+    --landing-shadow: 0 24px 80px rgba(2, 6, 23, 0.38);
+    --landing-shadow-soft: 0 16px 40px rgba(2, 6, 23, 0.28);
+    background:
+        radial-gradient(circle at 50% 0%, rgba(30, 64, 175, 0.34), transparent 26rem),
+        linear-gradient(180deg, #060b16 0%, #09101f 22%, #0b1120 100%);
+}
+
+html[data-theme="dark"] .landing-shell .rr-navbar .container {
+    background: rgba(12, 18, 34, 0.78);
+    border-color: rgba(148, 163, 184, 0.18);
+    box-shadow: 0 18px 40px rgba(2, 6, 23, 0.24);
+}
+
+html[data-theme="dark"] .landing-shell .rr-navbar .navbar-brand,
+html[data-theme="dark"] .landing-shell .rr-navbar .nav-link {
+    color: var(--landing-ink) !important;
+}
+
+html[data-theme="dark"] .landing-shell .rr-navbar .nav-link.active,
+html[data-theme="dark"] .landing-shell .rr-navbar .nav-link:hover {
+    color: var(--landing-blue) !important;
+}
+
+html[data-theme="dark"] .landing-shell .navbar-toggler-icon {
+    filter: invert(1) brightness(1.2);
+}
+
+html[data-theme="dark"] .landing-shell .landing-ribbon {
+    background: rgba(12, 18, 34, 0.72);
+    border-bottom-color: rgba(148, 163, 184, 0.18);
+}
+
+html[data-theme="dark"] .landing-shell .hero-shell {
+    background:
+        radial-gradient(110% 58% at 50% 114%, rgba(37, 99, 235, 0.42) 0%, rgba(30, 64, 175, 0.22) 34%, rgba(255, 255, 255, 0) 66%),
+        linear-gradient(180deg, #0f172a 0%, #101a2d 64%, #0b1120 100%);
+}
+
+html[data-theme="dark"] .landing-shell .surface-card,
+html[data-theme="dark"] .landing-shell .hero-stat,
+html[data-theme="dark"] .landing-shell .eyebrow,
+html[data-theme="dark"] .landing-shell .section-chip {
+    border-color: rgba(148, 163, 184, 0.18);
+}
+
+html[data-theme="dark"] .landing-shell .heatmap-embed-shell {
+    --heatmap-iframe-filter: invert(0.92) hue-rotate(180deg) saturate(0.88) brightness(0.9) contrast(0.92);
+    background: rgba(12, 18, 34, 0.84);
+    border-color: rgba(148, 163, 184, 0.18);
+    box-shadow: 0 18px 40px rgba(2, 6, 23, 0.24);
+}
+
+html[data-theme="dark"] .landing-shell .proof-card {
+    background: linear-gradient(180deg, rgba(15, 17, 23, 0.9), rgba(17, 24, 39, 0.92));
+    border-color: rgba(148, 163, 184, 0.16);
+    box-shadow: 0 18px 34px rgba(2, 6, 23, 0.24);
+}
+
+html[data-theme="dark"] .landing-shell .landing-close p {
+    color: #f8fafc;
+}
+
+html[data-theme="dark"] .landing-shell .landing-close a {
+    color: #93c5fd;
+}
+
+html[data-theme="dark"] .landing-shell .rr-footer {
+    border-top-color: rgba(148, 163, 184, 0.18);
+    background: rgba(6, 11, 22, 0.9);
+}
+
+html[data-theme="dark"] .landing-shell .rr-footer .text-muted,
+html[data-theme="dark"] .landing-shell .rr-footer .text-muted a {
+    color: rgba(226, 232, 240, 0.82) !important;
+}
+
+html[data-theme="dark"] .landing-shell .route-preview-card {
+    background: linear-gradient(180deg, rgba(12, 18, 34, 0.94), rgba(15, 23, 42, 0.9));
+    border-color: rgba(148, 163, 184, 0.18);
+}
+
+html[data-theme="dark"] .landing-shell .route-preview-card--recommended {
+    background: linear-gradient(180deg, rgba(14, 22, 39, 0.98), rgba(18, 29, 52, 0.96));
+    border-color: rgba(96, 165, 250, 0.24);
+    box-shadow: 0 22px 44px rgba(2, 6, 23, 0.28);
+}
+
+html[data-theme="dark"] .landing-shell .route-metric {
+    background: linear-gradient(180deg, rgba(15, 17, 23, 0.9), rgba(17, 24, 39, 0.86));
+    border-color: rgba(148, 163, 184, 0.14);
+    box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.02);
+}
+
+@media (min-width: 992px) {
+    .landing-shell .rr-navbar .navbar-nav {
+        align-items: center;
+        gap: 0.2rem;
+    }
+
+    .landing-shell .rr-navbar .nav-link {
+        padding: 0.45rem 0.8rem;
+        font-size: 0.88rem;
+        font-weight: 600;
+    }
+
+    .landing-shell .rr-navbar .nav-item:last-child .nav-link {
+        padding: 0.55rem 0.9rem;
+        border-radius: 999px;
+        background: linear-gradient(135deg, var(--landing-blue), var(--landing-blue-deep));
+        color: #ffffff !important;
+        box-shadow: 0 12px 24px rgba(37, 99, 235, 0.18);
+    }
+}
+
+@media (max-width: 1100px) {
+    .hero-grid,
+    .feature-grid,
+    .map-grid,
+    .final-cta-grid {
+        grid-template-columns: 1fr;
+    }
+
+    .hero-proof-grid,
+    .story-grid,
+    .decision-strip {
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+    }
+}
+
+@media (max-width: 768px) {
+    .landing-container {
+        padding: 0.55rem 0.85rem 4rem;
+    }
+
+    .hero-shell,
+    .section-block,
+    .final-cta {
+        border-radius: 24px;
+    }
+
+    .hero-title {
+        max-width: none;
+    }
+
+    .hero-proof-grid,
+    .route-showcase-grid,
+    .route-metrics,
+    .story-grid,
+    .decision-strip,
+    .signal-grid,
+    .feature-highlight {
+        grid-template-columns: 1fr;
+    }
+
+    .landing-ribbon-inner {
+        justify-content: flex-start;
+    }
+
+    .hero-copy {
+        padding: 3rem 0.7rem 2rem;
+    }
+
+    .hero-proof-grid {
+        padding: 0 0.75rem 1rem;
+    }
+
+    .landing-section {
+        padding: 4.5rem 1rem;
+    }
+
+    .landing-section-heading {
+        max-width: none;
+    }
+
+    .landing-close {
+        padding-top: 1.75rem;
+    }
+
+    .heatmap-frame {
+        height: 360px;
+    }
+
+    .route-preview-card {
+        padding: 1.25rem;
+    }
+
+    .route-preview-card--recommended::after {
+        position: static;
+        display: inline-flex;
+        margin-bottom: 1rem;
+    }
+
+    .map-frame-card iframe {
+        height: 460px;
+    }
+
+}
+</style>
+{% endblock %}
+
 {% block content %}
-<div class="container">
-    <div style="background: linear-gradient(90deg, #ffc107 0%, #ff9800 100%); color: #000; padding: 16px 20px; text-align: center; font-weight: 600; box-shadow: 0 2px 8px rgba(0,0,0,0.1); margin-bottom: 24px;">
-        <strong>New Year 2026:</strong> 991 crashes, 171 deaths in 4 days (DDPM, Jan 3, 2026). Bangkok recorded highest death toll (14).
-        <a href="/about" style="color: #000; text-decoration: underline; margin-left: 8px;">See how data can reduce future risk →</a>
-    </div>
-
-    <section class="hero-section p-4 p-md-5 mb-4">
-        <h1 class="display-6 fw-bold mb-2">Bangkok Road Risk Prediction System</h1>
-        <p class="lead mb-0">
-            Know which Bangkok roads are dangerous — before you drive them.
-        </p>
-        <div class="hero-stats">
-            <div class="hero-stat">
-                <span class="hero-stat-value" data-counter="87.4" data-suffix="%">87.4%</span>
-                <span class="hero-stat-label">Accident Coverage</span>
-                <div style="font-size: 12px; opacity: 0.85; margin-top: 4px;">Top 5% of zones</div>
-            </div>
-            <div class="hero-stat">
-                <span class="hero-stat-value" data-counter="17" data-suffix="×">17×</span>
-                <span class="hero-stat-label">Better Than Random</span>
-                <div style="font-size: 12px; opacity: 0.85; margin-top: 4px;">Proven effectiveness</div>
-            </div>
-            <div class="hero-stat">
-                <span class="hero-stat-value" data-counter="83.8" data-suffix="%">83.8%</span>
-                <span class="hero-stat-label">Predictive Accuracy</span>
-                <div style="font-size: 12px; opacity: 0.85; margin-top: 4px;">Holdout validation</div>
-            </div>
+<div class="landing-page">
+    <section class="landing-ribbon">
+        <div class="landing-ribbon-inner">
+            <span class="landing-ribbon-tag">Bangkok Alert</span>
+            <span>
+                New Year 2026 crash monitoring reported 991 crashes and 171 deaths in the first 4 days, with Bangkok recording the highest death toll.
+                <a
+                    class="landing-ribbon-source"
+                    href="https://www.nationthailand.com/news/general/40060713"
+                    target="_blank"
+                    rel="noopener noreferrer"
+                >Source &rarr;</a>
+            </span>
+            <a href="/about">See how SafeDrive BKK turns data into prevention &rarr;</a>
         </div>
     </section>
 
-    <!-- Trust badges -->
-    <div class="trust-badges mb-4 d-flex flex-wrap gap-2 justify-content-center">
-        <span class="trust-badge">DDPM Thailand 2024 Data</span>
-        <span class="trust-badge">Holdout-Validated ML Model</span>
-        <span class="trust-badge">No Personal Data Collected</span>
-        <span class="trust-badge">Thai NLP + XGBoost</span>
-    </div>
-
-    {% if error_message %}
-    <div class="alert alert-danger mb-4" role="alert">
-        Failed to load dashboard data: {{ error_message }}
-    </div>
-    {% endif %}
-
-    <section class="row g-3 mb-4">
-        <div class="col-md-3">
-            <div class="stats-card">
-                <div class="stats-label">Bangkok 2024 Accidents Analyzed</div>
-                <div class="stats-value">{{ "{:,}".format(total_accidents) }}</div>
-            </div>
-        </div>
-        <div class="col-md-3">
-            <div class="stats-card warning">
-                <div class="stats-label">High-Risk Zones Identified</div>
-                <div class="stats-value">{{ "{:,}".format(high_risk_zones) }}</div>
-            </div>
-        </div>
-        <div class="col-md-3">
-            <div class="stats-card">
-                <div class="stats-label">Peak Danger Time</div>
-                <div class="stats-value">{{ peak_time }}</div>
-            </div>
-        </div>
-        <div class="col-md-3">
-            <div class="stats-card">
-                <div class="stats-label">Most Dangerous Day</div>
-                <div class="stats-value">{{ dangerous_day }}</div>
-            </div>
-        </div>
-    </section>
-
-    <div style="text-align: center; margin: 32px 0 24px;">
-        <a href="/trip-planner" class="cta-pulse" style="display: inline-block; background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); color: white; padding: 20px 48px; border-radius: 50px; text-decoration: none; font-size: 20px; font-weight: 600;">
-            Plan Your Safe Route Now
-        </a>
-    </div>
-
-    <section class="mb-4">
-        <h2 class="h4 mb-3">Bangkok Risk Map</h2>
-        {% if map_available %}
-        <div class="map-wrapper">
-            <iframe
-                src="{{ url_for('static', filename='bangkok_risk_heatmap.html') }}"
-                class="risk-map-frame"
-                title="Bangkok Risk Map"
-                loading="lazy"></iframe>
-        </div>
-        {% else %}
-        <div class="alert alert-warning" role="alert">
-            Risk heat map file is missing. Generate it via <code>python3 src/create_heatmap_html.py</code>.
+    <div class="landing-container">
+        {% if error_message %}
+        <div class="alert alert-danger mb-4" role="alert">
+            Failed to load homepage data: {{ error_message }}
         </div>
         {% endif %}
-    </section>
 
-    <p style="text-align: center; margin-top: 32px; color: #6c757d; font-size: 14px;">
-        <a href="/analytics" style="color: #667eea; text-decoration: none; font-weight: 500;">Explore Analytics Dashboard</a> •
-        <a href="/about" style="color: #667eea; text-decoration: none;">Learn about our methodology →</a>
-    </p>
+        <section class="hero-shell surface-card">
+            <div class="hero-grid">
+                <div class="hero-copy">
+                    <p class="hero-problem-statement">
+                        Bangkok records thousands of crashes every year — SafeDrive BKK helps drivers, commuters, and city planners avoid danger zones before they drive.
+                    </p>
 
+                    <span class="eyebrow">
+                        <span class="eyebrow-dot"></span>
+                        Built for Bangkok journeys
+                    </span>
 
+                    <h1 class="hero-title">
+                        <span class="headline-accent">Bangkok road safety</span>
+                        <span class="headline-muted">in good hands.</span>
+                    </h1>
+
+                    <p class="hero-lead">
+                        SafeDrive BKK turns official crash records, XGBoost forecasting, and Thai NLP insights into a calm front door for safer driving decisions across the city.
+                    </p>
+
+                    <div class="hero-actions">
+                        <a href="/trip-planner" class="landing-btn primary">Plan safer routes</a>
+                        <a href="#risk-map-preview" class="landing-btn secondary">See the heatmap</a>
+                    </div>
+
+                    <p class="hero-note">
+                        Built on Ministry of Transport data with 44 engineered features, live route planning, and an explainable safety assistant.
+                    </p>
+                </div>
+            </div>
+
+            <div class="hero-proof-grid">
+                <div class="proof-card">
+                    <strong class="hero-stat-value" data-counter="{{ total_accidents }}">0</strong>
+                    <span>Bangkok crashes analyzed in the live experience</span>
+                </div>
+                <div class="proof-card">
+                    <strong class="hero-stat-value" data-counter="{{ high_risk_zones }}">0</strong>
+                    <span>High-risk zones surfaced for routing and monitoring</span>
+                </div>
+                <div class="proof-card">
+                    <strong class="hero-stat-value" data-counter="83.8" data-decimals="1" data-suffix="%">0%</strong>
+                    <span>Temporal capture from the XGBoost risk model</span>
+                </div>
+                <div class="proof-card">
+                    <strong class="hero-stat-value" data-counter="17.5" data-decimals="1" data-suffix="x">0x</strong>
+                    <span>Lift over random when finding danger zones</span>
+                </div>
+            </div>
+        </section>
+
+        <section class="landing-section heatmap-section surface-card" id="risk-map-preview">
+            <div class="landing-section-intro">
+                <span class="section-chip">
+                    <span class="section-chip-dot"></span>
+                    Live risk intelligence
+                </span>
+                <h2 class="landing-section-heading">See where danger clusters</h2>
+                <p class="landing-section-subline">
+                    2,669 real accident records plotted across Bangkok's 276 grid zones — updated from official Ministry of Transport data.
+                </p>
+            </div>
+
+            <div class="heatmap-embed-shell">
+                {% if map_available %}
+                <iframe
+                    src="{{ url_for('static', filename='bangkok_risk_heatmap.html') }}"
+                    class="heatmap-frame"
+                    title="Bangkok road risk heatmap"
+                    loading="lazy"></iframe>
+                {% else %}
+                <div class="alert alert-warning heatmap-fallback m-3" role="alert">
+                    Risk heat map file is missing. Generate it via <code>python3 src/create_heatmap_html.py</code>.
+                </div>
+                {% endif %}
+            </div>
+        </section>
+
+        <section class="landing-section route-section surface-card" id="route-comparison">
+            <div class="landing-section-intro">
+                <span class="section-chip">
+                    <span class="section-chip-dot"></span>
+                    Smarter routing
+                </span>
+                <h2 class="landing-section-heading">Two routes. One clear winner.</h2>
+                <p class="landing-section-subline">
+                    SafeDrive BKK scores every route using XGBoost predictions across 44 engineered features — so you always know which path is safer before you leave.
+                </p>
+            </div>
+
+            <div class="route-showcase-grid">
+                <article class="route-preview-card">
+                    <div class="route-card-head">
+                        <div>
+                            <span class="route-card-label">Fastest route</span>
+                            <h3 class="route-card-title">Move fast, carry the highest risk.</h3>
+                        </div>
+                        <span class="route-badge high">Risk score 93 · HIGH</span>
+                    </div>
+
+                    <div class="route-recommendation warning">
+                        Passes 3 high-risk corridors during the peak risk window.
+                    </div>
+
+                    <div class="route-score-row">
+                        <strong class="route-score-number">36</strong>
+                        <div class="route-score-copy">
+                            <span>Travel time</span>
+                            <strong>minutes door to door</strong>
+                        </div>
+                    </div>
+
+                    <div class="route-metrics">
+                        <div class="route-metric">
+                            <span>Distance</span>
+                            <strong>18.4 km</strong>
+                        </div>
+                        <div class="route-metric">
+                            <span>Peak window</span>
+                            <strong>{{ peak_time }}</strong>
+                        </div>
+                        <div class="route-metric">
+                            <span>Exposure</span>
+                            <strong>3 high-risk clusters</strong>
+                        </div>
+                    </div>
+
+                    <p class="route-note">
+                        The fastest option cuts through Bangkok's densest crash corridors and stays exposed to elevated risk during the evening pressure period.
+                    </p>
+                </article>
+
+                <article class="route-preview-card route-preview-card--recommended">
+                    <div class="route-card-head">
+                        <div>
+                            <span class="route-card-label">Safest route</span>
+                            <h3 class="route-card-title">Small detour, dramatically calmer trip.</h3>
+                            <span class="route-card-marker recommended">Recommended</span>
+                        </div>
+                        <span class="route-badge low">Risk score 31 · LOW</span>
+                    </div>
+
+                    <div class="route-recommendation">
+                        67% lower predicted risk for only +4 minutes of travel time.
+                    </div>
+
+                    <div class="route-score-row">
+                        <strong class="route-score-number">40</strong>
+                        <div class="route-score-copy">
+                            <span>Travel time</span>
+                            <strong>minutes with safer road selection</strong>
+                        </div>
+                    </div>
+
+                    <div class="route-metrics">
+                        <div class="route-metric">
+                            <span>Distance</span>
+                            <strong>20.1 km</strong>
+                        </div>
+                        <div class="route-metric">
+                            <span>Danger day</span>
+                            <strong>{{ dangerous_day }}</strong>
+                        </div>
+                        <div class="route-metric">
+                            <span>Exposure</span>
+                            <strong>1 low-risk corridor</strong>
+                        </div>
+                    </div>
+
+                    <p class="route-note">
+                        The safer option avoids the most accident-dense corridors and keeps the journey inside lower-risk grid cells without turning the trip into a major detour.
+                    </p>
+                </article>
+            </div>
+        </section>
+
+        <section class="landing-close" aria-label="Closing statement">
+            <p>171 deaths in 4 days. <a href="/trip-planner">Plan your route.</a></p>
+        </section>
+    </div>
 </div>
 {% endblock %}
 
@@ -109,28 +1629,31 @@
 (function () {
     "use strict";
 
-    // Animate hero stat counters when they enter the viewport
     function animateCounter(el) {
-        var target = parseFloat(el.dataset.counter);
+        var target = parseFloat(el.dataset.counter || "0");
         var suffix = el.dataset.suffix || "";
-        var isDecimal = target % 1 !== 0;
+        var decimals = parseInt(el.dataset.decimals || "0", 10);
         var duration = 1200;
         var start = null;
+
+        function formatValue(value) {
+            if (decimals > 0) {
+                return value.toFixed(decimals) + suffix;
+            }
+            return Math.round(value).toLocaleString() + suffix;
+        }
 
         function step(ts) {
             if (!start) start = ts;
             var progress = Math.min((ts - start) / duration, 1);
-            // Ease-out cubic
             var eased = 1 - Math.pow(1 - progress, 3);
-            var current = target * eased;
-            el.textContent = (isDecimal ? current.toFixed(1) : Math.floor(current)) + suffix;
+            el.textContent = formatValue(target * eased);
             if (progress < 1) requestAnimationFrame(step);
         }
 
         requestAnimationFrame(step);
     }
 
-    // Trigger once when hero stats scroll into view
     var counters = document.querySelectorAll(".hero-stat-value[data-counter]");
     if (!counters.length) return;
 
@@ -142,11 +1665,12 @@
                     observer.unobserve(entry.target);
                 }
             });
-        }, { threshold: 0.5 });
+        }, { threshold: 0.4 });
 
-        counters.forEach(function (el) { observer.observe(el); });
+        counters.forEach(function (el) {
+            observer.observe(el);
+        });
     } else {
-        // Fallback for old browsers — animate immediately
         counters.forEach(animateCounter);
     }
 })();

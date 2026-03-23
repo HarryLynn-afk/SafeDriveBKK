@@ -1,7 +1,7 @@
 {
   "metadata": {
     "generated_by": "chatbot_data_processor.py",
-    "project": "RoadRisk Bangkok",
+    "project": "SafeDrive BKK",
     "description": "Aggregated data for the Bangkok Road Safety chatbot"
   },
   "stats": {
@@ -1335,7 +1335,7 @@
       "description": "Deploy automated speed enforcement in high-speeding zones. 82% of top danger zones have speeding as the dominant cause.",
       "target_cause": "Speeding",
       "zones_affected": 118,
-      "expected_impact": "30-40% reduction in speed-related accidents",
+      "expected_impact": "Targets Bangkok's dominant crash cause across the top danger zones",
       "cost_estimate": "฿2.5M per camera installation",
       "recommendation_type": "enforcement"
     },
@@ -1345,7 +1345,7 @@
       "description": "Redesign dangerous intersections with better signage, barriers, and traffic signals to reduce cutting-in-front accidents.",
       "target_cause": "Cutting in front",
       "zones_affected": 1,
-      "expected_impact": "25-35% reduction in intersection collisions",
+      "expected_impact": "Targets cutting-in-front hotspots at busy intersections",
       "cost_estimate": "฿5-15M per intersection",
       "recommendation_type": "infrastructure"
     },
@@ -1355,7 +1355,7 @@
       "description": "Install rumble strips on highway stretches with high rear-end collision rates. Target drowsy driving zones.",
       "target_cause": "Drowsy driving",
       "zones_affected": 1,
-      "expected_impact": "20-30% reduction in drowsy-driving crashes",
+      "expected_impact": "Targets highway corridors with elevated drowsy-driving risk",
       "cost_estimate": "฿500K per km of highway",
       "recommendation_type": "infrastructure"
     },
@@ -1365,7 +1365,7 @@
       "description": "Install red-light enforcement at intersections with high traffic signal violations.",
       "target_cause": "Running red light",
       "zones_affected": 0,
-      "expected_impact": "40-50% reduction in red-light violations",
+      "expected_impact": "Targets repeated signal-violation intersections",
       "cost_estimate": "฿1.5M per intersection",
       "recommendation_type": "enforcement"
     },
@@ -1375,7 +1375,7 @@
       "description": "Set up mobile inspection points in zones with high tire blowout and mechanical failure rates.",
       "target_cause": "Tire blowout / mechanical",
       "zones_affected": 0,
-      "expected_impact": "15-25% reduction in mechanical-failure crashes",
+      "expected_impact": "Targets mechanical-failure and tire-related trouble spots",
       "cost_estimate": "฿200K per checkpoint per month",
       "recommendation_type": "enforcement"
     }

@@ -6,16 +6,21 @@
     "use strict";
 
     // DOM refs
+    const pageEl = document.getElementById("assistantPage");
+    const shellEl = document.getElementById("chatShell");
     const messagesEl = document.getElementById("chatMessages");
     const inputEl = document.getElementById("chatInput");
     const sendBtn = document.getElementById("chatSend");
     const suggestionsEl = document.getElementById("chatSuggestions");
     const sugButtonsEl = document.getElementById("suggestionsButtons");
     const typingEl = document.getElementById("typingIndicator");
+    const composerEl = document.getElementById("assistantComposer");
+    const composerInnerEl = document.getElementById("assistantComposerInner");
     const accordionBtn = document.getElementById("howItWorksToggle");
     const accordionBody = document.getElementById("howItWorksContent");
 
     let isSending = false;
+    let history = [];
 
     // ------------------------------------------------------------------
     // Suggestions
@@ -33,13 +38,14 @@
                 "What causes most accidents?",
                 "Which areas are most dangerous?",
                 "What time are accidents most common?",
+                "Is this route risky tonight?",
             ]);
         }
     }
 
     function renderSuggestions(items) {
         sugButtonsEl.innerHTML = "";
-        items.slice(0, 3).forEach(function (text) {
+        items.slice(0, 4).forEach(function (text) {
             var btn = document.createElement("button");
             btn.className = "suggestion-btn";
             btn.textContent = text;
@@ -50,16 +56,71 @@
         });
     }
 
+    function prefersReducedMotion() {
+        return window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+    }
+
+    function hideSuggestions() {
+        if (!suggestionsEl) return;
+        suggestionsEl.classList.add("is-hidden");
+    }
+
+    function animateLayoutShift(el, firstRect) {
+        if (!el || !firstRect || prefersReducedMotion()) return;
+
+        requestAnimationFrame(function () {
+            var lastRect = el.getBoundingClientRect();
+            var deltaX = firstRect.left - lastRect.left;
+            var deltaY = firstRect.top - lastRect.top;
+
+            if (Math.abs(deltaX) < 1 && Math.abs(deltaY) < 1) return;
+
+            el.animate(
+                [
+                    { transform: "translate(" + deltaX + "px, " + deltaY + "px)" },
+                    { transform: "translate(0, 0)" },
+                ],
+                {
+                    duration: 460,
+                    easing: "cubic-bezier(0.22, 1, 0.36, 1)",
+                }
+            );
+        });
+    }
+
+    function setConversationStarted() {
+        if (!pageEl || pageEl.classList.contains("has-messages")) return;
+
+        var composerRect = composerInnerEl ? composerInnerEl.getBoundingClientRect() : null;
+
+        if (shellEl) shellEl.classList.add("has-messages");
+        pageEl.classList.add("has-messages");
+        updateComposerOffset();
+        animateLayoutShift(composerInnerEl, composerRect);
+    }
+
+    function updateComposerOffset() {
+        if (!composerEl || !pageEl) return;
+        pageEl.style.setProperty("--assistant-composer-offset", composerEl.offsetHeight + "px");
+    }
+
+    function syncChatShellHeight() {
+        if (!shellEl || !shellEl.classList.contains("has-messages")) return;
+        shellEl.style.maxHeight = shellEl.scrollHeight + "px";
+    }
+
     // ------------------------------------------------------------------
     // Messages
     // ------------------------------------------------------------------
     function addMessage(role, content, meta) {
+        var wasCollapsed = shellEl && !shellEl.classList.contains("has-messages");
         var wrapper = document.createElement("div");
         wrapper.className = "message " + role;
 
         var avatar = document.createElement("div");
         avatar.className = "message-avatar";
-        avatar.textContent = role === "bot" ? "AI" : "";
+        avatar.textContent = role === "bot" ? "SD" : "ME";
+        avatar.setAttribute("aria-hidden", "true");
 
         var contentDiv = document.createElement("div");
         contentDiv.className = "message-content";
@@ -85,81 +146,33 @@
         wrapper.appendChild(avatar);
         wrapper.appendChild(contentDiv);
         messagesEl.appendChild(wrapper);
-        scrollToBottom();
+        setConversationStarted();
+        syncChatShellHeight();
+        scrollToBottom(true, wrapper);
+        if (wasCollapsed && !prefersReducedMotion()) {
+            window.setTimeout(function () {
+                syncChatShellHeight();
+                scrollToBottom(true, wrapper);
+            }, 220);
+        }
     }
 
     function formatContent(content, meta) {
-        if (!meta) return escapeHtml(content);
+        if (!meta) return "<p>" + escapeHtml(content) + "</p>";
 
         // Error type
         if (meta.type === "error") {
             return "<p>" + escapeHtml(meta.message || content) + "</p>";
         }
 
-        // AI response — may contain markdown-style formatting
-        if (meta.type === "ai" || meta.source === "groq") {
-            return formatMarkdown(meta.message || content);
+        var out = formatMarkdown(meta.message || content || "");
+        var followup = meta.followup || meta.follow_up;
+        if (followup) {
+            out += '<div class="message-followup">' + formatMarkdown(followup) + "</div>";
         }
-
-        // Scripted responses
-        if (meta.type === "list" && meta.items) {
-            var header = meta.message ? "<p>" + escapeHtml(meta.message) + "</p>" : "";
-            var items = meta.items
-                .map(function (item) {
-                    return "<li>" + escapeHtml(item) + "</li>";
-                })
-                .join("");
-            var footer = meta.follow_up
-                ? "<p><em>" + escapeHtml(meta.follow_up) + "</em></p>"
-                : "";
-            return header + "<ol>" + items + "</ol>" + footer;
+        if (Array.isArray(meta.actions) && meta.actions.length) {
+            out += renderActionButtons(meta.actions);
         }
-
-        if (meta.type === "stats" && meta.stats) {
-            var header = meta.message ? "<p>" + escapeHtml(meta.message) + "</p>" : "";
-            var rows = Object.keys(meta.stats)
-                .map(function (k) {
-                    return (
-                        "<li><strong>" +
-                        escapeHtml(k) +
-                        ":</strong> " +
-                        escapeHtml(String(meta.stats[k])) +
-                        "</li>"
-                    );
-                })
-                .join("");
-            var footer = meta.follow_up
-                ? "<p><em>" + escapeHtml(meta.follow_up) + "</em></p>"
-                : "";
-            return header + "<ul>" + rows + "</ul>" + footer;
-        }
-
-        if (meta.type === "zone_detail") {
-            var parts = [];
-            if (meta.message) parts.push("<p>" + escapeHtml(meta.message) + "</p>");
-            if (meta.details) {
-                var dRows = Object.keys(meta.details)
-                    .map(function (k) {
-                        return (
-                            "<li><strong>" +
-                            escapeHtml(k) +
-                            ":</strong> " +
-                            escapeHtml(String(meta.details[k])) +
-                            "</li>"
-                        );
-                    })
-                    .join("");
-                parts.push("<ul>" + dRows + "</ul>");
-            }
-            if (meta.follow_up)
-                parts.push("<p><em>" + escapeHtml(meta.follow_up) + "</em></p>");
-            return parts.join("");
-        }
-
-        // Default: plain text with follow_up
-        var out = "<p>" + escapeHtml(meta.message || content) + "</p>";
-        if (meta.follow_up)
-            out += "<p><em>" + escapeHtml(meta.follow_up) + "</em></p>";
         return out;
     }
 
@@ -198,10 +211,93 @@
         return div.innerHTML;
     }
 
-    function scrollToBottom() {
+    function normalizeActionHref(href) {
+        return typeof href === "string" && href.indexOf("/") === 0 && href.indexOf("//") !== 0 ? href : "#";
+    }
+
+    function flattenResponseText(response) {
+        if (!response || typeof response !== "object") return "";
+        return [response.message, response.followup]
+            .filter(function (value) {
+                return typeof value === "string" && value.trim();
+            })
+            .join("\n\n")
+            .trim();
+    }
+
+    function recordHistoryTurn(role, content) {
+        var text = String(content || "").trim();
+        if (!text || ["user", "assistant"].indexOf(role) === -1) return;
+        history.push({ role: role, content: text });
+        if (history.length > 8) {
+            history = history.slice(-8);
+        }
+    }
+
+    function renderActionButtons(actions) {
+        var buttons = actions
+            .map(function (action) {
+                var href = normalizeActionHref(action && action.href);
+                var label = escapeHtml((action && action.label) || "Open");
+                var style = action && action.style === "secondary" ? "secondary" : "primary";
+                return (
+                    '<a class="message-action message-action--' +
+                    style +
+                    '" href="' +
+                    href +
+                    '">' +
+                    label +
+                    "</a>"
+                );
+            })
+            .join("");
+
+        return '<div class="message-actions">' + buttons + "</div>";
+    }
+
+    function scrollToBottom(smooth, targetEl) {
+        function performScroll() {
+            if (!messagesEl) return;
+            syncChatShellHeight();
+
+            var behavior = smooth && !prefersReducedMotion() ? "smooth" : "auto";
+            var scrollTarget = targetEl || messagesEl.lastElementChild || typingEl;
+            var composerOffset = composerEl ? composerEl.offsetHeight + 24 : 24;
+            var maxScrollTop = Math.max(
+                document.documentElement.scrollHeight,
+                document.body ? document.body.scrollHeight : 0
+            ) - window.innerHeight;
+
+            if (scrollTarget) {
+                var targetRect = scrollTarget.getBoundingClientRect();
+                var targetBottom = targetRect.bottom + window.scrollY;
+                var nextTop = Math.max(0, Math.min(maxScrollTop, targetBottom - window.innerHeight + composerOffset));
+                window.scrollTo({
+                    top: nextTop,
+                    behavior: behavior,
+                });
+                return;
+            }
+
+            window.scrollTo({
+                top: Math.max(0, maxScrollTop),
+                behavior: behavior,
+            });
+        }
+
         requestAnimationFrame(function () {
-            messagesEl.scrollTop = messagesEl.scrollHeight;
+            performScroll();
+            window.setTimeout(performScroll, 120);
         });
+    }
+
+    function autoResizeInput() {
+        if (!inputEl || inputEl.tagName !== "TEXTAREA") return;
+        inputEl.style.height = "0px";
+        var minHeight = parseFloat(window.getComputedStyle(inputEl).minHeight) || 0;
+        var nextHeight = Math.min(Math.max(inputEl.scrollHeight, minHeight), 220);
+        inputEl.style.height = nextHeight + "px";
+        updateComposerOffset();
     }
 
     // ------------------------------------------------------------------
@@ -209,11 +305,13 @@
     // ------------------------------------------------------------------
     function showTyping() {
         typingEl.style.display = "flex";
-        scrollToBottom();
+        syncChatShellHeight();
+        scrollToBottom(true, typingEl);
     }
 
     function hideTyping() {
         typingEl.style.display = "none";
+        syncChatShellHeight();
     }
 
     // ------------------------------------------------------------------
@@ -228,23 +326,29 @@
         inputEl.value = "";
 
         // Hide suggestions after first user message
-        suggestionsEl.style.display = "none";
+        hideSuggestions();
 
         // Show user bubble
         addMessage("user", text);
         showTyping();
+        autoResizeInput();
 
         try {
             var res = await fetch("/api/chatbot", {
                 method: "POST",
                 headers: { "Content-Type": "application/json" },
-                body: JSON.stringify({ message: text }),
+                body: JSON.stringify({
+                    message: text,
+                    history: history.slice(-8),
+                }),
             });
 
             var data = await res.json();
             hideTyping();
 
             if (data.success && data.response) {
+                recordHistoryTurn("user", text);
+                recordHistoryTurn("assistant", flattenResponseText(data.response));
                 addMessage("bot", data.response.message || "", data.response);
             } else {
                 addMessage(
@@ -267,6 +371,7 @@
         isSending = false;
         sendBtn.disabled = false;
         inputEl.focus();
+        autoResizeInput();
     }
 
     // ------------------------------------------------------------------
@@ -283,16 +388,20 @@
         }
     });
 
+    inputEl.addEventListener("input", autoResizeInput);
+
     // Accordion toggle (element may not exist on simplified pages)
     if (accordionBtn) {
         accordionBtn.addEventListener("click", function () {
             var icon = accordionBtn.querySelector(".toggle-icon");
             if (accordionBody.style.display === "none") {
                 accordionBody.style.display = "block";
-                icon.classList.add("open");
+                accordionBtn.setAttribute("aria-expanded", "true");
+                if (icon) icon.classList.add("open");
             } else {
                 accordionBody.style.display = "none";
-                icon.classList.remove("open");
+                accordionBtn.setAttribute("aria-expanded", "false");
+                if (icon) icon.classList.remove("open");
             }
         });
     }
@@ -301,5 +410,21 @@
     // Init
     // ------------------------------------------------------------------
     loadSuggestions();
+    autoResizeInput();
+    updateComposerOffset();
+
+    if ("ResizeObserver" in window && composerEl) {
+        var composerObserver = new ResizeObserver(function () {
+            updateComposerOffset();
+            syncChatShellHeight();
+        });
+        composerObserver.observe(composerEl);
+    }
+
+    window.addEventListener("resize", function () {
+        updateComposerOffset();
+        syncChatShellHeight();
+    });
+
     inputEl.focus();
 })();

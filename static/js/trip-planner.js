@@ -16,14 +16,24 @@ let tripNavigationInterval = null;
 let tripCurrentDistance = 0;
 let tripMovingMarker = null;
 let tripPreviousDistance = 0;
+let tripSimulationSpeedKmPerSecond = 0;
 let tripWaypointCumulativeKm = [];
 let lastAlertSegmentIndex = -1;
 let lastAlertSeverity = null;  // track risk level to only alert on changes
 let spokenAlerts = new Set();
-let lastAlertTime = 0;
-let safeAlertFadeTimeout = null;
-const ALERT_COOLDOWN = 5000; // 5 seconds between alerts minimum
-const TRIP_PLANNER_JS_VERSION = "2026-03-20.2";
+let navAlertHideTimeout = null;
+let navBannerSuppressed = false;
+let navVoiceAlertActive = false;
+let navVoiceUtterance = null;
+const NAVIGATION_ALERT_DURATION_MS = 3200;
+const NAVIGATION_VOICE_RATE = 0.9;
+const VOICE_ALERT_WORDS_PER_SECOND = 2.15;
+const VOICE_ALERT_LEAD_BUFFER_SECONDS = 0.85;
+const VOICE_ALERT_CLUSTER_BUFFER_SECONDS = 1.4;
+const VOICE_ALERT_MIN_LOOKAHEAD_KM = 0.18;
+const DANGER_VOICE_MESSAGE = "Warning: high risk zone ahead. Drive carefully.";
+const TRIP_PLANNER_JS_VERSION = "2026-03-22.2";
+const ANALYSIS_STEP_MIN_MS = 1500;
 // Animation speed: adaptive so all routes finish in ~18 seconds
 const SIMULATION_TARGET_SECONDS = 18;
 const SIMULATION_TICK_MS = 100;
@@ -52,6 +62,67 @@ const BACKUP_DESTINATIONS = [
     { name: "Ratchada", lat: 13.73, lon: 100.72 }
 ];
 
+const TRIP_PLANNER_MAP_STYLES = {
+    light: [
+        { elementType: "geometry", stylers: [{ color: "#eef4f1" }] },
+        { elementType: "labels.text.fill", stylers: [{ color: "#334155" }] },
+        { elementType: "labels.text.stroke", stylers: [{ color: "#f8fafc" }] },
+        { featureType: "landscape.natural", elementType: "geometry", stylers: [{ color: "#e2f7e8" }] },
+        { featureType: "poi", elementType: "labels.icon", stylers: [{ visibility: "off" }] },
+        { featureType: "road", elementType: "geometry", stylers: [{ color: "#ffffff" }] },
+        { featureType: "road.arterial", elementType: "geometry", stylers: [{ color: "#e2e8f0" }] },
+        { featureType: "transit", stylers: [{ visibility: "off" }] },
+        { featureType: "water", elementType: "geometry", stylers: [{ color: "#dbeafe" }] },
+    ],
+    dark: [
+        { elementType: "geometry", stylers: [{ color: "#08111f" }] },
+        { elementType: "labels.text.fill", stylers: [{ color: "#cbd5e1" }] },
+        { elementType: "labels.text.stroke", stylers: [{ color: "#08111f" }] },
+        { featureType: "landscape.natural", elementType: "geometry", stylers: [{ color: "#0b1822" }] },
+        { featureType: "poi", elementType: "labels.icon", stylers: [{ visibility: "off" }] },
+        { featureType: "road", elementType: "geometry", stylers: [{ color: "#132133" }] },
+        { featureType: "road.arterial", elementType: "geometry", stylers: [{ color: "#1e293b" }] },
+        { featureType: "transit", stylers: [{ visibility: "off" }] },
+        { featureType: "water", elementType: "geometry", stylers: [{ color: "#0f3c57" }] },
+    ],
+};
+
+function getTripPlannerTheme() {
+    return document.documentElement.getAttribute("data-theme") === "dark" ? "dark" : "light";
+}
+
+function getTripPlannerMapStyles(theme = getTripPlannerTheme()) {
+    return TRIP_PLANNER_MAP_STYLES[theme] || TRIP_PLANNER_MAP_STYLES.light;
+}
+
+function getTripPlannerMapBackground(theme = getTripPlannerTheme()) {
+    return theme === "dark" ? "#08111f" : "#eef4f1";
+}
+
+function applyTripPlannerMapTheme() {
+    const options = {
+        styles: getTripPlannerMapStyles(),
+        backgroundColor: getTripPlannerMapBackground(),
+    };
+
+    if (tripCompareMap) {
+        tripCompareMap.setOptions(options);
+    }
+
+    if (tripNavigationMap) {
+        tripNavigationMap.setOptions(options);
+    }
+}
+
+function formatRiskScoreCopy(score, guidance) {
+    const normalizedScore = Math.round(Number(score) || 0);
+    return guidance
+        ? `Risk score: ${normalizedScore} · ${guidance}`
+        : `Risk score: ${normalizedScore}`;
+}
+
+window.addEventListener("rr-theme-change", applyTripPlannerMapTheme);
+
 // ===== ADDRESS AUTOCOMPLETE =====
 let searchTimeout = null;
 let startSearchTimeout = null;
@@ -77,6 +148,8 @@ window.initGooglePlaces = function () {
             mapTypeControl: false,
             streetViewControl: false,
             fullscreenControl: false,
+            styles: getTripPlannerMapStyles(),
+            backgroundColor: getTripPlannerMapBackground(),
         });
         // Wait for tiles to load, then place marker
         google.maps.event.addListenerOnce(tripCompareMap, "tilesloaded", function () {
@@ -297,17 +370,21 @@ function detectMyLocation() {
     // Show loading state
     startInput.value = "Detecting location...";
     if (gpsBtn) {
-        gpsBtn.textContent = "...";
+        gpsBtn.classList.add("is-loading");
+        gpsBtn.classList.remove("is-success");
         gpsBtn.disabled = true;
+        gpsBtn.setAttribute("aria-busy", "true");
     }
 
     // Called when we have lat/lon from any source
     function applyLocation(lat, lon) {
         console.log("[GPS] Location found:", lat, lon);
         if (gpsBtn) {
-            gpsBtn.textContent = "OK";
+            gpsBtn.classList.remove("is-loading");
+            gpsBtn.classList.add("is-success");
             gpsBtn.disabled = false;
-            setTimeout(() => { gpsBtn.textContent = "GPS"; }, 2000);
+            gpsBtn.removeAttribute("aria-busy");
+            setTimeout(() => { gpsBtn.classList.remove("is-success"); }, 2000);
         }
         window.startLat = lat;
         window.startLon = lon;
@@ -331,7 +408,11 @@ function detectMyLocation() {
 
     function applyDefault(reason) {
         console.warn("[GPS] All methods failed:", reason);
-        if (gpsBtn) { gpsBtn.textContent = "GPS"; gpsBtn.disabled = false; }
+        if (gpsBtn) {
+            gpsBtn.classList.remove("is-loading", "is-success");
+            gpsBtn.disabled = false;
+            gpsBtn.removeAttribute("aria-busy");
+        }
         startInput.value = DEFAULT_START.name;
         window.startLat = DEFAULT_START.lat;
         window.startLon = DEFAULT_START.lon;
@@ -421,44 +502,52 @@ async function calculateRoute(startLat, startLon, endLat, endLon, destName) {
 
     try {
         // ── Step 1: real network call (duration is genuine) ──────────────
-        updateAnalysisStep(1, "active");
-        updateStatus("Requesting route alternatives from OSRM...");
+        const data = await runAnalysisStep(
+            1,
+            "Requesting route alternatives from OSRM...",
+            async () => {
+                const response = await fetch("/api/compare-routes", {
+                    method: "POST",
+                    headers: { "Content-Type": "application/json" },
+                    body: JSON.stringify({
+                        start_lat: startLat,
+                        start_lon: startLon,
+                        end_lat: endLat,
+                        end_lon: endLon,
+                        destination_name: destName
+                    })
+                });
 
-        const response = await fetch("/api/compare-routes", {
-            method: "POST",
-            headers: { "Content-Type": "application/json" },
-            body: JSON.stringify({
-                start_lat: startLat,
-                start_lon: startLon,
-                end_lat: endLat,
-                end_lon: endLon,
-                destination_name: destName
-            })
-        });
+                if (!response.ok) throw new Error("Route comparison failed");
+                const result = await response.json();
+                if (result.error) throw new Error(result.error);
+                return result;
+            }
+        );
 
-        if (!response.ok) throw new Error("Route comparison failed");
-        const data = await response.json();
-        if (data.error) throw new Error(data.error);
-
-        updateAnalysisStep(1, "complete");
+        const routesAnalyzed = data.alternatives_analyzed || 5;
+        const analyzedCounter = document.getElementById("routes-analyzed");
+        if (analyzedCounter) analyzedCounter.textContent = routesAnalyzed;
 
         // ── Step 2: XGBoost risk analysis (show ML working) ──────────────
-        updateAnalysisStep(2, "active");
-        updateStatus("XGBoost analyzing accident risk patterns...");
-        document.getElementById("routes-analyzed").textContent =
-            data.alternatives_analyzed || 5;
-        await sleep(200);
-
-        updateAnalysisStep(2, "complete");
+        await runAnalysisStep(
+            2,
+            "XGBoost analyzing accident risk patterns...",
+            async () => {
+                const counter = document.getElementById("routes-analyzed");
+                if (counter) counter.textContent = routesAnalyzed;
+            }
+        );
 
         // ── Step 3: route comparison ──────────────────────────────────────
-        updateAnalysisStep(3, "active");
-        updateStatus("Comparing routes for optimal safety...");
-        await sleep(150);
+        await runAnalysisStep(
+            3,
+            "Comparing routes for optimal safety...",
+            async () => {}
+        );
 
-        updateAnalysisStep(3, "complete");
         updateStatus("Analysis complete!");
-        await sleep(100);
+        await sleep(180);
 
         hideAIAnalyzing();
         displayMultipleRoutes(data);
@@ -477,24 +566,33 @@ async function calculateRoute(startLat, startLon, endLat, endLon, destName) {
 
 // ── AI overlay helpers ────────────────────────────────────────────────────────
 
+let aiAnalyzingHideTimer = null;
+
 function showAIAnalyzing() {
     const overlay = document.getElementById("ai-analyzing-overlay");
     if (!overlay) return;
+    if (aiAnalyzingHideTimer) {
+        clearTimeout(aiAnalyzingHideTimer);
+        aiAnalyzingHideTimer = null;
+    }
     overlay.style.display = "flex";
-    // Reset all steps to pending
-    document.querySelectorAll(".progress-step").forEach((s) =>
-        s.classList.remove("active", "complete")
-    );
-    document.querySelectorAll(".step-status").forEach((s) => {
-        s.textContent = "...";
-    });
+    overlay.classList.remove("is-visible");
+    void overlay.offsetWidth;
+    requestAnimationFrame(() => overlay.classList.add("is-visible"));
+    updateStatus("Preparing route analysis...");
+    [1, 2, 3].forEach((stepNumber) => updateAnalysisStep(stepNumber, "pending"));
     const counter = document.getElementById("routes-analyzed");
     if (counter) counter.textContent = "0";
 }
 
 function hideAIAnalyzing() {
     const overlay = document.getElementById("ai-analyzing-overlay");
-    if (overlay) overlay.style.display = "none";
+    if (!overlay) return;
+    overlay.classList.remove("is-visible");
+    aiAnalyzingHideTimer = setTimeout(() => {
+        overlay.style.display = "none";
+        aiAnalyzingHideTimer = null;
+    }, 220);
 }
 
 function showRouteError(rawMessage) {
@@ -520,19 +618,44 @@ function updateAnalysisStep(stepNumber, status) {
     const step = document.getElementById(`step-${stepNumber}`);
     if (!step) return;
     const icon = step.querySelector(".step-status");
-    step.classList.remove("active", "complete");
-    if (status === "active") {
-        step.classList.add("active");
-        if (icon) icon.textContent = "...";
-    } else if (status === "complete") {
-        step.classList.add("complete");
-        if (icon) icon.textContent = "done";
-    }
+    step.classList.remove("pending", "active", "complete");
+    step.classList.add(status);
+    if (icon) icon.setAttribute(
+        "aria-label",
+        status === "active" ? "In progress" : status === "complete" ? "Completed" : "Pending"
+    );
 }
 
 function updateStatus(text) {
     const el = document.getElementById("analysis-status");
     if (el) el.textContent = text;
+}
+
+async function runAnalysisStep(stepNumber, statusText, task, minimumDuration = ANALYSIS_STEP_MIN_MS) {
+    updateAnalysisStep(stepNumber, "active");
+    updateStatus(statusText);
+
+    const startedAt = Date.now();
+    let result;
+    let thrownError = null;
+
+    try {
+        result = await task();
+    } catch (error) {
+        thrownError = error;
+    }
+
+    const elapsed = Date.now() - startedAt;
+    if (elapsed < minimumDuration) {
+        await sleep(minimumDuration - elapsed);
+    }
+
+    if (thrownError) {
+        throw thrownError;
+    }
+
+    updateAnalysisStep(stepNumber, "complete");
+    return result;
 }
 
 function sleep(ms) {
@@ -553,6 +676,8 @@ function initCompareMap() {
             mapTypeControl: false,
             streetViewControl: false,
             fullscreenControl: false,
+            styles: getTripPlannerMapStyles(),
+            backgroundColor: getTripPlannerMapBackground(),
         });
     }
     return tripCompareMap;
@@ -758,6 +883,57 @@ function clearPreviewMap() {
 
 // ===== ROUTE SELECTION UI =====
 
+function buildRouteComparisonCopy(fastRoute, safeRoute) {
+    const fastRiskScore = Number(fastRoute && fastRoute.risk_score) || 0;
+    const safeRiskScore = Number(safeRoute && safeRoute.risk_score) || 0;
+    const timeDiffMinutes = Math.round((Number(safeRoute && safeRoute.time_min) || 0) - (Number(fastRoute && fastRoute.time_min) || 0));
+    const absTimeDiff = Math.abs(timeDiffMinutes);
+    const minuteLabel = absTimeDiff === 1 ? "minute" : "minutes";
+    const riskReductionPct = fastRiskScore > 0
+        ? Math.max(0, Math.round(((fastRiskScore - safeRiskScore) / fastRiskScore) * 100))
+        : 0;
+
+    if (riskReductionPct <= 0) {
+        if (timeDiffMinutes > 0) {
+            return {
+                tradeoffHeadline: `Similar risk · only +${absTimeDiff} min longer`,
+                recommendationText: `Take the faster path — no meaningful risk reduction for ${absTimeDiff} extra ${minuteLabel}.`,
+            };
+        }
+
+        if (timeDiffMinutes < 0) {
+            return {
+                tradeoffHeadline: `Same risk · ${absTimeDiff} min faster`,
+                recommendationText: `Take the faster path — it matches the safer option on risk and saves ${absTimeDiff} ${minuteLabel}.`,
+            };
+        }
+
+        return {
+            tradeoffHeadline: "Same risk · same ETA",
+            recommendationText: "Fast route is already the safest available option.",
+        };
+    }
+
+    if (timeDiffMinutes > 0) {
+        return {
+            tradeoffHeadline: `${riskReductionPct}% safer · only +${absTimeDiff} min longer`,
+            recommendationText: `Take the safer path — ${riskReductionPct}% lower risk for just ${absTimeDiff} extra ${minuteLabel}.`,
+        };
+    }
+
+    if (timeDiffMinutes < 0) {
+        return {
+            tradeoffHeadline: `${riskReductionPct}% safer · ${absTimeDiff} min faster`,
+            recommendationText: `Take the safer path — ${riskReductionPct}% lower risk and ${absTimeDiff} ${minuteLabel} faster.`,
+        };
+    }
+
+    return {
+        tradeoffHeadline: `${riskReductionPct}% safer · same ETA`,
+        recommendationText: `Take the safer path — ${riskReductionPct}% lower risk with no extra time.`,
+    };
+}
+
 function showRouteSelectionUI(data) {
     const fastRoute = data.fast_route;
     const safeRoute = data.safe_route;
@@ -768,23 +944,7 @@ function showRouteSelectionUI(data) {
     const safeRiskScore = Math.round(safeRoute.risk_score || 0);
     const fastHighRisk = fastRoute.high_risk_zones || 0;
     const safeHighRisk = safeRoute.high_risk_zones || 0;
-
-    const timeDiff = safeTime - fastTime;
-    const timeDiffText = timeDiff > 0
-        ? `+${timeDiff} min longer`
-        : timeDiff < 0
-            ? `${Math.abs(timeDiff)} min faster`
-            : "Same time";
-
-    const riskDelta = fastRiskScore - safeRiskScore;
-    const riskDeltaText = riskDelta > 0 ? `${riskDelta} pt lower risk` : "similar risk";
-    const tradeoffHeadline = timeDiff > 0
-        ? `+${timeDiff} min · ${riskDeltaText}`
-        : timeDiff < 0
-            ? `${Math.abs(timeDiff)} min faster · ${riskDeltaText}`
-            : `Same time · ${riskDeltaText}`;
-
-    const altCount = data.alternatives_analyzed || 5;
+    const comparisonCopy = buildRouteComparisonCopy(fastRoute, safeRoute);
     const fastTrafficSrc = fastRoute.traffic_source || "estimated";
     const safeTrafficSrc = safeRoute.traffic_source || "estimated";
     const trafficBadge = (src) => {
@@ -801,21 +961,21 @@ function showRouteSelectionUI(data) {
     };
 
     const routeSelectionHTML = `
-        <div class="route-selection-container">
+        <div class="route-selection-container route-selection-enter">
             <!-- Fix 6: back to input state -->
-            <button class="sheet-back-btn" onclick="setSheetState(1)">← Change route</button>
+            <button class="sheet-back-btn route-fade-up route-fade-up-1" onclick="setSheetState(1)">← Change route</button>
 
-            <div class="ml-analysis-badge">
+            <div class="ml-analysis-badge route-fade-up route-fade-up-2">
                 <strong>AI-Powered Route Analysis</strong>
                 <span class="ml-model">XGBoost ML &bull; 83.8% Validated</span>
             </div>
 
             <!-- Fix 4: tradeoff line OUTSIDE cards, centered above grid -->
-            <div class="tradeoff-between">${tradeoffHeadline}</div>
+            <div class="tradeoff-between route-fade-up route-fade-up-3">${comparisonCopy.tradeoffHeadline}</div>
 
             <div class="route-options-grid">
                 <!-- Fix 1: Fast card — red border + bg -->
-                <div class="route-card route-card-fast-style" id="route-card-fast" onclick="selectRoute('fast')">
+                <div class="route-card route-card-fast-style route-card-enter route-card-enter-fast" id="route-card-fast" onclick="selectRoute('fast')">
                     <div>
                         <div class="route-badge-v2 fastest-v2">FASTEST</div>
                         <div class="route-time">${fastTime} min ${trafficBadge(fastTrafficSrc)}</div>
@@ -833,7 +993,7 @@ function showRouteSelectionUI(data) {
                 </div>
 
                 <!-- Fix 1: Safe card — green border + bg -->
-                <div class="route-card route-card-safe-style recommended" id="route-card-safe" onclick="selectRoute('safe')">
+                <div class="route-card route-card-safe-style recommended route-card-enter route-card-enter-safe" id="route-card-safe" onclick="selectRoute('safe')">
                     <div>
                         <div class="route-badge-v2 safest-v2">SAFEST</div>
                         ${safeRiskScore < fastRiskScore ? '<div class="recommended-badge">REC</div>' : ""}
@@ -845,15 +1005,15 @@ function showRouteSelectionUI(data) {
                         ${safeHighRisk > 0
                             ? `<div class="warning-note">! ${safeHighRisk} danger zone${safeHighRisk > 1 ? "s" : ""}</div>`
                             : '<div class="safe-note">No danger zones</div>'}
-                        <button class="select-route-btn primary" onclick="selectRoute('safe'); event.stopPropagation();">
+                        <button class="select-route-btn primary select-safe-btn" onclick="selectRoute('safe'); event.stopPropagation();">
                             Select This Route
                         </button>
                     </div>
                 </div>
             </div>
 
-            ${data.recommendation
-                ? `<div class="ai-recommendation">${data.recommendation}</div>`
+            ${comparisonCopy.recommendationText
+                ? `<div class="ai-recommendation route-fade-up route-fade-up-4">${comparisonCopy.recommendationText}</div>`
                 : ""}
         </div>
     `;
@@ -878,8 +1038,9 @@ function getRiskIcon(level) {
 function selectRoute(routeId) {
     selectedRoute = routeId;
 
-    // Highlight selected route on map, fade the other
+    // Highlight selected route on map, fade the other (skip marker keys)
     Object.keys(routeLayers).forEach((id) => {
+        if (id.startsWith("_")) return; // skip _start/_end markers
         const poly = routeLayers[id];
         if (id === routeId) {
             poly.setOptions({ strokeWeight: 9, strokeOpacity: 1.0, strokeColor: id === "fast" ? "#1D4ED8" : "#059669", zIndex: 2 });
@@ -898,7 +1059,7 @@ function selectRoute(routeId) {
 }
 
 function showRouteDetails(route) {
-    const routeLabel = selectedRoute === "fast" ? "🚀 Fastest Route" : "🛡️ Safest Route";
+    const routeLabel = selectedRoute === "fast" ? "Fastest Route" : "Safest Route";
     const riskClass  = route.risk_level || "medium";
     const riskLabel  = (route.risk_level || "").toUpperCase();
 
@@ -926,13 +1087,16 @@ function showRouteDetails(route) {
         const sheet = document.getElementById("planner-sheet");
         if (sheet) sheet.scrollTop = sheet.scrollHeight;
     }, 100);
+
+    resetStartNavigationButton();
 }
 
 function changeRoute() {
     selectedRoute = null;
 
-    // Reset map route styles to original colours/opacity
+    // Reset map route styles to original colours/opacity (skip marker keys)
     Object.keys(routeLayers).forEach((id) => {
+        if (id.startsWith("_")) return; // skip _start/_end markers
         routeLayers[id].setOptions({ strokeWeight: 6, strokeOpacity: 0.75, strokeColor: id === "fast" ? "#3B82F6" : "#10B981", zIndex: 1 });
     });
 
@@ -945,6 +1109,122 @@ function changeRoute() {
     setSheetState(2);
 }
 
+/**
+ * Build synthetic risk-colored segments from compare-routes data when
+ * the full /api/analyze-route call fails. Divides the route waypoints
+ * into ~1 km segments and assigns risk colors based on the route's
+ * overall risk level + some variance to simulate realistic risk zones.
+ */
+function buildSyntheticSegments(route) {
+    const waypoints = route.waypoints;
+    if (!waypoints || waypoints.length < 2) return [];
+
+    // Build cumulative distance profile
+    const cumDist = [0];
+    for (let i = 1; i < waypoints.length; i++) {
+        cumDist.push(cumDist[i - 1] + haversineKm(
+            waypoints[i - 1][0], waypoints[i - 1][1],
+            waypoints[i][0], waypoints[i][1]
+        ));
+    }
+    const totalKm = cumDist[cumDist.length - 1];
+    if (totalKm <= 0) return [];
+
+    const segmentKm = 1.0; // ~1 km per segment
+    const numSegments = Math.max(1, Math.round(totalKm / segmentKm));
+
+    // Determine risk distribution based on route-level risk info
+    const highZones = route.high_risk_zones || 0;
+    const medZones = route.medium_risk_zones || 0;
+    const riskScore = route.risk_score || 0;
+
+    // Assign risk levels to segment indices: spread high/medium risk
+    // segments across the route rather than clumping at the start
+    const segmentRisks = new Array(numSegments).fill("low");
+
+    // Place high-risk segments somewhat evenly
+    if (highZones > 0) {
+        const step = numSegments / (highZones + 1);
+        for (let h = 0; h < highZones && h < numSegments; h++) {
+            const idx = Math.min(numSegments - 1, Math.round(step * (h + 1)));
+            segmentRisks[idx] = "high";
+        }
+    }
+    // Place medium-risk segments in remaining slots
+    if (medZones > 0) {
+        let placed = 0;
+        const step = numSegments / (medZones + 1);
+        for (let m = 0; m < medZones && placed < medZones; m++) {
+            const idx = Math.min(numSegments - 1, Math.round(step * (m + 1)));
+            if (segmentRisks[idx] === "low") {
+                segmentRisks[idx] = "medium";
+                placed++;
+            }
+        }
+    }
+
+    // If overall risk is high but no specific zones, make some segments risky
+    if (highZones === 0 && medZones === 0 && riskScore >= 50) {
+        const riskyCount = Math.max(1, Math.round(numSegments * 0.3));
+        const step = numSegments / (riskyCount + 1);
+        for (let r = 0; r < riskyCount; r++) {
+            const idx = Math.min(numSegments - 1, Math.round(step * (r + 1)));
+            segmentRisks[idx] = riskScore >= 70 ? "high" : "medium";
+        }
+    } else if (highZones === 0 && medZones === 0 && riskScore >= 25) {
+        const riskyCount = Math.max(1, Math.round(numSegments * 0.2));
+        const step = numSegments / (riskyCount + 1);
+        for (let r = 0; r < riskyCount; r++) {
+            const idx = Math.min(numSegments - 1, Math.round(step * (r + 1)));
+            segmentRisks[idx] = "medium";
+        }
+    }
+
+    const riskColors = { high: "#dc3545", medium: "#ffc107", low: "#28a745" };
+    const riskScores = { high: 70, medium: 40, low: 10 };
+
+    const segments = [];
+    const wpPerSeg = Math.max(1, Math.floor(waypoints.length / numSegments));
+
+    for (let s = 0; s < numSegments; s++) {
+        const wpStart = s * wpPerSeg;
+        const wpEnd = s === numSegments - 1 ? waypoints.length - 1 : Math.min((s + 1) * wpPerSeg, waypoints.length - 1);
+        const segWaypoints = waypoints.slice(wpStart, wpEnd + 1);
+        if (segWaypoints.length < 2) continue;
+
+        const startKm = cumDist[wpStart] || 0;
+        const endKm = cumDist[wpEnd] || totalKm;
+        const risk = segmentRisks[s];
+
+        segments.push({
+            start_km: Math.round(startKm * 10) / 10,
+            end_km: Math.round(endKm * 10) / 10,
+            waypoints: segWaypoints,
+            risk_score: riskScores[risk],
+            risk_level: risk,
+            color: riskColors[risk],
+            high_risk_zones: risk === "high" ? 1 : 0,
+            max_accidents: 0,
+        });
+    }
+
+    return segments;
+}
+
+function resetStartNavigationButton() {
+    const btn = document.getElementById("start-navigation-btn") || document.querySelector(".start-navigation-btn");
+    if (!btn) return;
+    btn.textContent = "Start Navigation";
+    btn.disabled = false;
+}
+
+function setStartNavigationButtonLoading() {
+    const btn = document.getElementById("start-navigation-btn") || document.querySelector(".start-navigation-btn");
+    if (!btn) return;
+    btn.textContent = "Loading route...";
+    btn.disabled = true;
+}
+
 async function startNavigationWithSelected() {
     if (!selectedRoute) {
         alert("Please select a route first");
@@ -952,11 +1232,7 @@ async function startNavigationWithSelected() {
     }
 
     const route = routeOptions[selectedRoute];
-    const btn = document.querySelector(".start-navigation-btn");
-    if (btn) {
-        btn.textContent = "⏳ Loading route...";
-        btn.disabled = true;
-    }
+    setStartNavigationButtonLoading();
 
     try {
         // Fetch full segment analysis for the selected route's waypoints
@@ -984,8 +1260,9 @@ async function startNavigationWithSelected() {
         console.warn("Full route analysis unavailable, using compare data:", err);
     }
 
-    // Fallback: build minimal route data directly from compare-routes response
-    tripPlannerRouteData = {
+    // Fallback: build synthetic segments from compare-routes waypoints
+    const fallbackSegments = buildSyntheticSegments(route);
+    const syntheticData = {
         route: {
             waypoints: route.waypoints,
             duration_min: route.time_min,
@@ -993,13 +1270,14 @@ async function startNavigationWithSelected() {
             risk_score: route.risk_score,
             risk_level: route.risk_level
         },
-        segments: [],
+        segments: fallbackSegments,
         alerts: [],
         summary: {
             high_risk_segments: route.high_risk_zones || 0,
             medium_risk_segments: route.medium_risk_zones || 0
         }
     };
+    setTripPlannerRouteData(syntheticData);
 
     startNavigation();
 }
@@ -1242,6 +1520,12 @@ function selectQuickDestination(name, lat, lon) {
 }
 
 function selectDemoRoute(startName, startLat, startLon, endName, endLat, endLon) {
+    // Reset any prior comparison state; demo chips should only prefill the form.
+    selectedRoute = null;
+    routeOptions = {};
+    hideElement("route-error");
+    setSheetState(1);
+
     document.getElementById("start-location").value = startName;
     window.startLat = startLat;
     window.startLon = startLon;
@@ -1250,19 +1534,16 @@ function selectDemoRoute(startName, startLat, startLon, endName, endLat, endLon)
     window.endLon = endLon;
     updateFindSaferRouteButton();
 
+    const btn = document.getElementById("findSaferRouteBtn");
+    if (btn) {
+        btn.textContent = "Find Safer Route";
+    }
+
     // Place markers if map is ready
     if (tripCompareMap) {
         setPreviewMarker(startLat, startLon, true);
         setPreviewMarker(endLat, endLon, false);
     }
-
-    // Auto-trigger route calculation (short delay so map markers render first)
-    setTimeout(() => {
-        const btn = document.getElementById("findSaferRouteBtn");
-        if (btn && !btn.disabled) {
-            calculateRoute(startLat, startLon, endLat, endLon, endName);
-        }
-    }, 200);
 }
 
 function haversineKm(lat1, lon1, lat2, lon2) {
@@ -1392,9 +1673,12 @@ function startNavigation() {
     // console.log("Starting navigation...");
 
     if (!tripPlannerRouteData) {
+        resetStartNavigationButton();
         alert("Please calculate a route first");
         return;
     }
+
+    resetStartNavigationButton();
 
     // Show fullscreen
     const navScreen = document.getElementById("navigation-fullscreen");
@@ -1421,8 +1705,11 @@ function initializeNavigationMap() {
             streetViewControl: false,
             fullscreenControl: false,
             gestureHandling: "greedy",
+            styles: getTripPlannerMapStyles(),
+            backgroundColor: getTripPlannerMapBackground(),
         });
     }
+    applyTripPlannerMapTheme();
     google.maps.event.trigger(tripNavigationMap, "resize");
 
     // Clear existing nav polylines and markers
@@ -1498,10 +1785,19 @@ function initializeNavigationMap() {
 function startNavigationSimulation() {
     // Reset alert tracking
     spokenAlerts.clear();
-    lastAlertTime = 0;
     lastAlertSegmentIndex = -1;
     lastAlertSeverity = null;
     tripPreviousDistance = 0;
+    tripSimulationSpeedKmPerSecond = 0;
+    navBannerSuppressed = false;
+    if (navAlertHideTimeout) {
+        clearTimeout(navAlertHideTimeout);
+        navAlertHideTimeout = null;
+    }
+    finalizeNavigationVoiceAlert();
+    if ("speechSynthesis" in window) {
+        speechSynthesis.cancel();
+    }
 
     // Reset state
     tripCurrentDistance = 0;
@@ -1539,14 +1835,13 @@ function startNavigationSimulation() {
         zIndex: 999,
     });
 
-    // Show initial safe alert and initialize top banner
-    showNavigationAlert("safe", "✓", "Ready to Navigate", "Drive safely");
+    hideNavigationAlert();
     updateNavTopBanner();
-    // console.log(`[TripPlanner ${TRIP_PLANNER_JS_VERSION}] simulation active: ${SIMULATION_STEP_KM.toFixed(2)} km per ${SIMULATION_TICK_MS}ms`);
 
     // Adaptive step: route finishes in ~SIMULATION_TARGET_SECONDS regardless of length
     const ticksNeeded = (SIMULATION_TARGET_SECONDS * 1000) / SIMULATION_TICK_MS;
     const simStepKm = Math.max(0.05, totalDistance / ticksNeeded);
+    tripSimulationSpeedKmPerSecond = totalDistance > 0 ? totalDistance / SIMULATION_TARGET_SECONDS : 0;
 
     // Start simulation interval
     if (tripNavigationInterval) {
@@ -1561,10 +1856,17 @@ function startNavigationSimulation() {
 
         // Check for alerts
         checkNavigationAlerts();
+        maybeSpeakUpcomingDangerAlert();
 
         if (tripCurrentDistance >= totalDistance) {
             clearInterval(tripNavigationInterval);
-            showNavigationAlert("safe", "🎉", "Destination Reached!", "You have arrived safely");
+            tripNavigationInterval = null;
+            finalizeNavigationVoiceAlert();
+            if ("speechSynthesis" in window) {
+                speechSynthesis.cancel();
+            }
+            hideNavigationAlert();
+            setNavTopBannerState("", "OK", "Destination reached", "You have arrived safely");
 
             setTimeout(() => {
                 showTripSummaryModal();
@@ -1608,6 +1910,162 @@ function updateNavigationUI(totalDistance, waypoints) {
     tripNavigationMap.panTo(newLatLng);
 }
 
+function setNavTopBannerState(severity, icon, title, subtitle) {
+    const banner = document.getElementById("nav-top-banner");
+    const bannerIcon = document.getElementById("nav-banner-icon");
+    const bannerTitle = document.getElementById("nav-banner-title");
+    const bannerSubtitle = document.getElementById("nav-banner-subtitle");
+
+    if (!banner || !bannerIcon || !bannerTitle || !bannerSubtitle) return;
+
+    banner.className = severity ? `nav-top-banner ${severity}` : "nav-top-banner";
+    if (navBannerSuppressed) {
+        banner.classList.add("is-hidden");
+    }
+
+    bannerIcon.textContent = icon;
+    bannerTitle.textContent = title;
+    bannerSubtitle.textContent = subtitle;
+}
+
+function setNavTopBannerVisible(isVisible) {
+    const banner = document.getElementById("nav-top-banner");
+    if (!banner) return;
+    banner.classList.toggle("is-hidden", !isVisible);
+}
+
+function hideNavigationAlert() {
+    const alertBox = document.getElementById("nav-alert-box");
+    if (!alertBox) return;
+
+    if (navAlertHideTimeout) {
+        clearTimeout(navAlertHideTimeout);
+        navAlertHideTimeout = null;
+    }
+
+    alertBox.className = "nav-alert-box";
+    alertBox.setAttribute("aria-hidden", "true");
+    navBannerSuppressed = false;
+    updateNavTopBanner();
+}
+
+function showNavigationAlert(severity, icon, title, subtitle, options = {}) {
+    const {
+        duration = NAVIGATION_ALERT_DURATION_MS,
+        suppressBanner = false,
+    } = options;
+    const alertBox = document.getElementById("nav-alert-box");
+
+    if (!alertBox) return;
+
+    if (navAlertHideTimeout) {
+        clearTimeout(navAlertHideTimeout);
+        navAlertHideTimeout = null;
+    }
+
+    navBannerSuppressed = Boolean(suppressBanner);
+    setNavTopBannerVisible(!navBannerSuppressed);
+
+    document.getElementById("nav-alert-icon").textContent = icon;
+    document.getElementById("nav-alert-title").textContent = title;
+    document.getElementById("nav-alert-subtitle").textContent = subtitle;
+
+    alertBox.className = "nav-alert-box";
+    void alertBox.offsetWidth;
+    alertBox.className = `nav-alert-box ${severity} is-visible`;
+    alertBox.setAttribute("aria-hidden", "false");
+
+    if (duration > 0) {
+        navAlertHideTimeout = setTimeout(() => {
+            hideNavigationAlert();
+        }, duration);
+    }
+}
+
+function getVoiceAlertSegmentKey(segmentIndex, segment) {
+    return `${segmentIndex}:${Number(segment.start_km) || 0}:${Number(segment.end_km) || 0}`;
+}
+
+function estimateSpeechDurationSeconds(message) {
+    const wordCount = String(message || "")
+        .trim()
+        .split(/\s+/)
+        .filter(Boolean)
+        .length;
+
+    return Math.max(2.8, (wordCount / VOICE_ALERT_WORDS_PER_SECOND) + 0.65);
+}
+
+function finalizeNavigationVoiceAlert() {
+    navVoiceAlertActive = false;
+    navVoiceUtterance = null;
+}
+
+function maybeSpeakUpcomingDangerAlert() {
+    if (!tripPlannerRouteData || !Array.isArray(tripPlannerRouteData.segments)) return;
+    if (!("speechSynthesis" in window) || tripSimulationSpeedKmPerSecond <= 0) return;
+    if (navVoiceAlertActive || speechSynthesis.speaking || speechSynthesis.pending) return;
+
+    const speechDurationSeconds = estimateSpeechDurationSeconds(DANGER_VOICE_MESSAGE);
+    const leadDistanceKm = Math.max(
+        VOICE_ALERT_MIN_LOOKAHEAD_KM,
+        tripSimulationSpeedKmPerSecond * (speechDurationSeconds + VOICE_ALERT_LEAD_BUFFER_SECONDS)
+    );
+    const clusterDistanceKm = Math.max(
+        leadDistanceKm,
+        tripSimulationSpeedKmPerSecond * (speechDurationSeconds + VOICE_ALERT_CLUSTER_BUFFER_SECONDS)
+    );
+
+    const upcomingDangerSegments = tripPlannerRouteData.segments
+        .map((segment, segmentIndex) => {
+            const startKm = Number(segment.start_km) || 0;
+            return {
+                segment,
+                segmentIndex,
+                alertKey: getVoiceAlertSegmentKey(segmentIndex, segment),
+                distanceToStart: startKm - tripCurrentDistance,
+                severity: segment.ui_severity || getSegmentSeverity(segment),
+            };
+        })
+        .filter((item) =>
+            item.severity === "danger"
+            && item.distanceToStart > 0
+            && !spokenAlerts.has(item.alertKey)
+        )
+        .sort((a, b) => a.distanceToStart - b.distanceToStart);
+
+    if (!upcomingDangerSegments.length) return;
+
+    const leadSegment = upcomingDangerSegments.find((item) => item.distanceToStart <= leadDistanceKm);
+    if (!leadSegment) return;
+
+    const clusterStartKm = Number(leadSegment.segment.start_km) || 0;
+    const clusterSegments = upcomingDangerSegments.filter((item) =>
+        ((Number(item.segment.start_km) || 0) - clusterStartKm) <= clusterDistanceKm
+    );
+
+    const highestRiskSegment = clusterSegments.reduce((best, current) => {
+        const bestRisk = Number(best.segment.risk_score) || 0;
+        const currentRisk = Number(current.segment.risk_score) || 0;
+        if (currentRisk !== bestRisk) {
+            return currentRisk > bestRisk ? current : best;
+        }
+        return current.distanceToStart < best.distanceToStart ? current : best;
+    }, clusterSegments[0]);
+
+    const voiceMessage = clusterSegments.length > 1 && Number(highestRiskSegment.segment.risk_score) > 0
+        ? "Warning: highest risk zone ahead. Drive carefully."
+        : DANGER_VOICE_MESSAGE;
+
+    if (!speakAlert(voiceMessage)) {
+        return;
+    }
+
+    clusterSegments.forEach((item) => {
+        spokenAlerts.add(item.alertKey);
+    });
+}
+
 function checkNavigationAlerts() {
     if (!tripPlannerRouteData || !tripPlannerRouteData.segments) return;
 
@@ -1624,107 +2082,59 @@ function checkNavigationAlerts() {
     // Only alert when risk LEVEL changes (not on every zone entry)
     if (severity === lastAlertSeverity) return;
 
-    const prevSeverity = lastAlertSeverity;
     lastAlertSeverity = severity;
 
-    let icon;
-    let title;
-    let subtitle;
-
     if (severity === "danger") {
-        icon = "🔴";
-        title = "High risk zone";
-        subtitle = `Risk score ${currentSegment.risk_score}/100 — slow down`;
-
-        // Voice alert with cooldown
-        const now = Date.now();
-        if (now - lastAlertTime >= ALERT_COOLDOWN) {
-            lastAlertTime = now;
-            setTimeout(() => speakAlert("Warning: high risk zone ahead. Drive carefully."), 0);
-        }
-    } else if (severity === "warning") {
-        icon = "⚠️";
-        title = prevSeverity === "danger" ? "Risk easing" : "Caution zone";
-        subtitle = `Risk score ${currentSegment.risk_score}/100`;
-    } else {
-        icon = "✅";
-        title = prevSeverity ? "Safe zone" : "Ready";
-        subtitle = "Clear conditions ahead";
+        showNavigationAlert(
+            "danger",
+            "!",
+            "Entering high-risk zone",
+            formatRiskScoreCopy(currentSegment.risk_score, "Slow down"),
+            { suppressBanner: true }
+        );
+        return;
     }
 
-    showNavigationAlert(severity, icon, title, subtitle);
-
-    // Clear any pending safe-zone fadeout so it doesn't hide a danger/warning alert
-    if (safeAlertFadeTimeout) {
-        clearTimeout(safeAlertFadeTimeout);
-        safeAlertFadeTimeout = null;
-    }
-
-    if (severity === "safe") {
-        safeAlertFadeTimeout = setTimeout(() => {
-            fadeOutCurrentAlert();
-            safeAlertFadeTimeout = null;
-        }, 4000);
-    }
+    hideNavigationAlert();
 }
 
 function speakAlert(message) {
-    // Only speak if browser supports it and not currently speaking
-    if ("speechSynthesis" in window && !speechSynthesis.speaking) {
-        try {
-            const utterance = new SpeechSynthesisUtterance(message);
-            utterance.rate = 0.9;
-            utterance.volume = 0.8;
-            utterance.lang = "en-US";
-            speechSynthesis.speak(utterance);
-            // console.log("Voice alert:", message);
-        } catch (error) {
-            // console.log("Voice synthesis failed:", error);
-        }
+    if (!("speechSynthesis" in window)) {
+        return false;
     }
-}
 
-function fadeOutCurrentAlert() {
-    const alertBox = document.getElementById("nav-alert-box");
-    alertBox.style.transition = "opacity 0.5s ease";
-    alertBox.style.opacity = "0";
+    if (navVoiceAlertActive || speechSynthesis.speaking || speechSynthesis.pending) {
+        return false;
+    }
 
-    setTimeout(() => {
-        alertBox.style.opacity = "1";
-        alertBox.style.transition = "";
-    }, 500);
-}
+    try {
+        const utterance = new SpeechSynthesisUtterance(message);
+        utterance.rate = NAVIGATION_VOICE_RATE;
+        utterance.volume = 0.8;
+        utterance.lang = "en-US";
+        utterance.onend = finalizeNavigationVoiceAlert;
+        utterance.onerror = finalizeNavigationVoiceAlert;
 
-function showNavigationAlert(severity, icon, title, subtitle) {
-    const alertBox = document.getElementById("nav-alert-box");
-
-    // Reset any leftover opacity from fadeOutCurrentAlert
-    alertBox.style.opacity = "1";
-    alertBox.style.transition = "";
-
-    alertBox.className = "nav-alert-box " + severity;
-    document.getElementById("nav-alert-icon").textContent = icon;
-    document.getElementById("nav-alert-title").textContent = title;
-    document.getElementById("nav-alert-subtitle").textContent = subtitle;
-
-    // Trigger entrance animation; for danger zones, also run the continuous dangerPulse
-    alertBox.style.animation = "none";
-    setTimeout(() => {
-        if (severity === "danger") {
-            alertBox.style.animation = "slideUp 0.4s ease, dangerPulse 2s ease infinite";
-        } else {
-            alertBox.style.animation = "slideUp 0.4s ease";
-        }
-    }, 10);
+        navVoiceAlertActive = true;
+        navVoiceUtterance = utterance;
+        speechSynthesis.speak(utterance);
+        return true;
+    } catch (error) {
+        finalizeNavigationVoiceAlert();
+        return false;
+    }
 }
 
 function exitNavigation() {
     // console.log("Exiting navigation");
 
+    resetStartNavigationButton();
+
     // Stop any ongoing speech
     if ("speechSynthesis" in window) {
         speechSynthesis.cancel();
     }
+    finalizeNavigationVoiceAlert();
 
     // Stop simulation
     simulationPaused = false;
@@ -1741,14 +2151,18 @@ function exitNavigation() {
     // Reset state
     tripCurrentDistance = 0;
     tripPreviousDistance = 0;
+    tripSimulationSpeedKmPerSecond = 0;
     tripWaypointCumulativeKm = [];
     lastAlertSegmentIndex = -1;
     lastAlertSeverity = null;
     spokenAlerts.clear();
-    if (safeAlertFadeTimeout) {
-        clearTimeout(safeAlertFadeTimeout);
-        safeAlertFadeTimeout = null;
+    navBannerSuppressed = false;
+    if (navAlertHideTimeout) {
+        clearTimeout(navAlertHideTimeout);
+        navAlertHideTimeout = null;
     }
+    hideNavigationAlert();
+    setNavTopBannerState("", "AI", "Scanning route...", "No hazards detected ahead");
 
     // Remove moving marker
     if (tripMovingMarker) { tripMovingMarker.setMap(null); tripMovingMarker = null; }
@@ -1760,15 +2174,23 @@ function exitNavigation() {
 
 // ===== NAV TOP BANNER (lookahead) =====
 function updateNavTopBanner() {
-    const banner = document.getElementById("nav-top-banner");
-    const bannerIcon = document.getElementById("nav-banner-icon");
-    const bannerTitle = document.getElementById("nav-banner-title");
-    const bannerSubtitle = document.getElementById("nav-banner-subtitle");
-    if (!banner || !tripPlannerRouteData || !tripPlannerRouteData.segments) return;
+    if (!tripPlannerRouteData || !tripPlannerRouteData.segments) return;
+
+    if (navBannerSuppressed) {
+        setNavTopBannerVisible(false);
+        return;
+    }
+
+    setNavTopBannerVisible(true);
 
     const segments = tripPlannerRouteData.segments;
     const segIdx = findSegmentIndexForDistance(tripCurrentDistance);
     const LOOKAHEAD = 4;
+
+    if (segIdx < 0) {
+        setNavTopBannerState("", "AI", "Scanning route...", "Checking conditions ahead");
+        return;
+    }
 
     let nextDanger = null;
     let nextWarning = null;
@@ -1779,20 +2201,21 @@ function updateNavTopBanner() {
     }
 
     if (nextDanger) {
-        banner.className = "nav-top-banner danger";
-        bannerIcon.textContent = "🔴";
-        bannerTitle.textContent = "HIGH RISK ZONE AHEAD";
-        bannerSubtitle.textContent = `Risk score: ${nextDanger.risk_score}/100 — slow down`;
+        setNavTopBannerState(
+            "danger",
+            "!",
+            "High-risk zone ahead",
+            formatRiskScoreCopy(nextDanger.risk_score, "Slow down")
+        );
     } else if (nextWarning) {
-        banner.className = "nav-top-banner warning";
-        bannerIcon.textContent = "⚠️";
-        bannerTitle.textContent = "Caution zone approaching";
-        bannerSubtitle.textContent = `Moderate risk | Score: ${nextWarning.risk_score}/100`;
+        setNavTopBannerState(
+            "warning",
+            "!",
+            "Caution zone ahead",
+            formatRiskScoreCopy(nextWarning.risk_score, "Stay alert")
+        );
     } else {
-        banner.className = "nav-top-banner";
-        bannerIcon.textContent = "✅";
-        bannerTitle.textContent = "All clear ahead";
-        bannerSubtitle.textContent = "Safe conditions on your route";
+        setNavTopBannerState("", "OK", "All clear ahead", "Safe conditions on your route");
     }
 }
 
@@ -1841,7 +2264,7 @@ function showTripSummaryModal() {
         arrivedText    = "Arrived safely";
         row1Label      = "Fast route";
         row2Label      = "Your route";
-        tryBtnText     = "Try another route";
+        tryBtnText     = "Plan a new route";
 
         verdictText = avoided > 0 && timeCost > 0
             ? `+${timeCost} min kept you out of ${avoided} danger zone${avoided !== 1 ? "s" : ""}`
@@ -1860,7 +2283,7 @@ function showTripSummaryModal() {
         pctStatLabel   = "higher risk<br>than safe route";
         pctColor       = "#f97316";
         timeStat       = timeSaved;
-        timeStatLabel  = "min saved<br>going fast";
+        timeStatLabel  = "min<br>faster";
         timePrefix     = "";
         timeCostColor  = "#22c55e";
         arrivedText    = "Arrived on time";
@@ -2007,7 +2430,7 @@ function _summaryArcAnimate(pct, duration) {
 function closeSummaryModal() {
     const modal = document.getElementById("nav-summary-modal");
     if (modal) modal.style.display = "none";
-    exitNavigation();
+    window.location.assign("/");
 }
 
 function closeSummaryAndFindRoute() {

@@ -1,78 +1,94 @@
 {% extends "base.html" %}
 {% block body_class %}page-nlp{% endblock %}
 
-{% block title %}Bangkok Safety Assistant - RoadRisk Bangkok{% endblock %}
+{% block title %}Bangkok Safety Assistant - SafeDrive BKK{% endblock %}
 
 {% block extra_css %}
-<link rel="stylesheet" href="{{ url_for('static', filename='css/chatbot.css') }}">
+<link rel="stylesheet" href="{{ url_for('static', filename='css/chatbot.css', v='20260322b') }}">
 {% endblock %}
 
 {% block content %}
-<div class="container">
-    <div class="chatbot-page">
-
-        <!-- Intro -->
-        <div class="chatbot-header">
-            <h1>Bangkok Safety Assistant</h1>
-            <p class="subtitle">
-                Our NLP system analyzes 2,669 Thai accident reports using pythainlp tokenization and
-                a TF-IDF + Logistic Regression classifier to extract accident causes and safety patterns.
-                Ask the assistant anything about Bangkok road safety.
-            </p>
-        </div>
-
-        <!-- Chat Container -->
-        <div class="chatbot-container">
-            <!-- Messages Area -->
-            <div class="chat-messages" id="chatMessages">
-                <div class="message bot">
-                    <div class="message-avatar">AI</div>
-                    <div class="message-content">
-                        <div class="message-text">
-                            <p>Hi! I'm your Bangkok road safety assistant. I've analyzed <strong>2,669 Thai accident reports</strong> using NLP to help you understand road safety patterns.</p>
-                            <p>Ask me anything about accident patterns, dangerous zones, safety recommendations, or route planning!</p>
-                        </div>
-                    </div>
-                </div>
+<div class="assistant-page" id="assistantPage">
+    <section class="assistant-stage" id="assistantStage">
+        <div class="assistant-intro" id="assistantIntro">
+            <div class="assistant-copy">
+                <p class="assistant-kicker">Bangkok Safety Assistant</p>
+                <h1>How can I help today?</h1>
+                <p class="assistant-subtitle">Ask about dangerous zones, safer travel windows, crash causes, or route risk across Bangkok.</p>
             </div>
 
-            <!-- Suggested Questions -->
             <div class="chat-suggestions" id="chatSuggestions">
-                <div class="suggestions-label">Try asking:</div>
                 <div class="suggestions-buttons" id="suggestionsButtons">
                     <!-- Populated by JavaScript -->
                 </div>
             </div>
 
-            <!-- Typing Indicator -->
+            <div class="assistant-evidence" aria-label="NLP evidence">
+                <div class="assistant-evidence-list">
+                    <div class="assistant-evidence-item">
+                        <strong>2,669</strong>
+                        <span>Thai accident reports analyzed</span>
+                    </div>
+                    <div class="assistant-evidence-item">
+                        <strong>6</strong>
+                        <span>cause categories identified</span>
+                    </div>
+                    <div class="assistant-evidence-item">
+                        <strong>TF-IDF + Logistic Regression</strong>
+                        <span>classifier</span>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="chatbot-container" id="chatShell">
+            <div class="chat-messages" id="chatMessages" aria-live="polite"></div>
+
             <div class="typing-indicator" id="typingIndicator" style="display: none;">
                 <div class="typing-dot"></div>
                 <div class="typing-dot"></div>
                 <div class="typing-dot"></div>
-                <span>Analyzing...</span>
-            </div>
-
-            <!-- Input Area -->
-            <div class="chat-input">
-                <input
-                    type="text"
-                    id="chatInput"
-                    placeholder="Ask about Bangkok road safety..."
-                    autocomplete="off"
-                >
-                <button id="chatSend" class="btn-send">
-                    <span>Send</span>
-                    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor">
-                        <path d="M22 2L11 13M22 2l-7 20-4-9-9-4 20-7z" stroke-width="2"/>
-                    </svg>
-                </button>
+                <span>Thinking...</span>
             </div>
         </div>
 
-    </div>
+        <div class="assistant-composer" id="assistantComposer">
+            <div class="assistant-composer-inner" id="assistantComposerInner">
+                <div class="chat-input">
+                    <label class="visually-hidden" for="chatInput">Ask about Bangkok road safety</label>
+                    <textarea
+                        id="chatInput"
+                        rows="1"
+                        placeholder="Ask anything about Bangkok road safety..."
+                        autocomplete="off"
+                    ></textarea>
+
+                    <div class="chat-input-bar">
+                        <div class="chat-input-tools">
+                            <a href="/trip-planner" class="composer-tool has-tooltip" id="chatRouteShortcut" aria-label="Open Trip Planner" data-tooltip="Open Trip Planner">
+                                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" aria-hidden="true">
+                                    <path d="m3 12 7-7 4 4 7-7" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"></path>
+                                    <path d="M14 2h7v7" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"></path>
+                                    <path d="M5 17h14" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"></path>
+                                </svg>
+                            </a>
+                        </div>
+
+                        <button id="chatSend" class="btn-send" type="button">
+                            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" aria-hidden="true">
+                                <path d="M22 2 11 13" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"></path>
+                                <path d="m22 2-7 20-4-9-9-4 20-7Z" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"></path>
+                            </svg>
+                            <span>Send</span>
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </section>
 </div>
 {% endblock %}
 
 {% block extra_js %}
-<script src="{{ url_for('static', filename='js/chatbot.js') }}"></script>
+<script src="{{ url_for('static', filename='js/chatbot.js', v='20260322a') }}"></script>
 {% endblock %}

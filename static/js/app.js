@@ -4,6 +4,71 @@ function getRiskPill(level) {
     return `<span class="risk-pill ${cssClass}">${normalizedLevel || "unknown"}</span>`;
 }
 
+const THEME_STORAGE_KEY = "rr-theme";
+let currentTheme = document.documentElement.getAttribute("data-theme") === "dark" ? "dark" : "light";
+
+function getStoredTheme() {
+    try {
+        return localStorage.getItem(THEME_STORAGE_KEY) === "dark" ? "dark" : "light";
+    } catch (error) {
+        return "light";
+    }
+}
+
+function syncThemeToggleButtons(theme = currentTheme) {
+    const isDark = theme === "dark";
+    document.querySelectorAll("[data-theme-toggle]").forEach((button) => {
+        button.classList.toggle("is-dark", isDark);
+        button.setAttribute("aria-pressed", String(isDark));
+        button.setAttribute("aria-label", isDark ? "Switch to light mode" : "Switch to dark mode");
+        button.setAttribute("title", isDark ? "Switch to light mode" : "Switch to dark mode");
+
+        const label = button.querySelector(".theme-toggle-label");
+        if (label) {
+            label.textContent = isDark ? "Light mode" : "Dark mode";
+        }
+    });
+}
+
+function applyTheme(theme, options = {}) {
+    const normalizedTheme = theme === "dark" ? "dark" : "light";
+    const emitEvent = options.emitEvent !== false;
+
+    currentTheme = normalizedTheme;
+    document.documentElement.setAttribute("data-theme", normalizedTheme);
+    document.documentElement.style.colorScheme = normalizedTheme;
+    if (document.body) {
+        document.body.setAttribute("data-theme", normalizedTheme);
+    }
+
+    syncThemeToggleButtons(normalizedTheme);
+
+    if (emitEvent) {
+        window.dispatchEvent(new CustomEvent("rr-theme-change", {
+            detail: { theme: normalizedTheme },
+        }));
+    }
+
+    return normalizedTheme;
+}
+
+function toggleTheme() {
+    const nextTheme = currentTheme === "dark" ? "light" : "dark";
+    try {
+        localStorage.setItem(THEME_STORAGE_KEY, nextTheme);
+    } catch (error) {
+        // Ignore storage issues and still update the current page state.
+    }
+    applyTheme(nextTheme);
+}
+
+function initThemeToggle() {
+    applyTheme(getStoredTheme(), { emitEvent: false });
+    document.querySelectorAll("[data-theme-toggle]").forEach((button) => {
+        button.addEventListener("click", toggleTheme);
+    });
+}
+
 function renderError(message) {
     return `<div class="alert alert-danger mb-0" role="alert">${message}</div>`;
 }
@@ -417,6 +482,8 @@ function updateRouteComparisonUI(data) {
 }
 
 document.addEventListener("DOMContentLoaded", () => {
+    initThemeToggle();
+
     const routeForm = document.getElementById("route-compare-form");
     const routeResultBox = document.getElementById("route-compare-result");
     const routeSubmitBtn = document.getElementById("route-compare-submit-btn");
