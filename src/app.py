@@ -50,6 +50,7 @@ BANGKOK_ACCIDENTS_PATH = DATA_DIR / "bangkok_accidents_clean.csv"
 GRID_STATS_PATH = DATA_DIR / "bangkok_grid_stats.csv"
 RISK_MAP_HTML_PATH = DATA_DIR / "bangkok_risk_map.html"
 RISK_HEATMAP_HTML_PATH = BASE_DIR / "static" / "bangkok_risk_heatmap.html"
+OSRM_BASE_URL = "https://router.project-osrm.org"
 
 BKK_LAT_MIN = 13.6
 BKK_LAT_MAX = 13.95
@@ -679,7 +680,7 @@ def _find_grid_for_point(lat, lon, grid_df):
 def get_osrm_route(start_lat, start_lon, end_lat, end_lon):
     """Get real road route from OSRM API."""
     url = (
-        "http://router.project-osrm.org/route/v1/driving/"
+        f"{OSRM_BASE_URL}/route/v1/driving/"
         f"{start_lon},{start_lat};{end_lon},{end_lat}?overview=full&geometries=geojson"
     )
 
@@ -721,7 +722,7 @@ def get_osrm_route_from_waypoints(waypoints):
         if len(coords) < 2:
             return None
 
-        url = f"http://router.project-osrm.org/route/v1/driving/{';'.join(coords)}"
+        url = f"{OSRM_BASE_URL}/route/v1/driving/{';'.join(coords)}"
         response = requests.get(
             url,
             params={"overview": "full", "geometries": "geojson", "steps": "true"},
@@ -746,7 +747,7 @@ def get_osrm_route_from_waypoints(waypoints):
 def get_osrm_alternatives(start_lat, start_lon, end_lat, end_lon, num_alternatives=3):
     """Get multiple alternative routes from OSRM."""
     url = (
-        "http://router.project-osrm.org/route/v1/driving/"
+        f"{OSRM_BASE_URL}/route/v1/driving/"
         f"{start_lon},{start_lat};{end_lon},{end_lat}"
         f"?overview=full&geometries=geojson&alternatives={num_alternatives}"
     )
