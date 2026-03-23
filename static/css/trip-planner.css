@@ -1207,6 +1207,17 @@ body.demo-mode .start-nav-button {
     }
 }
 
+@keyframes routeRevealUp {
+    from {
+        opacity: 0;
+        transform: translateY(22px);
+    }
+    to {
+        opacity: 1;
+        transform: translateY(0);
+    }
+}
+
 /* ===== MULTI-ROUTE SELECTION ===== */
 
 .route-selection-container {
@@ -1628,6 +1639,26 @@ body.demo-mode .start-nav-button {
 
 /* ===== AI ANALYZING OVERLAY ===== */
 
+@keyframes aiOverlayRise {
+    from {
+        opacity: 0;
+        transform: translateY(18px) scale(0.985);
+    }
+    to {
+        opacity: 1;
+        transform: translateY(0) scale(1);
+    }
+}
+
+@keyframes aiOverlayStepIn {
+    from {
+        opacity: 0;
+    }
+    to {
+        opacity: 1;
+    }
+}
+
 .ai-analyzing-overlay {
     position: fixed;
     inset: 0;
@@ -1638,6 +1669,9 @@ body.demo-mode .start-nav-button {
     align-items: center;
     justify-content: center;
     z-index: 10000;
+    opacity: 0;
+    transition: opacity 0.2s ease, background 0.2s ease, backdrop-filter 0.2s ease;
+    pointer-events: none;
 }
 
 .ai-analyzing-content {
@@ -1649,6 +1683,21 @@ body.demo-mode .start-nav-button {
     text-align: center;
     width: min(500px, 92vw);
     box-shadow: 0 24px 64px rgba(15, 23, 42, 0.18);
+    opacity: 0;
+    transform: translateY(18px) scale(0.985);
+    transform-origin: center;
+}
+
+.ai-analyzing-overlay.is-visible {
+    opacity: 1;
+    background: rgba(15, 23, 42, 0.46);
+    backdrop-filter: blur(10px);
+    -webkit-backdrop-filter: blur(10px);
+    pointer-events: auto;
+}
+
+.ai-analyzing-overlay.is-visible .ai-analyzing-content {
+    animation: aiOverlayRise 0.24s cubic-bezier(0.22, 1, 0.36, 1) forwards;
 }
 
 /* Spinner + robot icon */
@@ -1735,6 +1784,15 @@ body.demo-mode .start-nav-button {
     transition: background 0.25s ease, transform 0.25s ease, border-color 0.25s ease, box-shadow 0.25s ease, opacity 0.25s ease;
     opacity: 0.76;
 }
+
+.ai-analyzing-overlay.is-visible .progress-step {
+    opacity: 0;
+    animation: aiOverlayStepIn 0.36s cubic-bezier(0.22, 1, 0.36, 1) forwards;
+}
+
+.ai-analyzing-overlay.is-visible .progress-step:nth-child(1) { animation-delay: 0.1s; }
+.ai-analyzing-overlay.is-visible .progress-step:nth-child(2) { animation-delay: 0.16s; }
+.ai-analyzing-overlay.is-visible .progress-step:nth-child(3) { animation-delay: 0.22s; }
 
 .progress-step.pending {
     opacity: 0.7;
@@ -2815,6 +2873,20 @@ body .pac-matched { color: var(--rr-primary); }
     letter-spacing: 0.3px;
     margin: 4px 0 10px;
 }
+
+.route-selection-enter .route-fade-up,
+.route-selection-enter .route-card-enter {
+    opacity: 0;
+    transform: translateY(22px);
+    animation: routeRevealUp 0.46s cubic-bezier(0.22, 1, 0.36, 1) forwards;
+}
+
+.route-selection-enter .route-fade-up-1 { animation-delay: 0.03s; }
+.route-selection-enter .route-fade-up-2 { animation-delay: 0.08s; }
+.route-selection-enter .route-fade-up-3 { animation-delay: 0.13s; }
+.route-selection-enter .route-card-enter-fast { animation-delay: 0.18s; }
+.route-selection-enter .route-card-enter-safe { animation-delay: 0.28s; }
+.route-selection-enter .route-fade-up-4 { animation-delay: 0.36s; }
 
 /* Fix 4: equal-height card grid */
 .planner-sheet .route-options-grid {

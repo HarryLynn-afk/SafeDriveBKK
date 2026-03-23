@@ -566,10 +566,19 @@ async function calculateRoute(startLat, startLon, endLat, endLon, destName) {
 
 // ── AI overlay helpers ────────────────────────────────────────────────────────
 
+let aiAnalyzingHideTimer = null;
+
 function showAIAnalyzing() {
     const overlay = document.getElementById("ai-analyzing-overlay");
     if (!overlay) return;
+    if (aiAnalyzingHideTimer) {
+        clearTimeout(aiAnalyzingHideTimer);
+        aiAnalyzingHideTimer = null;
+    }
     overlay.style.display = "flex";
+    overlay.classList.remove("is-visible");
+    void overlay.offsetWidth;
+    requestAnimationFrame(() => overlay.classList.add("is-visible"));
     updateStatus("Preparing route analysis...");
     [1, 2, 3].forEach((stepNumber) => updateAnalysisStep(stepNumber, "pending"));
     const counter = document.getElementById("routes-analyzed");
@@ -578,7 +587,12 @@ function showAIAnalyzing() {
 
 function hideAIAnalyzing() {
     const overlay = document.getElementById("ai-analyzing-overlay");
-    if (overlay) overlay.style.display = "none";
+    if (!overlay) return;
+    overlay.classList.remove("is-visible");
+    aiAnalyzingHideTimer = setTimeout(() => {
+        overlay.style.display = "none";
+        aiAnalyzingHideTimer = null;
+    }, 220);
 }
 
 function showRouteError(rawMessage) {
@@ -947,21 +961,21 @@ function showRouteSelectionUI(data) {
     };
 
     const routeSelectionHTML = `
-        <div class="route-selection-container">
+        <div class="route-selection-container route-selection-enter">
             <!-- Fix 6: back to input state -->
-            <button class="sheet-back-btn" onclick="setSheetState(1)">← Change route</button>
+            <button class="sheet-back-btn route-fade-up route-fade-up-1" onclick="setSheetState(1)">← Change route</button>
 
-            <div class="ml-analysis-badge">
+            <div class="ml-analysis-badge route-fade-up route-fade-up-2">
                 <strong>AI-Powered Route Analysis</strong>
                 <span class="ml-model">XGBoost ML &bull; 83.8% Validated</span>
             </div>
 
             <!-- Fix 4: tradeoff line OUTSIDE cards, centered above grid -->
-            <div class="tradeoff-between">${comparisonCopy.tradeoffHeadline}</div>
+            <div class="tradeoff-between route-fade-up route-fade-up-3">${comparisonCopy.tradeoffHeadline}</div>
 
             <div class="route-options-grid">
                 <!-- Fix 1: Fast card — red border + bg -->
-                <div class="route-card route-card-fast-style" id="route-card-fast" onclick="selectRoute('fast')">
+                <div class="route-card route-card-fast-style route-card-enter route-card-enter-fast" id="route-card-fast" onclick="selectRoute('fast')">
                     <div>
                         <div class="route-badge-v2 fastest-v2">FASTEST</div>
                         <div class="route-time">${fastTime} min ${trafficBadge(fastTrafficSrc)}</div>
@@ -979,7 +993,7 @@ function showRouteSelectionUI(data) {
                 </div>
 
                 <!-- Fix 1: Safe card — green border + bg -->
-                <div class="route-card route-card-safe-style recommended" id="route-card-safe" onclick="selectRoute('safe')">
+                <div class="route-card route-card-safe-style recommended route-card-enter route-card-enter-safe" id="route-card-safe" onclick="selectRoute('safe')">
                     <div>
                         <div class="route-badge-v2 safest-v2">SAFEST</div>
                         ${safeRiskScore < fastRiskScore ? '<div class="recommended-badge">REC</div>' : ""}
@@ -999,7 +1013,7 @@ function showRouteSelectionUI(data) {
             </div>
 
             ${comparisonCopy.recommendationText
-                ? `<div class="ai-recommendation">${comparisonCopy.recommendationText}</div>`
+                ? `<div class="ai-recommendation route-fade-up route-fade-up-4">${comparisonCopy.recommendationText}</div>`
                 : ""}
         </div>
     `;
