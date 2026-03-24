@@ -1806,13 +1806,13 @@ def compare_routes():
             fastest = min(scored_routes, key=lambda r: r["time_min"])
             safest = min(scored_routes, key=lambda r: r["risk_score"])
 
-            # If safest == fastest (same route), try to pick a different one
-            # for the safe option that has lower risk
+            # If safest == fastest (same route), show an alternative in the FAST
+            # card so the truly safest route remains in the SAFE card.
             if len(scored_routes) > 1 and safest["waypoints"] == fastest["waypoints"]:
-                # Pick the route with 2nd lowest risk that isn't the fastest
                 alternatives = [r for r in scored_routes if r["waypoints"] != fastest["waypoints"]]
                 if alternatives:
-                    safest = min(alternatives, key=lambda r: r["risk_score"])
+                    # Keep safest intact; replace fastest with the next-fastest alternative
+                    fastest = min(alternatives, key=lambda r: r["time_min"])
 
             route_fast = fastest
             route_safe = safest
