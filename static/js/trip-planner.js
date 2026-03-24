@@ -1086,20 +1086,15 @@ function buildRouteComparisonCopy(fastRoute, safeRoute) {
 
 function showRouteSelectionUI(data) {
     const displayRoutes = Array.isArray(data.display_routes) ? data.display_routes : [];
-    const trafficBadge = (src) => {
-        if (src === "google_maps_traffic") return '<span class="traffic-badge live">Live Traffic</span>';
-        return '';
-    };
-
     const riskPill = (level) => {
         const icon = getRiskIcon(level);
         return `<span class="risk-pill-inline ${level || "unknown"}">${icon} ${(level || "unknown").toUpperCase()} RISK</span>`;
     };
 
     const routeShortcutMap = [
-        { label: "Recommended", route: data.recommended_route || data.safe_route },
-        { label: "Fastest", route: data.fast_route },
-        { label: "Safest", route: data.safe_route },
+        { label: "Recommended", role: "recommended", route: data.recommended_route || data.safe_route },
+        { label: "Fastest", role: "fast", route: data.fast_route },
+        { label: "Safest", role: "safe", route: data.safe_route },
     ].filter((item) => item.route && item.route.route_id);
 
     const routeRowsHTML = displayRoutes.map((route, index) => {
@@ -1107,7 +1102,6 @@ function showRouteSelectionUI(data) {
         const badges = Array.isArray(route.badges) ? route.badges : [];
         const extraBadges = badges.filter((badge) => badge !== route.primary_label);
         const badgeHtml = extraBadges.map((badge) => `<span class="route-secondary-badge">${badge}</span>`).join("");
-        const trafficSrc = route.traffic_source || "estimated";
         const distanceKm = Number(route.distance_km) || 0;
         const riskScore = Math.round(Number(route.risk_score) || 0);
 
@@ -1119,23 +1113,21 @@ function showRouteSelectionUI(data) {
                 onclick="selectRoute('${route.route_id}')"
                 style="animation-delay:${0.18 + (index * 0.08)}s"
             >
-                <span class="route-row-icon ${theme.iconClass}" aria-hidden="true">${theme.iconGlyph}</span>
                 <span class="route-row-main">
-                    <span class="route-row-title-line">
+                    <span class="route-row-top">
                         <span class="route-row-title">${route.primary_label || "Route"}</span>
-                        ${trafficBadge(trafficSrc)}
+                        <span class="route-row-badges">${badgeHtml}</span>
                     </span>
                     <span class="route-row-metrics">
                         <span class="route-row-eta">${route.time_min || 0} min</span>
                         <span class="route-row-distance">${distanceKm.toFixed(1)} km</span>
                     </span>
-                </span>
-                <span class="route-row-side">
-                    <span class="route-score-caption">Risk score</span>
-                    <span class="route-score-value">${riskScore}</span>
-                    <span class="route-row-badges">
+                    <span class="route-row-bottom">
+                        <span class="route-score-inline">
+                            <span class="route-score-caption">Risk score</span>
+                            <span class="route-score-value">${riskScore}</span>
+                        </span>
                         ${riskPill(route.risk_level)}
-                        ${badgeHtml}
                     </span>
                 </span>
             </button>
@@ -1149,8 +1141,8 @@ function showRouteSelectionUI(data) {
             <button
                 type="button"
                 class="route-shortcut-chip ${theme.iconClass} route-fade-up route-fade-up-${Math.min(index + 4, 6)}"
-                data-route-id="${route.route_id}"
-                onclick="jumpToRouteOption('${route.route_id}')"
+                data-route-role="${item.role}"
+                onclick="jumpToRouteOption('${item.role}')"
             >
                 <span>${item.label}</span>
             </button>
@@ -1176,9 +1168,9 @@ function showRouteSelectionUI(data) {
             </div>
 
             <div class="route-selection-footer route-fade-up route-fade-up-7">
-                <div id="selected-route-details-slot">
-                    <div class="route-footer-placeholder">Choose a route to preview it on the map and start navigation.</div>
-                </div>
+                <button id="start-navigation-btn" class="start-navigation-btn" onclick="startNavigationWithSelected()" disabled>
+                    Start Navigation
+                </button>
             </div>
         </div>
     `;
@@ -1189,7 +1181,18 @@ function showRouteSelectionUI(data) {
     }
 }
 
-function jumpToRouteOption(routeId) {
+function getRouteShortcutRole(routeId) {
+    if (!routeId) return "";
+    if (routeOptions.recommended && routeOptions.recommended.route_id === routeId) return "recommended";
+    if (routeOptions.fast && routeOptions.fast.route_id === routeId) return "fast";
+    if (routeOptions.safe && routeOptions.safe.route_id === routeId) return "safe";
+    return "";
+}
+
+function jumpToRouteOption(role) {
+    const targetRoute = routeOptions[role];
+    if (!targetRoute || !targetRoute.route_id) return;
+    const routeId = targetRoute.route_id;
     const row = document.getElementById(`route-row-${routeId}`);
     if (row) {
         row.scrollIntoView({ behavior: "smooth", block: "nearest" });
@@ -1205,26 +1208,15 @@ function jumpToRouteOption(routeId) {
 }
 
 function syncRouteShortcutState(routeId) {
+    const activeRole = getRouteShortcutRole(routeId);
     document.querySelectorAll(".route-shortcut-chip").forEach((chip) => {
-        chip.classList.toggle("active", chip.dataset.routeId === routeId);
+        chip.classList.toggle("active", chip.dataset.routeRole === activeRole);
     });
 }
 
 function getRouteStartButtonLabel(route) {
     const label = route && route.primary_label ? route.primary_label : "Selected Route";
     return label.toLowerCase().includes("route") ? `Start ${label}` : `Start ${label} Route`;
-}
-
-function getRouteSummaryBadges(route) {
-    const badges = Array.isArray(route && route.badges) ? route.badges : [];
-    const extraBadges = badges.filter((badge) => badge !== route.primary_label);
-    if (!extraBadges.length) return "";
-
-    return `
-        <div class="route-footer-badges">
-            ${extraBadges.map((badge) => `<span class="route-secondary-badge">${badge}</span>`).join("")}
-        </div>
-    `;
 }
 
 function getRouteSubtitle(route) {
@@ -1242,35 +1234,6 @@ function getRouteDistanceKm(route) {
 
 function getRouteDuration(route) {
     return Math.round(Number(route && route.time_min) || 0);
-}
-
-function getRouteSelectionSummary(route) {
-    return `${getRouteDuration(route)} min · ${getRouteDistanceKm(route)} km · Risk ${getRouteRiskScore(route)}`;
-}
-
-function getRouteRiskLabel(route) {
-    return `${((route && route.risk_level) || "unknown").toUpperCase()} RISK`;
-}
-
-function getSelectedRouteDetailsHTML(route) {
-    const riskScore = getRouteRiskScore(route);
-    return `
-        <div class="selected-route-details selected-route-compact selected-route-sheet-footer">
-            <div class="compact-route-summary">
-                <div class="selected-route-copy">
-                    <span class="compact-route-name">${route.primary_label || "Selected Route"}</span>
-                    <span class="selected-route-meta">${getRouteSelectionSummary(route)}</span>
-                </div>
-                <div class="selected-route-actions">
-                    <span class="selected-route-risk">Risk <strong>${riskScore}</strong></span>
-                    <button id="start-navigation-btn" class="start-navigation-btn" onclick="startNavigationWithSelected()">
-                        ${getRouteStartButtonLabel(route)}
-                    </button>
-                </div>
-            </div>
-            ${getRouteSummaryBadges(route)}
-        </div>
-    `;
 }
 
 function getRiskIcon(level) {
@@ -1311,18 +1274,13 @@ function selectRoute(routeId) {
 function showRouteDetails(route) {
     if (!route) return;
 
-    const slot = document.getElementById("selected-route-details-slot");
-    if (slot) {
-        slot.innerHTML = getSelectedRouteDetailsHTML(route);
-    } else {
-        const container = document.querySelector(".route-selection-container");
-        const existing = document.querySelector(".selected-route-details");
-        if (existing) existing.remove();
-        if (container) container.insertAdjacentHTML("beforeend", getSelectedRouteDetailsHTML(route));
+    const btn = document.getElementById("start-navigation-btn") || document.querySelector(".start-navigation-btn");
+    if (btn) {
+        btn.textContent = getRouteStartButtonLabel(route);
+        btn.disabled = false;
     }
 
     setSheetState(3);
-    resetStartNavigationButton();
 }
 
 function changeRoute() {
@@ -1337,14 +1295,7 @@ function changeRoute() {
 
     document.querySelectorAll(".route-card, .route-list-row").forEach((card) => card.classList.remove("selected"));
     syncRouteShortcutState("");
-
-    const slot = document.getElementById("selected-route-details-slot");
-    if (slot) {
-        slot.innerHTML = '<div class="route-footer-placeholder">Choose a route to preview it on the map and start navigation.</div>';
-    } else {
-        const details = document.querySelector(".selected-route-details");
-        if (details) details.remove();
-    }
+    resetStartNavigationButton();
 
     // Fix 6: go back to route comparison state
     setSheetState(2);
@@ -1456,7 +1407,7 @@ function resetStartNavigationButton() {
     const btn = document.getElementById("start-navigation-btn") || document.querySelector(".start-navigation-btn");
     if (!btn) return;
     btn.textContent = "Start Navigation";
-    btn.disabled = false;
+    btn.disabled = true;
 }
 
 function setStartNavigationButtonLoading() {
