@@ -1012,6 +1012,7 @@ def calculate_route_risk_ml(waypoints):
     # Distance-weighted risk: each segment's risk is weighted by its length.
     total_risk_exposure = 0.0
     total_distance = 0.0
+    high_risk_km = 0.0
     max_score = 0
 
     for i in range(len(waypoints)):
@@ -1028,6 +1029,9 @@ def calculate_route_risk_ml(waypoints):
             seg_risk = (results[i - 1]["risk_score"] + score) / 2.0
             total_risk_exposure += seg_risk * seg_dist
             total_distance += seg_dist
+            # Track distance where either endpoint is high-risk.
+            if results[i - 1]["risk_level"] == "high" or results[i]["risk_level"] == "high":
+                high_risk_km += seg_dist
 
     if total_distance > 0:
         weighted_avg = total_risk_exposure / total_distance
@@ -1049,6 +1053,7 @@ def calculate_route_risk_ml(waypoints):
         "risk_score": risk_score,
         "risk_level": risk_level,
         "high_risk_zones": high_risk_zones,
+        "high_risk_km": round(high_risk_km, 1),
         "medium_risk_zones": medium_risk_zones,
         "matched_grids": len(results),
         "evaluated_waypoints": len(waypoints),
@@ -1069,8 +1074,9 @@ def calculate_route_risk_density_aware(waypoints, grid_df):
     max_accidents_in_grid = 0
     matched_grid_count = 0
 
-    # Collect per-waypoint accident counts and grid risk scores.
+    # Collect per-waypoint accident counts, grid risk scores, and risk levels.
     point_accidents = []
+    point_risk_levels = []
     for lat, lon in waypoints:
         grid = _find_grid_for_point(lat, lon, grid_df)
         if grid is not None:
@@ -1081,17 +1087,20 @@ def calculate_route_risk_density_aware(waypoints, grid_df):
                 max_accidents_in_grid = accidents
 
             risk_level = str(grid["risk_level"]).lower()
+            point_risk_levels.append(risk_level)
             if risk_level == "high":
                 high_risk_zones += 1
             elif risk_level == "medium":
                 medium_risk_zones += 1
         else:
             point_accidents.append(0)
+            point_risk_levels.append("low")
 
     # Distance-weighted accident density: each segment's accident count
     # is the average of its two endpoints, weighted by segment length.
     total_weighted_accidents = 0.0
     total_distance = 0.0
+    high_risk_km = 0.0
 
     for i in range(1, len(waypoints)):
         seg_dist = _haversine_km(
@@ -1101,6 +1110,9 @@ def calculate_route_risk_density_aware(waypoints, grid_df):
         seg_accidents = (point_accidents[i - 1] + point_accidents[i]) / 2.0
         total_weighted_accidents += seg_accidents * seg_dist
         total_distance += seg_dist
+        # Track distance where either endpoint is high-risk.
+        if point_risk_levels[i - 1] == "high" or point_risk_levels[i] == "high":
+            high_risk_km += seg_dist
 
     if total_distance > 0:
         weighted_avg_accidents = total_weighted_accidents / total_distance
@@ -1133,6 +1145,7 @@ def calculate_route_risk_density_aware(waypoints, grid_df):
         "risk_score": risk_score,
         "risk_level": risk_level,
         "high_risk_zones": high_risk_zones,
+        "high_risk_km": round(high_risk_km, 1),
         "medium_risk_zones": medium_risk_zones,
         "matched_grids": matched_grid_count,
         "evaluated_waypoints": len(waypoints),
@@ -1168,6 +1181,7 @@ def _evaluate_route(route_points, grid_df):
         "risk_score": min(100, risk_metrics["risk_score"]),
         "risk_level": risk_metrics["risk_level"],
         "high_risk_zones": risk_metrics["high_risk_zones"],
+        "high_risk_km": risk_metrics["high_risk_km"],
         "medium_risk_zones": risk_metrics["medium_risk_zones"],
         "matched_grids": risk_metrics["matched_grids"],
         "evaluated_waypoints": risk_metrics["evaluated_waypoints"],
@@ -1702,6 +1716,7 @@ def analyze_route():
                     "duration_min": route_duration_min,
                     "risk_score": min(100, overall_risk["risk_score"]),
                     "risk_level": overall_risk["risk_level"],
+                    "high_risk_km": overall_risk.get("high_risk_km", 0),
                     "traffic_source": analyze_traffic_source,
                 },
                 "segments": segments,
@@ -1779,6 +1794,7 @@ def compare_routes():
                     "risk_score": risk["risk_score"],
                     "risk_level": risk["risk_level"],
                     "high_risk_zones": risk.get("high_risk_zones", 0),
+                    "high_risk_km": risk.get("high_risk_km", 0),
                     "medium_risk_zones": risk.get("medium_risk_zones", 0),
                     "matched_grids": risk.get("matched_grids", 0),
                     "evaluated_waypoints": risk.get("evaluated_waypoints", len(sampled)),
