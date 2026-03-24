@@ -942,8 +942,8 @@ function showRouteSelectionUI(data) {
     const safeTime = safeRoute.time_min || 0;
     const fastRiskScore = Math.round(fastRoute.risk_score || 0);
     const safeRiskScore = Math.round(safeRoute.risk_score || 0);
-    const fastHighRisk = fastRoute.high_risk_zones || 0;
-    const safeHighRisk = safeRoute.high_risk_zones || 0;
+    const fastHighRiskKm = fastRoute.high_risk_km || 0;
+    const safeHighRiskKm = safeRoute.high_risk_km || 0;
     const comparisonCopy = buildRouteComparisonCopy(fastRoute, safeRoute);
     const fastTrafficSrc = fastRoute.traffic_source || "estimated";
     const safeTrafficSrc = safeRoute.traffic_source || "estimated";
@@ -983,9 +983,9 @@ function showRouteSelectionUI(data) {
                         ${riskPill(fastRoute.risk_level)}
                     </div>
                     <div>
-                        ${fastHighRisk > 0
-                            ? `<div class="warning-note">! ${fastHighRisk} danger zone${fastHighRisk > 1 ? "s" : ""}</div>`
-                            : '<div class="safe-note">No danger zones</div>'}
+                        ${fastHighRiskKm > 0
+                            ? `<div class="warning-note">! ${fastHighRiskKm} km in high-risk areas</div>`
+                            : '<div class="safe-note">No high-risk areas</div>'}
                         <button class="select-route-btn select-fast-btn" onclick="selectRoute('fast'); event.stopPropagation();">
                             Select This Route
                         </button>
@@ -1002,9 +1002,9 @@ function showRouteSelectionUI(data) {
                         ${riskPill(safeRoute.risk_level)}
                     </div>
                     <div>
-                        ${safeHighRisk > 0
-                            ? `<div class="warning-note">! ${safeHighRisk} danger zone${safeHighRisk > 1 ? "s" : ""}</div>`
-                            : '<div class="safe-note">No danger zones</div>'}
+                        ${safeHighRiskKm > 0
+                            ? `<div class="warning-note">! ${safeHighRiskKm} km in high-risk areas</div>`
+                            : '<div class="safe-note">No high-risk areas</div>'}
                         <button class="select-route-btn primary select-safe-btn" onclick="selectRoute('safe'); event.stopPropagation();">
                             Select This Route
                         </button>
@@ -2231,8 +2231,8 @@ function showTripSummaryModal() {
 
     const fastRO = routeOptions.fast || {};
     const safeRO = routeOptions.safe || {};
-    const fastZones = Math.round(fastRO.high_risk_zones || 0);
-    const safeZones = Math.round(safeRO.high_risk_zones || 0);
+    const fastHighKm = parseFloat(fastRO.high_risk_km || 0);
+    const safeHighKm = parseFloat(safeRO.high_risk_km || 0);
     const fastLevel = (fastRO.risk_level || "high").toUpperCase();
     const safeLevel = (safeRO.risk_level || "medium").toUpperCase().replace("MEDIUM", "MED");
 
@@ -2248,12 +2248,12 @@ function showTripSummaryModal() {
 
     if (!pickedFast) {
         // ── User took the SAFE route ──
-        const avoided  = Math.max(0, fastZones - safeZones);
+        const avoidedKm = Math.max(0, fastHighKm - safeHighKm).toFixed(1);
         const saferPct = altRisk > 0 ? Math.min(99, Math.max(0, Math.round((altRisk - myRisk) / altRisk * 100))) : 0;
         const timeCost = Math.max(0, myTime - altTime);
 
-        mainStat       = avoided;
-        mainStatLabel  = `danger zone${avoided !== 1 ? "s" : ""}<br>avoided`;
+        mainStat       = avoidedKm;
+        mainStatLabel  = `km high-risk<br>avoided`;
         pctStat        = saferPct;
         pctStatLabel   = "safer than<br>fast route";
         pctColor       = "#22c55e";
@@ -2266,19 +2266,19 @@ function showTripSummaryModal() {
         row2Label      = "Your route";
         tryBtnText     = "Plan a new route";
 
-        verdictText = avoided > 0 && timeCost > 0
-            ? `+${timeCost} min kept you out of ${avoided} danger zone${avoided !== 1 ? "s" : ""}`
-            : avoided > 0
-                ? `You avoided ${avoided} danger zone${avoided !== 1 ? "s" : ""}`
+        verdictText = parseFloat(avoidedKm) > 0 && timeCost > 0
+            ? `+${timeCost} min kept you out of ${avoidedKm} km of high-risk areas`
+            : parseFloat(avoidedKm) > 0
+                ? `You avoided ${avoidedKm} km of high-risk areas`
                 : "You chose the safer path";
     } else {
         // ── User took the FAST route ──
-        const extraZones = Math.max(0, fastZones - safeZones);
+        const extraKm = Math.max(0, fastHighKm - safeHighKm).toFixed(1);
         const riskierPct = myRisk > 0 ? Math.min(99, Math.max(0, Math.round((myRisk - altRisk) / myRisk * 100))) : 0;
         const timeSaved  = Math.max(0, altTime - myTime);
 
-        mainStat       = extraZones;
-        mainStatLabel  = `more zone${extraZones !== 1 ? "s" : ""}<br>vs safe route`;
+        mainStat       = extraKm;
+        mainStatLabel  = `km more<br>high-risk areas`;
         pctStat        = riskierPct;
         pctStatLabel   = "higher risk<br>than safe route";
         pctColor       = "#f97316";
@@ -2291,8 +2291,8 @@ function showTripSummaryModal() {
         row2Label      = "Safe option";
         tryBtnText     = "Try safer route";
 
-        verdictText = timeSaved > 0 && extraZones > 0
-            ? `Saved ${timeSaved} min — safe route had ${extraZones} fewer risk zone${extraZones !== 1 ? "s" : ""}`
+        verdictText = timeSaved > 0 && parseFloat(extraKm) > 0
+            ? `Saved ${timeSaved} min — safe route had ${extraKm} km less high-risk areas`
             : timeSaved > 0
                 ? `You arrived ${timeSaved} min faster on this route`
                 : "Both routes had similar travel time";
@@ -2332,8 +2332,8 @@ function showTripSummaryModal() {
 
     const fZoneEl = document.getElementById("s-fast-zones");
     const sZoneEl = document.getElementById("s-safe-zones");
-    if (fZoneEl) fZoneEl.textContent = `${fastZones} zones · ${fastLevel}`;
-    if (sZoneEl) sZoneEl.textContent = `${safeZones} zones · ${safeLevel}`;
+    if (fZoneEl) fZoneEl.textContent = `${fastHighKm} km high-risk · ${fastLevel}`;
+    if (sZoneEl) sZoneEl.textContent = `${safeHighKm} km high-risk · ${safeLevel}`;
 
     const verdictEl = document.getElementById("s-verdict");
     if (verdictEl) {
@@ -2390,10 +2390,10 @@ function showTripSummaryModal() {
     // fast-bar always represents the fast route; safe-bar the safe route
     setTimeout(() => {
         if (stage3) stage3.classList.add("visible");
-        const maxZ = Math.max(fastZones, safeZones, 1);
+        const maxZ = Math.max(fastHighKm, safeHighKm, 0.1);
         setTimeout(() => {
-            if (fBar) fBar.style.width = Math.round((fastZones / maxZ) * 100) + "%";
-            if (sBar) sBar.style.width = Math.round((safeZones / maxZ) * 100) + "%";
+            if (fBar) fBar.style.width = Math.round((fastHighKm / maxZ) * 100) + "%";
+            if (sBar) sBar.style.width = Math.round((safeHighKm / maxZ) * 100) + "%";
         }, 120);
     }, 1400);
 }
