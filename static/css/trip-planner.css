@@ -2884,13 +2884,11 @@ body .pac-matched { color: var(--rr-primary); }
 .route-selection-enter .route-fade-up-1 { animation-delay: 0.03s; }
 .route-selection-enter .route-fade-up-2 { animation-delay: 0.08s; }
 .route-selection-enter .route-fade-up-3 { animation-delay: 0.13s; }
-.route-selection-enter .route-card-enter-fast { animation-delay: 0.18s; }
-.route-selection-enter .route-card-enter-safe { animation-delay: 0.28s; }
 .route-selection-enter .route-fade-up-4 { animation-delay: 0.36s; }
 
 /* Fix 4: equal-height card grid */
 .planner-sheet .route-options-grid {
-    grid-template-columns: 1fr 1fr;
+    grid-template-columns: repeat(auto-fit, minmax(190px, 1fr));
     align-items: stretch;
 }
 
@@ -2917,6 +2915,21 @@ body .pac-matched { color: var(--rr-primary); }
     box-shadow: 0 0 0 2px rgba(239, 68, 68, 0.12) !important;
 }
 
+/* AI recommended card — amber */
+.route-card-rec-style {
+    border: 1.5px solid rgba(245, 158, 11, 0.45) !important;
+    background: rgba(255, 247, 237, 0.98) !important;
+}
+.route-card-rec-style:hover {
+    border-color: rgba(217, 119, 6, 0.58) !important;
+    background: rgba(255, 237, 213, 0.98) !important;
+}
+.route-card-rec-style.selected {
+    border-color: rgba(217, 119, 6, 0.68) !important;
+    background: rgba(255, 237, 213, 1) !important;
+    box-shadow: 0 0 0 2px rgba(245, 158, 11, 0.16) !important;
+}
+
 /* Fix 1: Safest card — green */
 .route-card-safe-style {
     border: 1.5px solid var(--planner-soft-success-border) !important;
@@ -2932,6 +2945,21 @@ body .pac-matched { color: var(--rr-primary); }
     box-shadow: 0 0 0 2px rgba(52, 211, 153, 0.12) !important;
 }
 
+/* Alternative card — slate */
+.route-card-alt-style {
+    border: 1.5px solid rgba(148, 163, 184, 0.42) !important;
+    background: rgba(248, 250, 252, 0.98) !important;
+}
+.route-card-alt-style:hover {
+    border-color: rgba(100, 116, 139, 0.55) !important;
+    background: rgba(241, 245, 249, 0.98) !important;
+}
+.route-card-alt-style.selected {
+    border-color: rgba(71, 85, 105, 0.62) !important;
+    background: rgba(241, 245, 249, 1) !important;
+    box-shadow: 0 0 0 2px rgba(100, 116, 139, 0.14) !important;
+}
+
 /* Fix 1: Solid colored badges */
 .route-badge-v2 {
     display: inline-block;
@@ -2942,7 +2970,28 @@ body .pac-matched { color: var(--rr-primary); }
     margin-bottom: 8px;
 }
 .route-badge-v2.fastest-v2 { background: #EF4444; color: #ffffff; }
+.route-badge-v2.recommended-v2 { background: #F59E0B; color: #ffffff; }
 .route-badge-v2.safest-v2  { background: #34D399; color: #064E3B; }
+.route-badge-v2.alternative-v2 { background: #CBD5E1; color: #334155; }
+
+.route-secondary-badges {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 6px;
+    margin: 0 0 6px;
+}
+
+.route-secondary-badge {
+    display: inline-flex;
+    align-items: center;
+    padding: 3px 8px;
+    border-radius: 999px;
+    font-size: 10px;
+    font-weight: 700;
+    color: #92400e;
+    background: rgba(245, 158, 11, 0.14);
+    letter-spacing: 0.02em;
+}
 
 /* Fix 1: Inline risk pill — small, not full-width */
 .risk-pill-inline {
@@ -3018,6 +3067,50 @@ body .pac-matched { color: var(--rr-primary); }
     transform: translateY(-1px);
 }
 
+.select-rec-btn {
+    width: 100%;
+    padding: 10px 14px;
+    border: 1.5px solid rgba(245, 158, 11, 0.46);
+    background: rgba(245, 158, 11, 0.08);
+    color: #b45309;
+    border-radius: 12px;
+    font-weight: 700;
+    font-size: 13px;
+    cursor: pointer;
+    margin-top: 10px;
+    transition: all 0.2s;
+    font-family: inherit;
+    box-shadow: none;
+}
+.select-rec-btn:hover {
+    background: rgba(245, 158, 11, 0.14);
+    border-color: rgba(217, 119, 6, 0.55);
+    color: #92400e;
+    transform: translateY(-1px);
+}
+
+.select-alt-btn {
+    width: 100%;
+    padding: 10px 14px;
+    border: 1.5px solid rgba(148, 163, 184, 0.5);
+    background: transparent;
+    color: #475569;
+    border-radius: 12px;
+    font-weight: 700;
+    font-size: 13px;
+    cursor: pointer;
+    margin-top: 10px;
+    transition: all 0.2s;
+    font-family: inherit;
+    box-shadow: none;
+}
+.select-alt-btn:hover {
+    background: rgba(148, 163, 184, 0.08);
+    border-color: rgba(100, 116, 139, 0.55);
+    color: #334155;
+    transform: translateY(-1px);
+}
+
 
 /* ===== RISK SCORE BLOCK ===== */
 .risk-block { display: flex; flex-direction: column; gap: 6px; margin-top: 8px; }
@@ -3032,4 +3125,3 @@ body .pac-matched { color: var(--rr-primary); }
 .peak-badge.medium { background: #FAEEDA; color: #854F0B; }
 .peak-detail { margin-left: auto; font-weight: 400; opacity: 0.8; font-size: 11px; }
 .peak-icon { font-weight: 700; }
-

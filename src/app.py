@@ -3,6 +3,7 @@ Flask web app for Bangkok Road Risk system.
 """
 
 import json
+import hashlib
 import math
 import os
 import re
@@ -1801,21 +1802,6 @@ def compare_routes():
                     "traffic_source": "google_maps_traffic" if groute["has_traffic"] else "google_maps",
                     "summary": groute.get("summary", ""),
                 })
-
-            # ── Step 5: Sort and pick FASTEST and SAFEST ──
-            fastest = min(scored_routes, key=lambda r: r["time_min"])
-            safest = min(scored_routes, key=lambda r: r["risk_score"])
-
-            # If safest == fastest (same route), show an alternative in the FAST
-            # card so the truly safest route remains in the SAFE card.
-            if len(scored_routes) > 1 and safest["waypoints"] == fastest["waypoints"]:
-                alternatives = [r for r in scored_routes if r["waypoints"] != fastest["waypoints"]]
-                if alternatives:
-                    # Keep safest intact; replace fastest with the next-fastest alternative
-                    fastest = min(alternatives, key=lambda r: r["time_min"])
-
-            route_fast = fastest
-            route_safe = safest
             alternatives_analyzed = len(gmaps_routes)
         else:
             # ── Fallback: original OSRM/interpolation logic ──
@@ -1825,6 +1811,7 @@ def compare_routes():
             )
             route_fast = _evaluate_route(fast_waypoints, grid_df)
             route_safe = _evaluate_route(safe_waypoints, grid_df)
+            scored_routes = [route_fast, route_safe]
 
             # Try Google Maps for accurate travel times
             gmaps_time = get_google_maps_travel_time(start_lat, start_lon, end_lat, end_lon)
@@ -1840,9 +1827,19 @@ def compare_routes():
             route_safe["traffic_source"] = "estimated"
             alternatives_analyzed = 1
 
+        scored_routes = _dedupe_scored_routes(scored_routes)
+        for index, route in enumerate(scored_routes):
+            route["route_id"] = f"route_{index}"
+
+        _apply_topsis(scored_routes)
+
+        route_fast = min(scored_routes, key=lambda route: route["time_min"])
+        route_safe = min(scored_routes, key=lambda route: route["risk_score"])
+        route_recommended = max(scored_routes, key=lambda route: route.get("topsis_score", 0.0))
+
         # ── Metadata ──
         prediction_method = "xgboost" if (USE_ML and ml_predictor) else "spatial"
-        for _route in (route_fast, route_safe):
+        for _route in scored_routes:
             matched = _route.get("matched_grids", 0)
             evaluated = max(1, _route.get("evaluated_waypoints", 1))
             _route["confidence"] = round(min(0.99, 0.75 + (matched / evaluated) * 0.24), 2)
@@ -1859,8 +1856,9 @@ def compare_routes():
         fast_risk_score = int(route_fast["risk_score"])
         safe_risk_score = int(route_safe["risk_score"])
 
-        # Compute peak labels for both routes
-        for _route, _score in ((route_fast, fast_risk_score), (route_safe, safe_risk_score)):
+        # Compute peak labels for all routes that may be shown in the UI.
+        for _route in scored_routes:
+            _score = int(_route["risk_score"])
             if _score >= 80:
                 _route["peak_label"] = "Crosses extreme danger zone"
                 _route["peak_detail"] = "top 5% accident hotspots"
@@ -1873,6 +1871,9 @@ def compare_routes():
             else:
                 _route["peak_label"] = "Bypasses extreme danger zones"
                 _route["peak_detail"] = "30% safer peak risk"
+
+        _annotate_route_roles(scored_routes, route_fast, route_safe, route_recommended)
+        display_routes = _build_display_routes(scored_routes, route_fast, route_safe, route_recommended)
 
         if safe_risk_score >= fast_risk_score:
             recommendation = "Fast route is already the safest available option. No safer alternative exists for this trip."
@@ -1910,6 +1911,9 @@ def compare_routes():
             {
                 "fast_route": route_fast,
                 "safe_route": route_safe,
+                "recommended_route": route_recommended,
+                "display_routes": display_routes,
+                "all_routes": sorted(scored_routes, key=lambda route: route["time_min"]),
                 "route_fast": route_fast,
                 "route_safe": route_safe,
                 "recommendation": recommendation,
@@ -2061,6 +2065,114 @@ def _interpolate_waypoints(waypoints, target_count):
         else:
             result.append(list(waypoints[-1]))
     return result
+
+
+def _route_key(waypoints):
+    """Stable geometry key so identical routes can be deduplicated."""
+    normalized = [[round(lat, 6), round(lon, 6)] for lat, lon in waypoints]
+    raw = json.dumps(normalized, separators=(",", ":")).encode("utf-8")
+    return hashlib.sha1(raw).hexdigest()[:16]
+
+
+def _dedupe_scored_routes(scored_routes):
+    """Collapse duplicate geometries, keeping the better-timed copy."""
+    deduped = {}
+    order = []
+    for route in scored_routes:
+        key = _route_key(route["waypoints"])
+        route["route_key"] = key
+        existing = deduped.get(key)
+        if existing is None:
+            deduped[key] = route
+            order.append(key)
+            continue
+        if (route["time_min"], route["risk_score"]) < (existing["time_min"], existing["risk_score"]):
+            deduped[key] = route
+    return [deduped[key] for key in order]
+
+
+def _apply_topsis(scored_routes, w_time=0.5, w_risk=0.5):
+    """Attach a TOPSIS score using clean, non-redundant criteria."""
+    if not scored_routes:
+        return
+    if len(scored_routes) == 1:
+        scored_routes[0]["topsis_score"] = 1.0
+        return
+
+    times = np.array([route["time_min"] for route in scored_routes], dtype=float)
+    risks = np.array([route["risk_score"] for route in scored_routes], dtype=float)
+
+    norm_times = times / np.sqrt(np.sum(times ** 2)) if np.sum(times ** 2) != 0 else times
+    norm_risks = risks / np.sqrt(np.sum(risks ** 2)) if np.sum(risks ** 2) != 0 else risks
+
+    weighted_matrix = np.column_stack((norm_times * w_time, norm_risks * w_risk))
+    ideal_best = np.min(weighted_matrix, axis=0)
+    ideal_worst = np.max(weighted_matrix, axis=0)
+
+    dist_to_best = np.sqrt(np.sum((weighted_matrix - ideal_best) ** 2, axis=1))
+    dist_to_worst = np.sqrt(np.sum((weighted_matrix - ideal_worst) ** 2, axis=1))
+    topsis_scores = dist_to_worst / (dist_to_best + dist_to_worst + 1e-10)
+
+    for index, route in enumerate(scored_routes):
+        route["topsis_score"] = float(topsis_scores[index])
+
+
+def _annotate_route_roles(scored_routes, route_fast, route_safe, route_recommended):
+    fast_id = route_fast["route_id"]
+    safe_id = route_safe["route_id"]
+    recommended_id = route_recommended["route_id"]
+
+    for route in scored_routes:
+        badges = []
+        if route["route_id"] == recommended_id:
+            badges.append("AI Recommended")
+        if route["route_id"] == fast_id:
+            badges.append("Fastest")
+        if route["route_id"] == safe_id:
+            badges.append("Safest")
+
+        route["badges"] = badges
+        if route["route_id"] == recommended_id:
+            route["primary_role"] = "recommended"
+            route["primary_label"] = "AI Recommended"
+        elif route["route_id"] == fast_id:
+            route["primary_role"] = "fast"
+            route["primary_label"] = "Fastest"
+        elif route["route_id"] == safe_id:
+            route["primary_role"] = "safe"
+            route["primary_label"] = "Safest"
+        else:
+            route["primary_role"] = "alternative"
+            route["primary_label"] = "Alternative"
+
+
+def _build_display_routes(scored_routes, route_fast, route_safe, route_recommended, max_routes=3):
+    """Choose up to three distinct routes for the frontend cards."""
+    display_routes = []
+    seen_ids = set()
+
+    for candidate in (route_recommended, route_fast, route_safe):
+        if candidate["route_id"] in seen_ids:
+            continue
+        display_routes.append(candidate)
+        seen_ids.add(candidate["route_id"])
+        if len(display_routes) >= max_routes:
+            return display_routes
+
+    ranked_remaining = sorted(
+        scored_routes,
+        key=lambda route: (route.get("topsis_score", 0.0), -route["time_min"]),
+        reverse=True,
+    )
+    for route in ranked_remaining:
+        if route["route_id"] in seen_ids:
+            continue
+        display_routes.append(route)
+        seen_ids.add(route["route_id"])
+        if len(display_routes) >= max_routes:
+            break
+
+    return display_routes
 
 
 @app.route("/api/refresh-demo-routes", methods=["POST"])
