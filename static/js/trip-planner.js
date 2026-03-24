@@ -983,9 +983,22 @@ function showRouteSelectionUI(data) {
                         ${riskPill(fastRoute.risk_level)}
                     </div>
                     <div>
-                        ${fastHighRiskKm > 0
-                            ? `<div class="warning-note">! ${fastHighRiskKm} km in high-risk areas</div>`
-                            : '<div class="safe-note">No high-risk areas</div>'}
+                        <!-- RISK SCORE BLOCK START -->
+                        <div class="risk-block">
+                            <div class="risk-header">
+                                <span class="risk-label-text">Overall risk score</span>
+                                <span class="risk-score-number" id="risk-score-fast"></span>
+                            </div>
+                            <div class="risk-bar-track">
+                                <div class="risk-bar-fill" id="risk-bar-fast"></div>
+                            </div>
+                        </div>
+                        <div class="peak-badge" id="peak-badge-fast">
+                            <span class="peak-icon" id="peak-icon-fast"></span>
+                            <span class="peak-text" id="peak-label-fast"></span>
+                            <span class="peak-detail" id="peak-detail-fast"></span>
+                        </div>
+                        <!-- RISK SCORE BLOCK END -->
                         <button class="select-route-btn select-fast-btn" onclick="selectRoute('fast'); event.stopPropagation();">
                             Select This Route
                         </button>
@@ -1002,9 +1015,22 @@ function showRouteSelectionUI(data) {
                         ${riskPill(safeRoute.risk_level)}
                     </div>
                     <div>
-                        ${safeHighRiskKm > 0
-                            ? `<div class="warning-note">! ${safeHighRiskKm} km in high-risk areas</div>`
-                            : '<div class="safe-note">No high-risk areas</div>'}
+                        <!-- RISK SCORE BLOCK START -->
+                        <div class="risk-block">
+                            <div class="risk-header">
+                                <span class="risk-label-text">Overall risk score</span>
+                                <span class="risk-score-number" id="risk-score-safe"></span>
+                            </div>
+                            <div class="risk-bar-track">
+                                <div class="risk-bar-fill" id="risk-bar-safe"></div>
+                            </div>
+                        </div>
+                        <div class="peak-badge" id="peak-badge-safe">
+                            <span class="peak-icon" id="peak-icon-safe"></span>
+                            <span class="peak-text" id="peak-label-safe"></span>
+                            <span class="peak-detail" id="peak-detail-safe"></span>
+                        </div>
+                        <!-- RISK SCORE BLOCK END -->
                         <button class="select-route-btn primary select-safe-btn" onclick="selectRoute('safe'); event.stopPropagation();">
                             Select This Route
                         </button>
@@ -1022,6 +1048,10 @@ function showRouteSelectionUI(data) {
     if (selectionContent) {
         selectionContent.innerHTML = routeSelectionHTML;
     }
+
+    // Apply risk badges after cards are rendered
+    applyRiskBadge(document.getElementById("route-card-fast"), fastRoute);
+    applyRiskBadge(document.getElementById("route-card-safe"), safeRoute);
 }
 
 function getRiskIcon(level) {
@@ -2659,4 +2689,48 @@ function togglePlannerLayers() {
             ? google.maps.MapTypeId.SATELLITE
             : google.maps.MapTypeId.ROADMAP
     );
+}
+
+function applyRiskBadge(cardElement, route) {
+    if (!cardElement || !route) return;
+    const score = route.risk_score;
+
+    // Bar width and color
+    const bar = cardElement.querySelector('[id^="risk-bar-"]');
+    if (bar) {
+        bar.style.width = score + '%';
+        if (score >= 80)      bar.style.background = '#D85A30';
+        else if (score >= 60) bar.style.background = '#EF9F27';
+        else if (score >= 40) bar.style.background = '#639922';
+        else                  bar.style.background = '#1D9E75';
+    }
+
+    // Score number
+    const scoreNum = cardElement.querySelector('[id^="risk-score-"]');
+    if (scoreNum) {
+        scoreNum.textContent = score + ' / 100';
+        scoreNum.style.color = score >= 80 ? '#993C1D' : score >= 60 ? '#854F0B' : '#3B6D11';
+    }
+
+    // Badge class
+    const badge = cardElement.querySelector('[id^="peak-badge-"]');
+    if (badge) {
+        badge.className = 'peak-badge ' + (score >= 60 ? 'danger' : score >= 40 ? 'medium' : 'safe');
+    }
+
+    // Icon (unicode, no emoji)
+    const icon = cardElement.querySelector('[id^="peak-icon-"]');
+    if (icon) {
+        icon.textContent = score >= 60 ? '!' : '✓';
+    }
+
+    // Labels
+    const labelText = cardElement.querySelector('[id^="peak-label-"]');
+    if (labelText) {
+        labelText.textContent = route.peak_label || '';
+    }
+    const detailText = cardElement.querySelector('[id^="peak-detail-"]');
+    if (detailText) {
+        detailText.textContent = route.peak_detail || '';
+    }
 }

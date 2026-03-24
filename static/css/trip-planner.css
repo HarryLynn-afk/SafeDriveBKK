@@ -3017,3 +3017,19 @@ body .pac-matched { color: var(--rr-primary); }
     color: var(--rr-danger);
     transform: translateY(-1px);
 }
+
+
+/* ===== RISK SCORE BLOCK ===== */
+.risk-block { display: flex; flex-direction: column; gap: 6px; margin-top: 8px; }
+.risk-header { display: flex; justify-content: space-between; align-items: center; }
+.risk-label-text { font-size: 12px; color: #888; font-weight: 500; }
+.risk-score-number { font-size: 12px; font-weight: 600; }
+.risk-bar-track { height: 6px; background: #e5e5e5; border-radius: 3px; overflow: hidden; }
+.risk-bar-fill { height: 100%; border-radius: 3px; transition: width 0.4s ease; }
+.peak-badge { display: flex; align-items: center; gap: 6px; padding: 7px 10px; border-radius: 6px; font-size: 12px; font-weight: 600; margin-top: 4px; }
+.peak-badge.danger { background: #FAECE7; color: #993C1D; }
+.peak-badge.safe   { background: #EAF3DE; color: #3B6D11; }
+.peak-badge.medium { background: #FAEEDA; color: #854F0B; }
+.peak-detail { margin-left: auto; font-weight: 400; opacity: 0.8; font-size: 11px; }
+.peak-icon { font-weight: 700; }
+

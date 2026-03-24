@@ -1858,6 +1858,22 @@ def compare_routes():
 
         fast_risk_score = int(route_fast["risk_score"])
         safe_risk_score = int(route_safe["risk_score"])
+
+        # Compute peak labels for both routes
+        for _route, _score in ((route_fast, fast_risk_score), (route_safe, safe_risk_score)):
+            if _score >= 80:
+                _route["peak_label"] = "Crosses extreme danger zone"
+                _route["peak_detail"] = "top 5% accident hotspots"
+            elif _score >= 60:
+                _route["peak_label"] = "Crosses high-risk zones"
+                _route["peak_detail"] = "above-average severity"
+            elif _score >= 40:
+                _route["peak_label"] = "Moderate risk areas ahead"
+                _route["peak_detail"] = "exercise caution"
+            else:
+                _route["peak_label"] = "Bypasses extreme danger zones"
+                _route["peak_detail"] = "30% safer peak risk"
+
         if safe_risk_score >= fast_risk_score:
             recommendation = "Fast route is already the safest available option. No safer alternative exists for this trip."
         else:
