@@ -473,8 +473,8 @@ function syncDemoRoutesVisibility() {
     }
 
     const showGrid = demoRoutesForceVisible || !hasTypedSearch;
-    demoGrid.style.display = showGrid ? "grid" : "none";
-    demoToggle.style.display = showGrid ? "none" : "inline-flex";
+    demoGrid.classList.toggle("is-hidden", !showGrid);
+    demoToggle.classList.toggle("is-visible", !showGrid);
 }
 
 function hideDemoRoutesAfterSelection() {
@@ -483,8 +483,8 @@ function hideDemoRoutesAfterSelection() {
     if (!demoGrid || !demoToggle) return;
 
     demoRoutesForceVisible = false;
-    demoGrid.style.display = "none";
-    demoToggle.style.display = "inline-flex";
+    demoGrid.classList.add("is-hidden");
+    demoToggle.classList.add("is-visible");
 }
 
 function showDemoRoutesFromToggle() {
@@ -493,8 +493,8 @@ function showDemoRoutesFromToggle() {
     if (!demoGrid || !demoToggle) return;
 
     demoRoutesForceVisible = true;
-    demoGrid.style.display = "grid";
-    demoToggle.style.display = "none";
+    demoGrid.classList.remove("is-hidden");
+    demoToggle.classList.remove("is-visible");
 }
 
 function onFindSaferRouteClick() {
@@ -1085,18 +1085,10 @@ function buildRouteComparisonCopy(fastRoute, safeRoute) {
 }
 
 function showRouteSelectionUI(data) {
-    const fastRoute = data.fast_route;
-    const recommendedRoute = data.recommended_route || data.safe_route;
-    const comparisonRoute = (
-        recommendedRoute && fastRoute && recommendedRoute.route_id !== fastRoute.route_id
-    ) ? recommendedRoute : data.safe_route;
-    const comparisonCopy = buildRouteComparisonCopy(fastRoute, comparisonRoute || fastRoute);
     const displayRoutes = Array.isArray(data.display_routes) ? data.display_routes : [];
     const trafficBadge = (src) => {
         if (src === "google_maps_traffic") return '<span class="traffic-badge live">Live Traffic</span>';
-        if (src === "google_maps") return '<span class="traffic-badge">Google Maps</span>';
-        if (src === "osrm") return '';
-        return '<small class="simulated-note">*estimated</small>';
+        return '';
     };
 
     const riskPill = (level) => {
@@ -1116,10 +1108,6 @@ function showRouteSelectionUI(data) {
         const extraBadges = badges.filter((badge) => badge !== route.primary_label);
         const badgeHtml = extraBadges.map((badge) => `<span class="route-secondary-badge">${badge}</span>`).join("");
         const trafficSrc = route.traffic_source || "estimated";
-        const subtitleBits = [route.peak_label, route.peak_detail].filter(Boolean);
-        const subtitleHtml = subtitleBits.length
-            ? subtitleBits.map((bit) => `<span>${bit}</span>`).join("")
-            : `<span>${formatRiskScoreCopy(route.risk_score, "Route risk summary")}</span>`;
         const distanceKm = Number(route.distance_km) || 0;
         const riskScore = Math.round(Number(route.risk_score) || 0);
 
@@ -1141,7 +1129,6 @@ function showRouteSelectionUI(data) {
                         <span class="route-row-eta">${route.time_min || 0} min</span>
                         <span class="route-row-distance">${distanceKm.toFixed(1)} km</span>
                     </span>
-                    <span class="route-row-subtitle">${subtitleHtml}</span>
                 </span>
                 <span class="route-row-side">
                     <span class="route-score-caption">Risk score</span>
@@ -1165,7 +1152,6 @@ function showRouteSelectionUI(data) {
                 data-route-id="${route.route_id}"
                 onclick="jumpToRouteOption('${route.route_id}')"
             >
-                <span class="route-shortcut-chip-icon">${theme.iconGlyph}</span>
                 <span>${item.label}</span>
             </button>
         `;
@@ -1173,14 +1159,13 @@ function showRouteSelectionUI(data) {
 
     const routeSelectionHTML = `
         <div class="route-selection-container route-selection-enter">
-            <button class="sheet-back-btn route-fade-up route-fade-up-1" onclick="setSheetState(1)">← Change route</button>
-
-            <div class="ml-analysis-badge route-fade-up route-fade-up-2">
-                <strong>AI-Powered Route Analysis</strong>
-                <span class="ml-model">XGBoost ML &bull; 83.8% Validated</span>
+            <div class="route-selection-header route-fade-up route-fade-up-1">
+                <button class="sheet-back-btn" onclick="setSheetState(1)">Change route</button>
+                <div class="route-header-meta">
+                    <strong>AI-Powered Route Analysis</strong>
+                    <span class="ml-model">XGBoost ML &bull; 83.8% Validated</span>
+                </div>
             </div>
-
-            <div class="tradeoff-between route-fade-up route-fade-up-3">${comparisonCopy.tradeoffHeadline}</div>
 
             <div class="route-shortcut-chips" aria-label="Route shortcuts">
                 ${routeShortcutHTML}
@@ -1189,10 +1174,6 @@ function showRouteSelectionUI(data) {
             <div class="route-list" role="list">
                 ${routeRowsHTML}
             </div>
-
-            ${comparisonCopy.recommendationText
-                ? `<div class="ai-recommendation route-fade-up route-fade-up-6">${comparisonCopy.recommendationText}</div>`
-                : ""}
 
             <div class="route-selection-footer route-fade-up route-fade-up-7">
                 <div id="selected-route-details-slot">
@@ -1272,7 +1253,7 @@ function getRouteRiskLabel(route) {
 }
 
 function getSelectedRouteDetailsHTML(route) {
-    const riskClass = (route && route.risk_level) || "medium";
+    const riskScore = getRouteRiskScore(route);
     return `
         <div class="selected-route-details selected-route-compact selected-route-sheet-footer">
             <div class="compact-route-summary">
@@ -1280,13 +1261,14 @@ function getSelectedRouteDetailsHTML(route) {
                     <span class="compact-route-name">${route.primary_label || "Selected Route"}</span>
                     <span class="selected-route-meta">${getRouteSelectionSummary(route)}</span>
                 </div>
-                <span class="risk-pill-inline ${riskClass}">${getRiskIcon(route.risk_level)} ${getRouteRiskLabel(route)}</span>
+                <div class="selected-route-actions">
+                    <span class="selected-route-risk">Risk <strong>${riskScore}</strong></span>
+                    <button id="start-navigation-btn" class="start-navigation-btn" onclick="startNavigationWithSelected()">
+                        ${getRouteStartButtonLabel(route)}
+                    </button>
+                </div>
             </div>
-            <div class="selected-route-subcopy">${getRouteSubtitle(route)}</div>
             ${getRouteSummaryBadges(route)}
-            <button id="start-navigation-btn" class="start-navigation-btn" onclick="startNavigationWithSelected()">
-                ${getRouteStartButtonLabel(route)}
-            </button>
         </div>
     `;
 }
@@ -1567,12 +1549,10 @@ function displayRoutePreview(data, destName) {
     const trafficSrc = route.traffic_source || summary.traffic_source || "estimated";
     const previewTimeEl = document.getElementById("preview-time");
     if (previewTimeEl) {
+        const existingBadge = previewTimeEl.parentElement && previewTimeEl.parentElement.querySelector(".traffic-badge, .simulated-note");
+        if (existingBadge) existingBadge.remove();
         if (trafficSrc === "google_maps_traffic") {
             previewTimeEl.insertAdjacentHTML("afterend", '<span class="traffic-badge live" style="font-size:11px;margin-left:6px;">Live Traffic</span>');
-        } else if (trafficSrc === "google_maps") {
-            previewTimeEl.insertAdjacentHTML("afterend", '<span class="traffic-badge" style="font-size:11px;margin-left:6px;">Google Maps</span>');
-        } else if (trafficSrc === "estimated") {
-            previewTimeEl.insertAdjacentHTML("afterend", '<small class="simulated-note" style="font-size:11px;margin-left:6px;color:#999;">*estimated</small>');
         }
     }
 
@@ -1793,6 +1773,7 @@ function selectDemoRoute(startName, startLat, startLon, endName, endLat, endLon)
     window.endLon = endLon;
     updateFindSaferRouteButton();
     hideDemoRoutesAfterSelection();
+    expandSheet();
 
     const btn = document.getElementById("findSaferRouteBtn");
     if (btn) {
@@ -2429,7 +2410,10 @@ function exitNavigation() {
 
     // Close summary modal if open
     const summaryModal = document.getElementById("nav-summary-modal");
-    if (summaryModal) summaryModal.style.display = "none";
+    if (summaryModal) {
+        summaryModal.style.display = "none";
+        summaryModal.classList.remove("is-visible", "is-closing");
+    }
 }
 
 // ===== NAV TOP BANNER (lookahead) =====
@@ -2559,7 +2543,7 @@ function showTripSummaryModal() {
         verdictText = timeSaved > 0 && parseFloat(extraKm) > 0
             ? `Saved ${timeSaved} min — ${compareLabel} had ${extraKm} km less high-risk areas`
             : timeSaved > 0
-                ? `You arrived ${timeSaved} min faster on this route`
+                ? ""
                 : "Both routes had similar travel time";
     }
 
@@ -2597,6 +2581,7 @@ function showTripSummaryModal() {
     if (verdictEl) {
         verdictEl.textContent = verdictText;
         verdictEl.style.color = pickedFast ? "#fbbf24" : "#4ade80";
+        verdictEl.classList.toggle("is-hidden", !verdictText);
     }
 
     const tryBtn = document.getElementById("s-try-btn");
@@ -2626,6 +2611,9 @@ function showTripSummaryModal() {
 
     // ── Show modal ──
     modal.style.display = "flex";
+    modal.classList.remove("is-closing");
+    void modal.offsetWidth;
+    modal.classList.add("is-visible");
     applyModalRiskBadge(
         "modal-fast-score-num", "modal-fast-bar", "modal-fast-badge",
         "modal-fast-icon", "modal-fast-label", "modal-fast-detail",
@@ -2732,15 +2720,33 @@ function _summaryArcAnimate(pct, duration) {
 
 function closeSummaryModal() {
     const modal = document.getElementById("nav-summary-modal");
-    if (modal) modal.style.display = "none";
-    window.location.assign("/");
+    if (!modal) {
+        window.location.assign("/");
+        return;
+    }
+    modal.classList.remove("is-visible");
+    modal.classList.add("is-closing");
+    window.setTimeout(() => {
+        modal.style.display = "none";
+        modal.classList.remove("is-closing");
+        window.location.assign("/");
+    }, 280);
 }
 
 function closeSummaryAndFindRoute() {
     const modal = document.getElementById("nav-summary-modal");
-    if (modal) modal.style.display = "none";
-    exitNavigation();
-    setSheetState(1);
+    if (modal) {
+        modal.classList.remove("is-visible");
+        modal.classList.add("is-closing");
+    }
+    window.setTimeout(() => {
+        if (modal) {
+            modal.style.display = "none";
+            modal.classList.remove("is-closing");
+        }
+        exitNavigation();
+        setSheetState(1);
+    }, 280);
 }
 
 // ===== DEMO MODE TOGGLE =====

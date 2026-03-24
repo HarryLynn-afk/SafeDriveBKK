@@ -139,7 +139,6 @@ main { background: transparent !important; position: relative; z-index: auto; }
 
     <!-- Demo routes -->
     <div class="quick-destinations" id="demo-routes-section">
-        <p class="quick-label">Try a demo route:</p>
         <div class="quick-chips">
             <div class="demo-routes-grid">
                 <button class="quick-chip quick-chip-danger" onclick="selectDemoRoute('Dusit', 13.7831, 100.5103, 'Lat Krabang', 13.7250, 100.7490)">
@@ -246,8 +245,11 @@ main { background: transparent !important; position: relative; z-index: auto; }
                 <div class="step-status">...</div>
             </div>
         </div>
-        <div class="analysis-stats">
-            <span id="routes-analyzed">0</span> routes analyzed
+        <div class="analysis-footer">
+            <button type="button" class="analysis-cancel-btn" onclick="hideAIAnalyzing()">Cancel</button>
+            <div class="analysis-stats">
+                <span id="routes-analyzed">0</span> routes analyzed
+            </div>
         </div>
     </div>
 </div>

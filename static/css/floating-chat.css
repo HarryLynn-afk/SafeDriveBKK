@@ -251,11 +251,13 @@ html[data-theme="dark"] {
 
 .chat-widget-overlay {
     position: fixed;
-    right: var(--chat-edge-offset);
-    bottom: calc(var(--chat-edge-offset) + var(--chat-fab-size) + var(--chat-fab-gap));
-    width: min(var(--chat-panel-width), calc(100vw - (var(--chat-edge-offset) * 2)));
-    height: var(--chat-panel-height);
-    max-height: calc(100vh - 112px);
+    right: 16px;
+    bottom: 80px;
+    width: calc(100% - 32px);
+    max-width: 360px;
+    height: auto;
+    max-height: min(420px, calc(100vh - 120px));
+    margin: 0 auto;
     background: var(--chat-surface);
     color: var(--chat-text);
     border: 1px solid var(--chat-border);
@@ -357,7 +359,8 @@ html[data-theme="dark"] {
 .chat-widget-messages {
     flex: 1;
     overflow-y: auto;
-    padding: 20px;
+    min-height: 0;
+    padding: 12px 14px;
     background: var(--chat-surface-muted);
 }
 
@@ -680,8 +683,9 @@ html[data-theme="dark"] {
     }
 
     .chat-widget-overlay {
-        width: var(--chat-panel-width);
-        max-height: calc(100vh - 108px);
+        width: calc(100% - 32px);
+        max-width: 360px;
+        max-height: min(420px, calc(100vh - 112px));
     }
 }
 
