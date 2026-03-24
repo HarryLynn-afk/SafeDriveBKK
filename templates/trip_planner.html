@@ -135,34 +135,35 @@ main { background: transparent !important; position: relative; z-index: auto; }
             <div id="suggestions-dropdown" class="suggestions-dropdown" style="display:none;"></div>
         </div>
     </div>
+    <button type="button" id="demo-routes-toggle" class="demo-routes-toggle">View Demo Routes</button>
 
     <!-- Demo routes -->
-    <div class="quick-destinations">
+    <div class="quick-destinations" id="demo-routes-section">
         <p class="quick-label">Try a demo route:</p>
         <div class="quick-chips">
-            <button class="quick-chip quick-chip-danger" onclick="selectDemoRoute('Dusit', 13.7831, 100.5103, 'Lat Krabang', 13.7250, 100.7490)">
-                <span class="quick-chip-dot" aria-hidden="true"></span>
-                <span>Airport Risk Gauntlet</span>
-            </button>
-            <button class="quick-chip quick-chip-warning" onclick="selectDemoRoute('Chatuchak', 13.8000, 100.5500, 'Taling Chan', 13.7800, 100.3500)">
-                <span class="quick-chip-dot" aria-hidden="true"></span>
-                <span>Long High-Risk Commute</span>
-            </button>
-            <button class="quick-chip quick-chip-caution" onclick="selectDemoRoute('Watthana', 13.7380, 100.5600, 'Lat Krabang', 13.7250, 100.7490)">
-                <span class="quick-chip-dot" aria-hidden="true"></span>
-                <span>Sukhumvit Airport Split</span>
-            </button>
-            <button class="quick-chip quick-chip-primary" onclick="selectDemoRoute('Chatuchak', 13.8038, 100.5503, 'Lat Krabang', 13.7250, 100.7490)">
-                <span class="quick-chip-dot" aria-hidden="true"></span>
-                <span>North-to-Airport Split</span>
-            </button>
+            <div class="demo-routes-grid">
+                <button class="quick-chip quick-chip-danger" onclick="selectDemoRoute('Dusit', 13.7831, 100.5103, 'Lat Krabang', 13.7250, 100.7490)">
+                    <span>Risk Gauntlet</span>
+                </button>
+                <button class="quick-chip quick-chip-warning" onclick="selectDemoRoute('Chatuchak', 13.8000, 100.5500, 'Taling Chan', 13.7800, 100.3500)">
+                    <span>Risk Commute</span>
+                </button>
+                <button class="quick-chip quick-chip-caution" onclick="selectDemoRoute('Watthana', 13.7380, 100.5600, 'Lat Krabang', 13.7250, 100.7490)">
+                    <span>Sukhumvit Split</span>
+                </button>
+                <button class="quick-chip quick-chip-primary" onclick="selectDemoRoute('Chatuchak', 13.8038, 100.5503, 'Lat Krabang', 13.7250, 100.7490)">
+                    <span>North Split</span>
+                </button>
+            </div>
         </div>
     </div>
 
     <!-- Find route CTA -->
-    <button id="findSaferRouteBtn" class="find-safer-route-btn" disabled onclick="onFindSaferRouteClick()">
-        Find Safer Route
-    </button>
+    <div class="sheet-primary-action">
+        <button id="findSaferRouteBtn" class="find-safer-route-btn" disabled onclick="onFindSaferRouteClick()">
+            Find Safer Route
+        </button>
+    </div>
 
     <!-- Route error -->
     <div id="route-error" style="display:none; margin-top:12px; background:#422006; border:1px solid #92400e; border-radius:10px; padding:12px 14px;">
@@ -213,9 +214,9 @@ main { background: transparent !important; position: relative; z-index: auto; }
         <button class="start-nav-button" onclick="startNavigation()">Start Navigation</button>
     </div>
 
-    <!-- ── Step 5: Multi-route results (cards only — map is the background) ── -->
+    <!-- ── Step 5: Multi-route results (bottom-sheet route list; map is the background) ── -->
     <div id="route-results" style="display:none;">
-        <div id="route-selection-content"></div>
+        <div id="route-selection-content" aria-live="polite" aria-label="Route options"></div>
     </div>
 </div>
 

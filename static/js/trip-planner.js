@@ -45,6 +45,7 @@ const DEMO_ROUTE_NAMES = {
     "Huai Khwang": "huai_khwang",
 };
 let demoRoutesCache = null;
+let demoRoutesForceVisible = false;
 
 // Pre-defined backup destinations
 const BACKUP_DESTINATIONS = [
@@ -453,9 +454,47 @@ function detectMyLocation() {
 // ===== FIND SAFER ROUTE BUTTON =====
 function updateFindSaferRouteButton() {
     const btn = document.getElementById("findSaferRouteBtn");
+    syncDemoRoutesVisibility();
     if (!btn) return;
     const hasBoth = !!(window.startLat && window.startLon && window.endLat && window.endLon);
     btn.disabled = !hasBoth;
+}
+
+function syncDemoRoutesVisibility() {
+    const demoGrid = document.querySelector(".demo-routes-grid");
+    const demoToggle = document.getElementById("demo-routes-toggle");
+    const startInput = document.getElementById("start-location");
+    const destInput = document.getElementById("destination");
+    if (!demoGrid || !demoToggle || !startInput || !destInput) return;
+
+    const hasTypedSearch = Boolean(startInput.value.trim() || destInput.value.trim());
+    if (!hasTypedSearch) {
+        demoRoutesForceVisible = false;
+    }
+
+    const showGrid = demoRoutesForceVisible || !hasTypedSearch;
+    demoGrid.style.display = showGrid ? "grid" : "none";
+    demoToggle.style.display = showGrid ? "none" : "inline-flex";
+}
+
+function hideDemoRoutesAfterSelection() {
+    const demoGrid = document.querySelector(".demo-routes-grid");
+    const demoToggle = document.getElementById("demo-routes-toggle");
+    if (!demoGrid || !demoToggle) return;
+
+    demoRoutesForceVisible = false;
+    demoGrid.style.display = "none";
+    demoToggle.style.display = "inline-flex";
+}
+
+function showDemoRoutesFromToggle() {
+    const demoGrid = document.querySelector(".demo-routes-grid");
+    const demoToggle = document.getElementById("demo-routes-toggle");
+    if (!demoGrid || !demoToggle) return;
+
+    demoRoutesForceVisible = true;
+    demoGrid.style.display = "grid";
+    demoToggle.style.display = "none";
 }
 
 function onFindSaferRouteClick() {
@@ -692,6 +731,10 @@ function getRouteTheme(route) {
                 lineColor: "#F59E0B",
                 selectedColor: "#D97706",
                 buttonClass: "select-rec-btn primary",
+                rowToneClass: "route-row-recommended",
+                iconClass: "recommended",
+                iconGlyph: "AI",
+                chipLabel: "Recommended",
             };
         case "safe":
             return {
@@ -700,6 +743,10 @@ function getRouteTheme(route) {
                 lineColor: "#10B981",
                 selectedColor: "#059669",
                 buttonClass: "select-safe-btn primary",
+                rowToneClass: "route-row-safe",
+                iconClass: "safe",
+                iconGlyph: "S",
+                chipLabel: "Safest",
             };
         case "alternative":
             return {
@@ -708,6 +755,10 @@ function getRouteTheme(route) {
                 lineColor: "#64748B",
                 selectedColor: "#475569",
                 buttonClass: "select-alt-btn",
+                rowToneClass: "route-row-alternative",
+                iconClass: "alternative",
+                iconGlyph: "A",
+                chipLabel: "Alternative",
             };
         case "fast":
         default:
@@ -717,6 +768,10 @@ function getRouteTheme(route) {
                 lineColor: "#3B82F6",
                 selectedColor: "#1D4ED8",
                 buttonClass: "select-fast-btn",
+                rowToneClass: "route-row-fast",
+                iconClass: "fast",
+                iconGlyph: "F",
+                chipLabel: "Fastest",
             };
     }
 }
@@ -1044,60 +1099,80 @@ function showRouteSelectionUI(data) {
         return '<small class="simulated-note">*estimated</small>';
     };
 
-    // Fix 1 + Fix 4: inline risk pill helper (small pill, not full-width bar)
     const riskPill = (level) => {
         const icon = getRiskIcon(level);
-        return `<span class="risk-pill-inline ${level}">${icon} ${(level || "unknown").toUpperCase()} RISK</span>`;
+        return `<span class="risk-pill-inline ${level || "unknown"}">${icon} ${(level || "unknown").toUpperCase()} RISK</span>`;
     };
 
-    const routeCardsHTML = displayRoutes.map((route, index) => {
+    const routeShortcutMap = [
+        { label: "Recommended", route: data.recommended_route || data.safe_route },
+        { label: "Fastest", route: data.fast_route },
+        { label: "Safest", route: data.safe_route },
+    ].filter((item) => item.route && item.route.route_id);
+
+    const routeRowsHTML = displayRoutes.map((route, index) => {
         const theme = getRouteTheme(route);
-        const extraBadges = (route.badges || []).filter((badge) => badge !== route.primary_label);
-        const badgeHtml = extraBadges.length
-            ? `<div class="route-secondary-badges">${extraBadges.map((badge) => `<span class="route-secondary-badge">${badge}</span>`).join("")}</div>`
-            : "";
+        const badges = Array.isArray(route.badges) ? route.badges : [];
+        const extraBadges = badges.filter((badge) => badge !== route.primary_label);
+        const badgeHtml = extraBadges.map((badge) => `<span class="route-secondary-badge">${badge}</span>`).join("");
         const trafficSrc = route.traffic_source || "estimated";
+        const subtitleBits = [route.peak_label, route.peak_detail].filter(Boolean);
+        const subtitleHtml = subtitleBits.length
+            ? subtitleBits.map((bit) => `<span>${bit}</span>`).join("")
+            : `<span>${formatRiskScoreCopy(route.risk_score, "Route risk summary")}</span>`;
+        const distanceKm = Number(route.distance_km) || 0;
+        const riskScore = Math.round(Number(route.risk_score) || 0);
 
         return `
-            <div
-                class="route-card ${theme.cardClass} route-card-enter"
-                id="route-card-${route.route_id}"
+            <button
+                type="button"
+                class="route-list-row ${theme.rowToneClass} route-row-enter"
+                id="route-row-${route.route_id}"
                 onclick="selectRoute('${route.route_id}')"
-                style="animation-delay:${0.18 + (index * 0.1)}s"
+                style="animation-delay:${0.18 + (index * 0.08)}s"
             >
-                <div>
-                    <div class="route-badge-v2 ${theme.badgeClass}">${(route.primary_label || "Route").toUpperCase()}</div>
-                    ${badgeHtml}
-                    <div class="route-time">${route.time_min || 0} min ${trafficBadge(trafficSrc)}</div>
-                    <div class="route-distance">${(route.distance_km || 0).toFixed(1)} km</div>
-                    ${riskPill(route.risk_level)}
-                </div>
-                <div>
-                    <div class="risk-block">
-                        <div class="risk-header">
-                            <span class="risk-label-text">Overall risk score</span>
-                            <span class="risk-score-number" id="risk-score-${route.route_id}"></span>
-                        </div>
-                        <div class="risk-bar-track">
-                            <div class="risk-bar-fill" id="risk-bar-${route.route_id}"></div>
-                        </div>
-                    </div>
-                    <div class="peak-badge" id="peak-badge-${route.route_id}">
-                        <span class="peak-icon" id="peak-icon-${route.route_id}"></span>
-                        <span class="peak-text" id="peak-label-${route.route_id}"></span>
-                        <span class="peak-detail" id="peak-detail-${route.route_id}"></span>
-                    </div>
-                    <button class="select-route-btn ${theme.buttonClass}" onclick="selectRoute('${route.route_id}'); event.stopPropagation();">
-                        Select This Route
-                    </button>
-                </div>
-            </div>
+                <span class="route-row-icon ${theme.iconClass}" aria-hidden="true">${theme.iconGlyph}</span>
+                <span class="route-row-main">
+                    <span class="route-row-title-line">
+                        <span class="route-row-title">${route.primary_label || "Route"}</span>
+                        ${trafficBadge(trafficSrc)}
+                    </span>
+                    <span class="route-row-metrics">
+                        <span class="route-row-eta">${route.time_min || 0} min</span>
+                        <span class="route-row-distance">${distanceKm.toFixed(1)} km</span>
+                    </span>
+                    <span class="route-row-subtitle">${subtitleHtml}</span>
+                </span>
+                <span class="route-row-side">
+                    <span class="route-score-caption">Risk score</span>
+                    <span class="route-score-value">${riskScore}</span>
+                    <span class="route-row-badges">
+                        ${riskPill(route.risk_level)}
+                        ${badgeHtml}
+                    </span>
+                </span>
+            </button>
+        `;
+    }).join("");
+
+    const routeShortcutHTML = routeShortcutMap.map((item, index) => {
+        const route = routeOptions[item.route.route_id] || item.route;
+        const theme = getRouteTheme(route);
+        return `
+            <button
+                type="button"
+                class="route-shortcut-chip ${theme.iconClass} route-fade-up route-fade-up-${Math.min(index + 4, 6)}"
+                data-route-id="${route.route_id}"
+                onclick="jumpToRouteOption('${route.route_id}')"
+            >
+                <span class="route-shortcut-chip-icon">${theme.iconGlyph}</span>
+                <span>${item.label}</span>
+            </button>
         `;
     }).join("");
 
     const routeSelectionHTML = `
         <div class="route-selection-container route-selection-enter">
-            <!-- Fix 6: back to input state -->
             <button class="sheet-back-btn route-fade-up route-fade-up-1" onclick="setSheetState(1)">← Change route</button>
 
             <div class="ml-analysis-badge route-fade-up route-fade-up-2">
@@ -1105,16 +1180,25 @@ function showRouteSelectionUI(data) {
                 <span class="ml-model">XGBoost ML &bull; 83.8% Validated</span>
             </div>
 
-            <!-- Fix 4: tradeoff line OUTSIDE cards, centered above grid -->
             <div class="tradeoff-between route-fade-up route-fade-up-3">${comparisonCopy.tradeoffHeadline}</div>
 
-            <div class="route-options-grid">
-                ${routeCardsHTML}
+            <div class="route-shortcut-chips" aria-label="Route shortcuts">
+                ${routeShortcutHTML}
+            </div>
+
+            <div class="route-list" role="list">
+                ${routeRowsHTML}
             </div>
 
             ${comparisonCopy.recommendationText
-                ? `<div class="ai-recommendation route-fade-up route-fade-up-4">${comparisonCopy.recommendationText}</div>`
+                ? `<div class="ai-recommendation route-fade-up route-fade-up-6">${comparisonCopy.recommendationText}</div>`
                 : ""}
+
+            <div class="route-selection-footer route-fade-up route-fade-up-7">
+                <div id="selected-route-details-slot">
+                    <div class="route-footer-placeholder">Choose a route to preview it on the map and start navigation.</div>
+                </div>
+            </div>
         </div>
     `;
 
@@ -1122,11 +1206,89 @@ function showRouteSelectionUI(data) {
     if (selectionContent) {
         selectionContent.innerHTML = routeSelectionHTML;
     }
+}
 
-    // Apply risk badges after cards are rendered
-    displayRoutes.forEach((route) => {
-        applyRiskBadge(document.getElementById(`route-card-${route.route_id}`), route);
+function jumpToRouteOption(routeId) {
+    const row = document.getElementById(`route-row-${routeId}`);
+    if (row) {
+        row.scrollIntoView({ behavior: "smooth", block: "nearest" });
+        row.classList.remove("route-row-pulse");
+        void row.offsetWidth;
+        row.classList.add("route-row-pulse");
+        window.setTimeout(() => {
+            row.classList.remove("route-row-pulse");
+        }, 650);
+    }
+
+    selectRoute(routeId);
+}
+
+function syncRouteShortcutState(routeId) {
+    document.querySelectorAll(".route-shortcut-chip").forEach((chip) => {
+        chip.classList.toggle("active", chip.dataset.routeId === routeId);
     });
+}
+
+function getRouteStartButtonLabel(route) {
+    const label = route && route.primary_label ? route.primary_label : "Selected Route";
+    return label.toLowerCase().includes("route") ? `Start ${label}` : `Start ${label} Route`;
+}
+
+function getRouteSummaryBadges(route) {
+    const badges = Array.isArray(route && route.badges) ? route.badges : [];
+    const extraBadges = badges.filter((badge) => badge !== route.primary_label);
+    if (!extraBadges.length) return "";
+
+    return `
+        <div class="route-footer-badges">
+            ${extraBadges.map((badge) => `<span class="route-secondary-badge">${badge}</span>`).join("")}
+        </div>
+    `;
+}
+
+function getRouteSubtitle(route) {
+    const bits = [route && route.peak_label, route && route.peak_detail].filter(Boolean);
+    return bits.length ? bits.join(" · ") : "Route risk summary unavailable.";
+}
+
+function getRouteRiskScore(route) {
+    return Math.round(Number(route && route.risk_score) || 0);
+}
+
+function getRouteDistanceKm(route) {
+    return (Number(route && route.distance_km) || 0).toFixed(1);
+}
+
+function getRouteDuration(route) {
+    return Math.round(Number(route && route.time_min) || 0);
+}
+
+function getRouteSelectionSummary(route) {
+    return `${getRouteDuration(route)} min · ${getRouteDistanceKm(route)} km · Risk ${getRouteRiskScore(route)}`;
+}
+
+function getRouteRiskLabel(route) {
+    return `${((route && route.risk_level) || "unknown").toUpperCase()} RISK`;
+}
+
+function getSelectedRouteDetailsHTML(route) {
+    const riskClass = (route && route.risk_level) || "medium";
+    return `
+        <div class="selected-route-details selected-route-compact selected-route-sheet-footer">
+            <div class="compact-route-summary">
+                <div class="selected-route-copy">
+                    <span class="compact-route-name">${route.primary_label || "Selected Route"}</span>
+                    <span class="selected-route-meta">${getRouteSelectionSummary(route)}</span>
+                </div>
+                <span class="risk-pill-inline ${riskClass}">${getRiskIcon(route.risk_level)} ${getRouteRiskLabel(route)}</span>
+            </div>
+            <div class="selected-route-subcopy">${getRouteSubtitle(route)}</div>
+            ${getRouteSummaryBadges(route)}
+            <button id="start-navigation-btn" class="start-navigation-btn" onclick="startNavigationWithSelected()">
+                ${getRouteStartButtonLabel(route)}
+            </button>
+        </div>
+    `;
 }
 
 function getRiskIcon(level) {
@@ -1155,45 +1317,29 @@ function selectRoute(routeId) {
         }
     });
 
-    // Highlight the selected card
-    document.querySelectorAll(".route-card").forEach((card) => card.classList.remove("selected"));
-    const card = document.getElementById(`route-card-${routeId}`);
+    document.querySelectorAll(".route-card, .route-list-row").forEach((card) => card.classList.remove("selected"));
+    const card = document.getElementById(`route-card-${routeId}`) || document.getElementById(`route-row-${routeId}`);
     if (card) card.classList.add("selected");
+    syncRouteShortcutState(routeId);
 
     // Show detailed info + Start Navigation button
     showRouteDetails(routeOptions[routeId]);
 }
 
 function showRouteDetails(route) {
-    const routeLabel = route.primary_label || "Selected Route";
-    const riskClass  = route.risk_level || "medium";
-    const riskLabel  = ((route.risk_level || "unknown").toUpperCase()) + " RISK";
+    if (!route) return;
 
-    const detailsHTML = `
-        <div class="selected-route-details selected-route-compact">
-            <div class="compact-route-summary">
-                <span class="compact-route-name">${routeLabel}</span>
-                <span class="compact-route-time">${route.time_min} min</span>
-                <span class="risk-pill-inline ${riskClass}">${riskLabel}</span>
-            </div>
-            <button id="start-navigation-btn" class="start-navigation-btn" onclick="startNavigationWithSelected()">
-                Start Navigation
-            </button>
-        </div>
-    `;
+    const slot = document.getElementById("selected-route-details-slot");
+    if (slot) {
+        slot.innerHTML = getSelectedRouteDetailsHTML(route);
+    } else {
+        const container = document.querySelector(".route-selection-container");
+        const existing = document.querySelector(".selected-route-details");
+        if (existing) existing.remove();
+        if (container) container.insertAdjacentHTML("beforeend", getSelectedRouteDetailsHTML(route));
+    }
 
-    const container = document.querySelector(".route-selection-container");
-    const existing = document.querySelector(".selected-route-details");
-    if (existing) existing.remove();
-    if (container) container.insertAdjacentHTML("beforeend", detailsHTML);
-
-    // Jump straight to Start Navigation — scroll sheet so button is first thing visible
     setSheetState(3);
-    setTimeout(() => {
-        const sheet = document.getElementById("planner-sheet");
-        if (sheet) sheet.scrollTop = sheet.scrollHeight;
-    }, 100);
-
     resetStartNavigationButton();
 }
 
@@ -1207,10 +1353,16 @@ function changeRoute() {
         routeLayers[id].setOptions({ strokeWeight: 6, strokeOpacity: 0.75, strokeColor: theme.lineColor, zIndex: 1 });
     });
 
-    document.querySelectorAll(".route-card").forEach((card) => card.classList.remove("selected"));
+    document.querySelectorAll(".route-card, .route-list-row").forEach((card) => card.classList.remove("selected"));
+    syncRouteShortcutState("");
 
-    const details = document.querySelector(".selected-route-details");
-    if (details) details.remove();
+    const slot = document.getElementById("selected-route-details-slot");
+    if (slot) {
+        slot.innerHTML = '<div class="route-footer-placeholder">Choose a route to preview it on the map and start navigation.</div>';
+    } else {
+        const details = document.querySelector(".selected-route-details");
+        if (details) details.remove();
+    }
 
     // Fix 6: go back to route comparison state
     setSheetState(2);
@@ -1640,6 +1792,7 @@ function selectDemoRoute(startName, startLat, startLon, endName, endLat, endLon)
     window.endLat = endLat;
     window.endLon = endLon;
     updateFindSaferRouteButton();
+    hideDemoRoutesAfterSelection();
 
     const btn = document.getElementById("findSaferRouteBtn");
     if (btn) {
@@ -2627,16 +2780,6 @@ function setNetworkStatusVisibility(showOfflineMessage) {
 
 // Initialize on page load
 document.addEventListener("DOMContentLoaded", () => {
-    // Pre-set start location so demo chips work immediately
-    if (!window.startLat || !window.startLon) {
-        window.startLat = DEFAULT_START.lat;
-        window.startLon = DEFAULT_START.lon;
-        const startInput = document.getElementById("start-location");
-        if (startInput) {
-            startInput.value = DEFAULT_START.name;
-        }
-    }
-
     // Map is initialized in initGooglePlaces (after Google Maps API loads)
 
     // ── Bottom sheet handle: toggle expanded/collapsed on tap ──
@@ -2644,11 +2787,17 @@ document.addEventListener("DOMContentLoaded", () => {
     if (handle) {
         handle.addEventListener("click", () => {
             const sheet = document.getElementById("planner-sheet");
+            const resultsEl = document.getElementById("route-results");
             if (sheet) {
-                if (sheet.classList.contains("collapsed")) {
-                    expandSheet();
+                if (sheet.classList.contains("expanded")) {
+                    const resultsVisible = !!resultsEl && !resultsEl.classList.contains("hidden");
+                    if (resultsVisible) {
+                        peekSheet();
+                    } else {
+                        collapseSheet();
+                    }
                 } else {
-                    collapseSheet();
+                    expandSheet();
                 }
             }
         });
@@ -2662,6 +2811,7 @@ document.addEventListener("DOMContentLoaded", () => {
 
     // Fix 6: start in input state
     setSheetState(1);
+    updateFindSaferRouteButton();
 
     // Fix 19: auto-trigger route if URL contains deep-link params
     const urlParams = new URLSearchParams(window.location.search);
@@ -2680,8 +2830,19 @@ document.addEventListener("DOMContentLoaded", () => {
         const destInput  = document.getElementById("destination");
         if (startInput && fromName) startInput.value = fromName;
         if (destInput  && toName)   destInput.value  = toName;
+        syncDemoRoutesVisibility();
         // short delay so map tiles are ready
         setTimeout(() => calculateRoute(slat, slon, elat, elon, toName), 800);
+    }
+
+    const startInput = document.getElementById("start-location");
+    const destInput = document.getElementById("destination");
+    [startInput, destInput].filter(Boolean).forEach((input) => {
+        input.addEventListener("input", syncDemoRoutesVisibility);
+    });
+    const demoToggle = document.getElementById("demo-routes-toggle");
+    if (demoToggle) {
+        demoToggle.addEventListener("click", showDemoRoutesFromToggle);
     }
 });
 
@@ -2755,28 +2916,40 @@ function setSheetState(state) {
         collapseSheet();
     } else if (state === 2) {
         if (results) results.classList.remove("hidden");
-        expandSheet();
-        // Fix 2: scroll sheet to top so cards are immediately visible
+        peekSheet();
+        // scroll list back to the top edge of the sheet
         setTimeout(() => {
             if (sheet) sheet.scrollTop = 0;
         }, 150);
     } else if (state === 3) {
         if (results) results.classList.remove("hidden");
-        expandSheet();
-        // Fix 3: scroll sheet so Start Navigation button is visible
+        peekSheet();
+        // Keep the sticky route footer visible without forcing a jump.
         setTimeout(() => {
             const btn = document.getElementById("start-navigation-btn");
-            if (sheet && btn) {
+            const stickyFooter = document.querySelector(".route-selection-footer");
+            if (sheet && btn && !stickyFooter) {
                 sheet.scrollTop = btn.offsetTop - 20;
             }
         }, 200);
     }
 }
 
+function peekSheet() {
+    const sheet = document.getElementById("planner-sheet");
+    if (sheet) {
+        sheet.classList.remove("collapsed", "expanded");
+        sheet.classList.add("results-peek");
+    }
+    setTimeout(() => {
+        if (tripCompareMap) google.maps.event.trigger(tripCompareMap, "resize");
+    }, 300);
+}
+
 function expandSheet() {
     const sheet = document.getElementById("planner-sheet");
     if (sheet) {
-        sheet.classList.remove("collapsed");
+        sheet.classList.remove("collapsed", "results-peek");
         sheet.classList.add("expanded");
     }
     setTimeout(() => {
@@ -2787,7 +2960,7 @@ function expandSheet() {
 function collapseSheet() {
     const sheet = document.getElementById("planner-sheet");
     if (sheet) {
-        sheet.classList.remove("expanded");
+        sheet.classList.remove("expanded", "results-peek");
         sheet.classList.add("collapsed");
     }
     setTimeout(() => {

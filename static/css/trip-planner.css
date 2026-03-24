@@ -2342,7 +2342,8 @@ html[data-theme="light"] .planner-bg-map .gm-style .gm-fullscreen-control:hover 
 }
 
 /* Fix 2: collapsed = auto-fit content (no empty dark area below button) */
-.planner-sheet.collapsed { max-height: 440px; }
+.planner-sheet.collapsed { max-height: 440px; overflow-y: auto; }
+.planner-sheet.results-peek { max-height: clamp(280px, 36vh, 360px); overflow-y: auto; }
 /* Fix 2: expanded = tall scrollable panel */
 .planner-sheet.expanded  { max-height: 72vh; overflow-y: auto; }
 
@@ -2491,18 +2492,37 @@ html[data-theme="light"] .planner-bg-map .gm-style .gm-fullscreen-control:hover 
 
 /* ── Demo chips — dark ── */
 .planner-sheet .quick-destinations {
-    margin: 0 0 14px;
-    padding: 18px;
+    margin: 0 0 10px;
+    padding: 12px 12px 10px;
     background: var(--planner-surface);
     border: 1px solid var(--planner-border);
     border-radius: 22px;
     box-shadow: var(--planner-chip-shadow);
 }
+.planner-sheet .quick-destinations.is-hidden { display: none; }
 .planner-sheet .quick-label {
     color: var(--planner-muted); font-size: 12px; font-weight: 600;
-    margin-bottom: 10px; text-transform: uppercase; letter-spacing: 0.08em;
+    margin-bottom: 6px; text-transform: uppercase; letter-spacing: 0.08em;
 }
-.planner-sheet .quick-chips { display: flex; flex-wrap: wrap; gap: 10px; }
+.planner-sheet .quick-chips { display: block; }
+.demo-routes-grid {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 6px;
+}
+.demo-routes-grid .quick-chip {
+    min-height: 34px;
+    justify-content: center;
+    gap: 0;
+    text-align: center;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    padding: 7px 10px;
+    font-size: 12px;
+    line-height: 1.1;
+    box-shadow: none;
+}
 .planner-sheet .quick-chip {
     display: inline-flex;
     align-items: center;
@@ -2518,6 +2538,10 @@ html[data-theme="light"] .planner-bg-map .gm-style .gm-fullscreen-control:hover 
     white-space: nowrap;
     color: var(--planner-chip-text);
 }
+.demo-routes-grid .quick-chip span {
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
 .planner-sheet .quick-chip:hover {
     background: var(--planner-menu-hover);
     border-color: rgba(37, 99, 235, 0.28);
@@ -2526,36 +2550,62 @@ html[data-theme="light"] .planner-bg-map .gm-style .gm-fullscreen-control:hover 
     filter: none;
 }
 
-.planner-sheet .quick-chip-dot {
-    width: 8px;
-    height: 8px;
-    border-radius: 999px;
-    background: var(--chip-tone, var(--rr-primary));
-    box-shadow: 0 0 0 4px var(--chip-wash, rgba(37, 99, 235, 0.12));
-    flex-shrink: 0;
-}
-
 .planner-sheet .quick-chip-danger {
-    --chip-tone: var(--rr-danger);
-    --chip-wash: rgba(220, 38, 38, 0.14);
+    background: rgba(244, 114, 182, 0.14);
+    border-color: rgba(190, 24, 93, 0.18);
+    color: #9d174d;
 }
 
 .planner-sheet .quick-chip-warning {
-    --chip-tone: #f97316;
-    --chip-wash: rgba(249, 115, 22, 0.14);
+    background: rgba(251, 146, 60, 0.14);
+    border-color: rgba(194, 65, 12, 0.18);
+    color: #9a3412;
 }
 
 .planner-sheet .quick-chip-caution {
-    --chip-tone: #eab308;
-    --chip-wash: rgba(234, 179, 8, 0.14);
+    background: rgba(250, 204, 21, 0.16);
+    border-color: rgba(161, 98, 7, 0.18);
+    color: #92400e;
 }
 
 .planner-sheet .quick-chip-primary {
-    --chip-tone: var(--rr-primary);
-    --chip-wash: rgba(37, 99, 235, 0.12);
+    background: rgba(96, 165, 250, 0.16);
+    border-color: rgba(37, 99, 235, 0.18);
+    color: #1d4ed8;
+}
+
+.planner-sheet .demo-routes-toggle {
+    display: none;
+    border: none;
+    background: transparent;
+    color: var(--planner-muted);
+    font-size: 12px;
+    font-weight: 600;
+    padding: 0 2px;
+    margin: -4px 0 8px;
+    text-align: left;
+    cursor: pointer;
+}
+
+.planner-sheet .demo-routes-toggle:hover {
+    color: var(--planner-text);
+    text-decoration: underline;
 }
 
 /* ── Find Safer Route CTA ── */
+.planner-sheet .sheet-primary-action {
+    position: sticky;
+    bottom: 16px;
+    z-index: 10;
+    padding-top: 10px;
+    margin-top: 4px;
+    background: linear-gradient(180deg, transparent 0%, var(--planner-sheet-bg) 22%, var(--planner-sheet-bg) 100%);
+    backdrop-filter: blur(12px);
+}
+#sheet-section-inputs {
+    overflow-y: auto;
+    max-height: 68vh;
+}
 .planner-sheet .find-safer-route-btn {
     width: 100%;
     padding: 14px;
@@ -2569,7 +2619,7 @@ html[data-theme="light"] .planner-bg-map .gm-style .gm-fullscreen-control:hover 
     transition: all 0.2s;
     letter-spacing: 0.2px;
     margin-bottom: 0;
-    margin-top: 4px;
+    margin-top: 0;
     box-shadow: var(--planner-go-shadow);
 }
 .planner-sheet .find-safer-route-btn:hover:not(:disabled) {
@@ -2582,6 +2632,12 @@ html[data-theme="light"] .planner-bg-map .gm-style .gm-fullscreen-control:hover 
     color: var(--planner-placeholder);
     cursor: not-allowed;
     border: 1.5px solid var(--planner-border);
+}
+
+.planner-sheet.collapsed #demo-routes-section,
+.planner-sheet.collapsed .demo-routes-toggle,
+.planner-sheet.collapsed .sheet-primary-action {
+    display: none;
 }
 
 /* ── Suggestions dropdown — dark ── */
@@ -2824,9 +2880,10 @@ body .pac-item-query { color: var(--planner-text); }
 body .pac-matched { color: var(--rr-primary); }
 
 
-/* Mobile — taller collapsed sheet so chips are visible */
+/* Mobile — taller input sheet but still keep results in map-first peek mode */
 @media (max-width: 480px) {
     .planner-sheet.collapsed { max-height: 500px; }
+    .planner-sheet.results-peek { max-height: 40vh; }
     .planner-sheet.expanded  { max-height: 82vh; }
     .planner-sheet { padding: 0 12px 24px; }
 }
@@ -3125,3 +3182,338 @@ body .pac-matched { color: var(--rr-primary); }
 .peak-badge.medium { background: #FAEEDA; color: #854F0B; }
 .peak-detail { margin-left: auto; font-weight: 400; opacity: 0.8; font-size: 11px; }
 .peak-icon { font-weight: 700; }
+
+/* ===== ROUTE LIST REDESIGN ===== */
+.route-selection-enter .route-fade-up,
+.route-selection-enter .route-row-enter {
+    opacity: 0;
+    transform: translateY(22px);
+    animation: routeRevealUp 0.46s cubic-bezier(0.22, 1, 0.36, 1) forwards;
+}
+
+.route-selection-enter .route-fade-up-5 { animation-delay: 0.22s; }
+.route-selection-enter .route-fade-up-6 { animation-delay: 0.28s; }
+.route-selection-enter .route-fade-up-7 { animation-delay: 0.34s; }
+
+@keyframes routeRowPulse {
+    0% { box-shadow: 0 0 0 0 rgba(22, 163, 74, 0); }
+    35% { box-shadow: 0 0 0 4px rgba(22, 163, 74, 0.16); }
+    100% { box-shadow: 0 0 0 0 rgba(22, 163, 74, 0); }
+}
+
+.planner-sheet .route-selection-container {
+    display: flex;
+    flex-direction: column;
+    gap: 14px;
+    padding: 18px 16px 12px;
+}
+
+.route-shortcut-chips {
+    display: flex;
+    gap: 8px;
+    overflow-x: auto;
+    padding-bottom: 4px;
+    scrollbar-width: none;
+}
+
+.route-shortcut-chips::-webkit-scrollbar {
+    display: none;
+}
+
+.route-shortcut-chip {
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    min-height: 44px;
+    padding: 0 14px;
+    border-radius: 999px;
+    border: 1px solid var(--planner-border);
+    background: var(--planner-surface);
+    color: var(--planner-text);
+    font-size: 13px;
+    font-weight: 600;
+    white-space: nowrap;
+    cursor: pointer;
+    transition: transform 0.18s ease, border-color 0.18s ease, background 0.18s ease, color 0.18s ease;
+}
+
+.route-shortcut-chip:hover {
+    transform: translateY(-1px);
+}
+
+.route-shortcut-chip.active {
+    border-color: var(--planner-soft-success-border);
+    background: var(--planner-soft-success-bg);
+    color: var(--planner-soft-success-text);
+}
+
+.route-shortcut-chip-icon {
+    width: 24px;
+    height: 24px;
+    border-radius: 999px;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 11px;
+    font-weight: 700;
+    background: rgba(148, 163, 184, 0.16);
+    color: #475569;
+}
+
+.route-shortcut-chip.recommended .route-shortcut-chip-icon {
+    background: rgba(245, 158, 11, 0.16);
+    color: #b45309;
+}
+
+.route-shortcut-chip.fast .route-shortcut-chip-icon {
+    background: rgba(59, 130, 246, 0.14);
+    color: #1d4ed8;
+}
+
+.route-shortcut-chip.safe .route-shortcut-chip-icon {
+    background: rgba(16, 185, 129, 0.14);
+    color: #047857;
+}
+
+.route-list {
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+}
+
+.route-list-row {
+    width: 100%;
+    border: 1px solid var(--planner-border);
+    border-radius: 20px;
+    background: var(--planner-surface);
+    padding: 14px;
+    display: grid;
+    grid-template-columns: 44px minmax(0, 1fr);
+    gap: 12px;
+    text-align: left;
+    cursor: pointer;
+    transition: transform 0.18s ease, border-color 0.18s ease, background 0.18s ease, box-shadow 0.18s ease;
+}
+
+.route-list-row:hover {
+    transform: translateY(-1px);
+}
+
+.route-list-row.selected {
+    border-color: var(--planner-soft-success-border);
+    background: linear-gradient(135deg, var(--planner-soft-success-bg-strong) 0%, var(--planner-surface) 100%);
+    box-shadow: 0 0 0 2px rgba(52, 211, 153, 0.12);
+}
+
+.route-list-row.route-row-pulse {
+    animation: routeRowPulse 0.65s ease;
+}
+
+.route-row-recommended {
+    border-color: rgba(245, 158, 11, 0.22);
+    background: linear-gradient(135deg, rgba(255, 247, 237, 0.96) 0%, var(--planner-surface) 92%);
+}
+
+.route-row-fast {
+    border-color: rgba(59, 130, 246, 0.18);
+}
+
+.route-row-safe {
+    border-color: rgba(16, 185, 129, 0.18);
+}
+
+.route-row-icon {
+    width: 44px;
+    height: 44px;
+    border-radius: 14px;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 12px;
+    font-weight: 800;
+    letter-spacing: 0.02em;
+    background: rgba(148, 163, 184, 0.16);
+    color: #475569;
+}
+
+.route-row-icon.recommended {
+    background: rgba(245, 158, 11, 0.16);
+    color: #b45309;
+}
+
+.route-row-icon.fast {
+    background: rgba(59, 130, 246, 0.14);
+    color: #1d4ed8;
+}
+
+.route-row-icon.safe {
+    background: rgba(16, 185, 129, 0.14);
+    color: #047857;
+}
+
+.route-row-main {
+    display: flex;
+    flex-direction: column;
+    gap: 5px;
+    min-width: 0;
+}
+
+.route-row-title-line {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 8px;
+}
+
+.route-row-title {
+    font-size: 16px;
+    font-weight: 700;
+    color: var(--planner-text);
+}
+
+.route-row-metrics {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px;
+    align-items: baseline;
+}
+
+.route-row-eta {
+    font-size: 21px;
+    font-weight: 800;
+    color: var(--planner-text);
+    line-height: 1;
+}
+
+.route-row-distance {
+    font-size: 13px;
+    font-weight: 600;
+    color: var(--planner-compare-copy);
+}
+
+.route-row-subtitle {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 4px 8px;
+    color: var(--planner-muted);
+    font-size: 13px;
+    line-height: 1.45;
+}
+
+.route-row-side {
+    grid-column: 2;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 12px;
+    min-width: 0;
+}
+
+.route-score-caption {
+    font-size: 11px;
+    font-weight: 600;
+    letter-spacing: 0.04em;
+    color: var(--planner-muted);
+    text-transform: uppercase;
+}
+
+.route-score-value {
+    font-size: 24px;
+    font-weight: 800;
+    color: var(--planner-text);
+    line-height: 1;
+}
+
+.route-row-badges {
+    display: flex;
+    flex-wrap: wrap;
+    justify-content: flex-end;
+    gap: 6px;
+}
+
+.route-row-badges .risk-pill-inline,
+.route-footer-badges .route-secondary-badge,
+.route-row-badges .route-secondary-badge {
+    margin: 0;
+}
+
+.route-row-badges .risk-pill-inline {
+    font-size: 10px;
+    padding: 3px 8px;
+}
+
+.route-row-badges .route-secondary-badge,
+.route-footer-badges .route-secondary-badge {
+    font-size: 10px;
+    padding: 3px 8px;
+}
+
+.route-selection-footer {
+    position: sticky;
+    bottom: 0;
+    margin: 0 -4px -4px;
+    padding: 8px 4px 4px;
+    background: linear-gradient(180deg, transparent 0%, var(--planner-sheet-bg) 18%, var(--planner-sheet-bg) 100%);
+    backdrop-filter: blur(12px);
+}
+
+.selected-route-sheet-footer {
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+}
+
+.selected-route-copy {
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+    min-width: 0;
+}
+
+.selected-route-meta {
+    color: var(--planner-muted);
+    font-size: 13px;
+    line-height: 1.4;
+}
+
+.selected-route-subcopy {
+    color: var(--planner-compare-copy);
+    font-size: 13px;
+    line-height: 1.45;
+}
+
+.route-footer-badges {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 6px;
+}
+
+.route-footer-placeholder {
+    padding: 14px 16px;
+    border: 1px dashed var(--planner-border);
+    border-radius: 16px;
+    background: var(--planner-surface);
+    color: var(--planner-muted);
+    font-size: 13px;
+    line-height: 1.45;
+}
+
+@media (min-width: 640px) {
+    .route-list-row {
+        grid-template-columns: 48px minmax(0, 1fr) auto;
+        align-items: start;
+        gap: 14px;
+    }
+
+    .route-row-icon {
+        width: 48px;
+        height: 48px;
+    }
+
+    .route-row-side {
+        grid-column: auto;
+        flex-direction: column;
+        align-items: flex-end;
+        justify-content: flex-start;
+    }
+}
