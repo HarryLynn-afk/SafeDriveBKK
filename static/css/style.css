@@ -156,6 +156,12 @@ html[data-theme="dark"] body {
     justify-content: flex-end;
 }
 
+.rr-navbar-mobile-actions {
+    display: flex;
+    align-items: center;
+    gap: 0.55rem;
+}
+
 .theme-toggle {
     display: inline-flex;
     align-items: center;
@@ -257,6 +263,10 @@ html[data-theme="dark"] .theme-toggle {
 }
 
 @media (min-width: 992px) {
+    .rr-navbar-mobile-actions {
+        margin-left: auto;
+    }
+
     .rr-navbar .navbar-nav {
         align-items: center;
         gap: 0.2rem;
@@ -276,8 +286,8 @@ html[data-theme="dark"] .theme-toggle {
         box-shadow: 0 12px 24px rgba(37, 99, 235, 0.18);
     }
 
-    .rr-navbar-tools {
-        margin-left: 0.7rem;
+    .rr-navbar-mobile-actions .navbar-toggler {
+        display: none;
     }
 }
 
@@ -290,14 +300,15 @@ html[data-theme="dark"] .theme-toggle {
         padding-top: 0.55rem;
     }
 
-    .rr-navbar-tools {
-        margin-top: 0.85rem;
-        padding-top: 0.75rem;
-        border-top: 1px solid rgba(148, 163, 184, 0.14);
+    .rr-navbar-mobile-actions .theme-toggle {
+        min-width: 44px;
+        width: 44px;
+        padding: 0;
+        justify-content: center;
     }
 
-    html[data-theme="dark"] .rr-navbar-tools {
-        border-top-color: rgba(148, 163, 184, 0.16);
+    .rr-navbar-mobile-actions .theme-toggle-label {
+        display: none;
     }
 }
 

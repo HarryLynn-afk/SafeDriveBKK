@@ -1730,14 +1730,14 @@ body.demo-mode .start-nav-button {
 }
 
 .ai-analyzing-content {
-    background: rgba(255, 255, 255, 0.94);
+    background: var(--planner-surface);
     padding: 30px 26px 22px;
     border-radius: 20px;
-    border: 1px solid rgba(219, 234, 254, 0.95);
-    color: #0f172a;
+    border: 1px solid var(--planner-card-border);
+    color: var(--planner-text);
     text-align: center;
     width: min(448px, 92vw);
-    box-shadow: 0 24px 64px rgba(15, 23, 42, 0.18);
+    box-shadow: var(--planner-card-shadow);
     opacity: 0;
     transform: translateY(18px) scale(0.985);
     transform-origin: center;
@@ -1805,14 +1805,14 @@ body.demo-mode .start-nav-button {
     line-height: 1.02;
     letter-spacing: -0.04em;
     font-weight: 800;
-    color: #0f172a;
+    color: var(--planner-text);
     margin-bottom: 8px;
 }
 
 .ai-analyzing-content > p {
     font-size: 0.86rem;
     line-height: 1.55;
-    color: #64748b;
+    color: var(--planner-muted);
     margin-bottom: 18px;
     min-height: 1.4em; /* prevents layout shift as text changes */
 }
@@ -1833,8 +1833,8 @@ body.demo-mode .start-nav-button {
     align-items: center;
     gap: 12px;
     padding: 0.75rem 0.9rem;
-    background: rgba(255, 255, 255, 0.76);
-    border: 1px solid rgba(219, 234, 254, 0.95);
+    background: var(--planner-surface);
+    border: 1px solid var(--planner-card-border);
     border-radius: 20px;
     transition: background 0.25s ease, transform 0.25s ease, border-color 0.25s ease, box-shadow 0.25s ease, opacity 0.25s ease;
     opacity: 0.76;
@@ -1854,16 +1854,16 @@ body.demo-mode .start-nav-button {
 }
 
 .progress-step.active {
-    background: rgba(248, 251, 255, 0.98);
-    border-color: rgba(37, 99, 235, 0.24);
-    box-shadow: 0 12px 28px rgba(37, 99, 235, 0.08);
+    background: var(--planner-surface-muted);
+    border-color: var(--planner-card-border);
+    box-shadow: var(--planner-card-shadow);
     transform: translateY(-1px);
     opacity: 1;
 }
 
 .progress-step.complete {
-    background: rgba(240, 253, 244, 0.96);
-    border-color: rgba(22, 163, 74, 0.18);
+    background: var(--planner-soft-success-bg);
+    border-color: var(--planner-soft-success-border);
     opacity: 1;
 }
 
@@ -1874,8 +1874,8 @@ body.demo-mode .start-nav-button {
     display: inline-flex;
     align-items: center;
     justify-content: center;
-    background: rgba(219, 234, 254, 0.88);
-    color: var(--rr-primary);
+    background: var(--planner-control-bg);
+    color: var(--planner-go-bg);
     font-size: 0.92rem;
     font-weight: 700;
     flex-shrink: 0;
@@ -1887,8 +1887,8 @@ body.demo-mode .start-nav-button {
 }
 
 .progress-step.complete .step-icon {
-    background: rgba(22, 163, 74, 0.12);
-    color: var(--rr-success);
+    background: var(--planner-soft-success-bg);
+    color: var(--planner-soft-success-text);
 }
 
 .step-text {
@@ -1897,7 +1897,7 @@ body.demo-mode .start-nav-button {
     font-size: 0.85rem;
     line-height: 1.45;
     font-weight: 600;
-    color: #334155;
+    color: var(--planner-text);
 }
 
 .step-status {
@@ -1916,7 +1916,7 @@ body.demo-mode .start-nav-button {
     content: "...";
     font-size: 16px;
     line-height: 1;
-    color: #94a3b8;
+    color: var(--planner-muted);
     letter-spacing: 0.05em;
     transform: translateY(-2px);
 }
@@ -1926,8 +1926,8 @@ body.demo-mode .start-nav-button {
     width: 15px;
     height: 15px;
     border-radius: 999px;
-    border: 2px solid rgba(37, 99, 235, 0.18);
-    border-top-color: var(--rr-primary);
+    border: 2px solid var(--planner-border);
+    border-top-color: var(--planner-go-bg);
     animation: spin 0.85s linear infinite;
 }
 
@@ -1935,7 +1935,7 @@ body.demo-mode .start-nav-button {
     content: "✓";
     font-size: 17px;
     line-height: 1;
-    color: var(--rr-success);
+    color: var(--planner-soft-success-text);
     font-weight: 800;
 }
 
@@ -1945,14 +1945,14 @@ body.demo-mode .start-nav-button {
     align-items: center;
     justify-content: center;
     gap: 10px;
-    background: rgba(255, 255, 255, 0.76);
-    border: 1px solid rgba(219, 234, 254, 0.95);
-    box-shadow: 0 12px 30px rgba(15, 23, 42, 0.05);
+    background: var(--planner-surface);
+    border: 1px solid var(--planner-card-border);
+    box-shadow: var(--planner-card-shadow);
     padding: 0.72rem 0.85rem;
     border-radius: 20px;
     font-size: 0.8rem;
     font-weight: 600;
-    color: #475569;
+    color: var(--planner-muted);
 }
 
 .analysis-footer {
@@ -1989,12 +1989,12 @@ body.demo-mode .start-nav-button {
     width: 10px;
     height: 10px;
     border-radius: 999px;
-    background: var(--rr-primary);
-    box-shadow: 0 0 0 6px rgba(37, 99, 235, 0.08);
+    background: var(--planner-go-bg);
+    box-shadow: 0 0 0 6px rgba(21, 128, 61, 0.12);
 }
 
 .analysis-stats span {
-    color: #0f172a;
+    color: var(--planner-text);
     font-size: 1.25rem;
     line-height: 1;
     font-weight: 800;
@@ -2272,34 +2272,35 @@ html[data-theme="dark"] {
 .planner-menu-wrap { position: relative; }
 
 .planner-menu-dropdown {
-    position: fixed;
-    top: 0;
+    position: absolute;
+    top: 48px;
     right: 0;
-    width: 260px;
-    height: 100vh;
+    width: min(220px, calc(100vw - 32px));
+    max-height: min(320px, calc(100vh - 96px));
     background: var(--planner-menu-bg);
-    border-radius: 12px 0 0 12px;
+    border-radius: 16px;
     border: 1px solid var(--planner-border);
-    padding: 20px 0 0;
+    padding: 8px 0;
     z-index: 1000;
     box-shadow: var(--planner-control-shadow);
     backdrop-filter: blur(14px);
     overflow: hidden;
-    transform: translateX(100%);
+    overflow-y: auto;
+    transform: translateY(-8px) scale(0.98);
     opacity: 0;
     visibility: hidden;
-    transition: transform 0.25s ease, opacity 0.2s ease;
+    transition: transform 0.22s ease, opacity 0.18s ease;
 }
 
 .planner-menu-dropdown.is-open {
-    transform: translateX(0);
+    transform: translateY(0) scale(1);
     opacity: 1;
     visibility: visible;
 }
 
 .planner-menu-nav,
 .planner-menu-list {
-    height: 100%;
+    height: auto;
 }
 
 .planner-menu-list {
@@ -2334,27 +2335,6 @@ html[data-theme="dark"] {
     transition: background 0.15s;
 }
 .planner-menu-item:hover { background: var(--planner-menu-hover); }
-
-.planner-menu-theme-row {
-    order: 99;
-    margin-top: auto;
-}
-
-.planner-theme-toggle-drawer {
-    flex-direction: row;
-    align-items: center;
-    gap: 12px;
-}
-
-.planner-theme-toggle-drawer .planner-theme-icon {
-    width: 18px;
-    height: 18px;
-}
-
-.planner-theme-toggle-drawer .theme-toggle-label {
-    font-size: 15px;
-    font-weight: 600;
-}
 
 .planner-icon-btn {
     background: var(--planner-control-bg);
