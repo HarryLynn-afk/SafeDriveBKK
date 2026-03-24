@@ -264,6 +264,13 @@ html[data-theme="dark"] .theme-toggle {
 
 @media (min-width: 992px) {
     .rr-navbar-mobile-actions {
+        order: 3;
+        margin-left: 0.7rem;
+    }
+
+    .rr-navbar .navbar-collapse {
+        order: 2;
+        flex-grow: 0;
         margin-left: auto;
     }
 
