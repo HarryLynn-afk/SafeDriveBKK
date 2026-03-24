@@ -498,13 +498,20 @@ html {
     padding: 1.2rem 1.25rem;
     border-radius: 20px;
     border: 1px solid var(--landing-card-border);
-    background: var(--landing-card-bg);
+    background:
+        linear-gradient(135deg, rgba(180, 30, 30, 0.15), transparent),
+        var(--landing-card-bg);
     backdrop-filter: blur(12px);
+    opacity: 0;
+    animation: cardEntrance 0.5s ease forwards;
 }
 
 .route-preview-card--recommended {
     border-color: rgba(37, 99, 235, 0.22);
-    background: rgba(248, 251, 255, 0.8);
+    background:
+        linear-gradient(135deg, rgba(30, 120, 80, 0.15), transparent),
+        rgba(248, 251, 255, 0.8);
+    animation: cardEntrance 0.5s ease 0.15s forwards, safePulse 2.5s ease-in-out 0.65s infinite;
 }
 
 .route-card-head {
@@ -513,6 +520,7 @@ html {
     align-items: start;
     justify-content: space-between;
     gap: 0.85rem;
+    padding-right: 7rem;
 }
 
 .route-card-label {
@@ -552,6 +560,9 @@ html {
     display: inline-flex;
     align-items: center;
     justify-content: center;
+    position: absolute;
+    top: 12px;
+    right: 12px;
     padding: 0.5rem 0.82rem;
     border-radius: 999px;
     font-size: 0.78rem;
@@ -583,7 +594,7 @@ html {
 }
 
 .route-score-number {
-    font-size: clamp(2.6rem, 4vw, 3.4rem);
+    font-size: 28px;
     line-height: 0.9;
     letter-spacing: -0.06em;
     font-weight: 800;
@@ -611,17 +622,19 @@ html {
 }
 
 .route-metrics {
-    display: grid;
-    grid-template-columns: repeat(3, minmax(0, 1fr));
-    gap: 1rem;
+    display: flex;
+    flex-direction: row;
+    gap: 8px;
+    flex-wrap: wrap;
     margin-top: 1.6rem;
 }
 
 .route-metric {
-    padding: 0.95rem;
-    border-radius: 18px;
+    padding: 4px 10px;
+    border-radius: 20px;
     background: rgba(248, 250, 252, 0.82);
     border: 1px solid rgba(148, 163, 184, 0.12);
+    backdrop-filter: blur(4px);
 }
 
 .route-metric span {
@@ -639,6 +652,16 @@ html {
     font-size: 1.05rem;
     font-weight: 700;
     color: var(--landing-ink);
+}
+
+@keyframes cardEntrance {
+    from { transform: translateY(20px); opacity: 0; }
+    to { transform: translateY(0); opacity: 1; }
+}
+
+@keyframes safePulse {
+    0%, 100% { box-shadow: 0 0 0 0 rgba(30,180,100,0.3); }
+    50% { box-shadow: 0 0 0 6px rgba(30,180,100,0); }
 }
 
 .route-note {
@@ -1292,12 +1315,16 @@ html[data-theme="dark"] .landing-shell .rr-footer .text-muted a {
 }
 
 html[data-theme="dark"] .landing-shell .route-preview-card {
-    background: linear-gradient(180deg, rgba(12, 18, 34, 0.94), rgba(15, 23, 42, 0.9));
+    background:
+        linear-gradient(135deg, rgba(180, 30, 30, 0.15), transparent),
+        linear-gradient(180deg, rgba(12, 18, 34, 0.94), rgba(15, 23, 42, 0.9));
     border-color: rgba(148, 163, 184, 0.18);
 }
 
 html[data-theme="dark"] .landing-shell .route-preview-card--recommended {
-    background: linear-gradient(180deg, rgba(14, 22, 39, 0.98), rgba(18, 29, 52, 0.96));
+    background:
+        linear-gradient(135deg, rgba(30, 120, 80, 0.18), transparent),
+        linear-gradient(180deg, rgba(14, 22, 39, 0.98), rgba(18, 29, 52, 0.96));
     border-color: rgba(96, 165, 250, 0.24);
     box-shadow: 0 22px 44px rgba(2, 6, 23, 0.28);
 }
@@ -1361,7 +1388,6 @@ html[data-theme="dark"] .landing-shell .route-metric {
 
     .hero-proof-grid,
     .route-showcase-grid,
-    .route-metrics,
     .story-grid,
     .decision-strip,
     .signal-grid,
@@ -1401,6 +1427,13 @@ html[data-theme="dark"] .landing-shell .route-metric {
         padding: 1.25rem;
     }
 
+    .route-metrics {
+        display: flex;
+        flex-direction: row;
+        gap: 8px;
+        flex-wrap: wrap;
+    }
+
     .route-preview-card--recommended::after {
         position: static;
         display: inline-flex;
@@ -1411,6 +1444,17 @@ html[data-theme="dark"] .landing-shell .route-metric {
         height: 460px;
     }
 
+}
+
+@media (min-width: 769px) {
+    .route-preview-card {
+        transition: transform 0.2s ease, box-shadow 0.2s ease;
+    }
+
+    .route-preview-card:hover {
+        transform: scale(1.02);
+        box-shadow: 0 8px 32px rgba(0,0,0,0.2);
+    }
 }
 </style>
 {% endblock %}
@@ -1535,8 +1579,8 @@ html[data-theme="dark"] .landing-shell .route-metric {
                 <article class="route-preview-card">
                     <div class="route-card-head">
                         <div>
-                            <span class="route-card-label">Fastest route</span>
-                            <h3 class="route-card-title">Move fast, carry the highest risk.</h3>
+                            <span class="route-card-label">Fastest Route</span>
+                            <h3 class="route-card-title">Save 4 minutes — absorb high accident risk.</h3>
                         </div>
                         <span class="route-badge high">Risk score 93 · HIGH</span>
                     </div>
@@ -1568,16 +1612,14 @@ html[data-theme="dark"] .landing-shell .route-metric {
                         </div>
                     </div>
 
-                    <p class="route-note">
-                        Cuts through Bangkok's densest crash corridors during peak hours.
-                    </p>
+                    <p class="route-note">Cuts through Bangkok's densest crash corridors during peak rush hour.</p>
                 </article>
 
                 <article class="route-preview-card route-preview-card--recommended">
                     <div class="route-card-head">
                         <div>
-                            <span class="route-card-label">Safest route</span>
-                            <h3 class="route-card-title">Small detour, dramatically calmer trip.</h3>
+                            <span class="route-card-label">Safest Route</span>
+                            <h3 class="route-card-title">Arrive safely — 67% lower accident probability.</h3>
                             <span class="route-card-marker recommended">Recommended</span>
                         </div>
                         <span class="route-badge low">Risk score 31 · LOW</span>
@@ -1610,9 +1652,7 @@ html[data-theme="dark"] .landing-shell .route-metric {
                         </div>
                     </div>
 
-                    <p class="route-note">
-                        Avoids accident-dense corridors and stays in lower-risk areas for most of the journey.
-                    </p>
+                    <p class="route-note">Avoids accident-dense corridors and stays in proven lower-risk areas for most of the journey.</p>
                 </article>
             </div>
         </section>

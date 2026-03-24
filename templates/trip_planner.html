@@ -32,31 +32,6 @@ main { background: transparent !important; position: relative; z-index: auto; }
 <!-- ── Step 7: Dark top bar ── -->
 <div class="planner-topbar">
     <div class="planner-topbar-actions">
-        <button
-            type="button"
-            class="planner-icon-btn planner-theme-toggle"
-            data-theme-toggle
-            aria-label="Switch to dark mode"
-            aria-pressed="false"
-            title="Switch to dark mode"
-        >
-            <span class="planner-theme-icon" aria-hidden="true">
-                <svg class="theme-icon-moon" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
-                    <path d="M21 12.8A9 9 0 1 1 11.2 3a7 7 0 0 0 9.8 9.8Z"></path>
-                </svg>
-                <svg class="theme-icon-sun" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
-                    <circle cx="12" cy="12" r="4"></circle>
-                    <path d="M12 2v2.5"></path>
-                    <path d="M12 19.5V22"></path>
-                    <path d="M4.93 4.93l1.77 1.77"></path>
-                    <path d="M17.3 17.3l1.77 1.77"></path>
-                    <path d="M2 12h2.5"></path>
-                    <path d="M19.5 12H22"></path>
-                    <path d="M4.93 19.07l1.77-1.77"></path>
-                    <path d="M17.3 6.7l1.77-1.77"></path>
-                </svg>
-            </span>
-        </button>
         <div class="planner-menu-wrap">
             <button class="planner-icon-btn planner-menu-btn" onclick="togglePlannerMenu(event)" title="Menu" aria-label="Open navigation menu">
                 <svg width="16" height="12" viewBox="0 0 16 12" fill="none" aria-hidden="true">
@@ -65,11 +40,43 @@ main { background: transparent !important; position: relative; z-index: auto; }
                     <rect y="10" width="16" height="2" rx="1" fill="currentColor"/>
                 </svg>
             </button>
-            <div id="planner-menu-dropdown" class="planner-menu-dropdown" style="display:none;">
-                <a href="/" class="planner-menu-item">Dashboard</a>
-                <a href="/analytics" class="planner-menu-item">Analytics</a>
-                <a href="/nlp" class="planner-menu-item">Safety Assistant</a>
-                <a href="/about" class="planner-menu-item">About</a>
+            <div id="planner-menu-dropdown" class="planner-menu-dropdown" aria-hidden="true">
+                <nav class="planner-menu-nav" aria-label="Planner navigation">
+                    <ul class="planner-menu-list">
+                        <li class="planner-menu-list-item"><a href="/" class="planner-menu-item">Dashboard</a></li>
+                        <li class="planner-menu-list-item"><a href="/analytics" class="planner-menu-item">Analytics</a></li>
+                        <li class="planner-menu-list-item"><a href="/nlp" class="planner-menu-item">Safety Assistant</a></li>
+                        <li class="planner-menu-list-item"><a href="/about" class="planner-menu-item">About</a></li>
+                        <li class="planner-menu-list-item planner-menu-theme-row">
+                            <button
+                                type="button"
+                                class="planner-menu-item planner-theme-toggle planner-theme-toggle-drawer"
+                                data-theme-toggle
+                                aria-label="Switch to dark mode"
+                                aria-pressed="false"
+                                title="Switch to dark mode"
+                            >
+                                <span class="planner-theme-icon" aria-hidden="true">
+                                    <svg class="theme-icon-moon" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+                                        <path d="M21 12.8A9 9 0 1 1 11.2 3a7 7 0 0 0 9.8 9.8Z"></path>
+                                    </svg>
+                                    <svg class="theme-icon-sun" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+                                        <circle cx="12" cy="12" r="4"></circle>
+                                        <path d="M12 2v2.5"></path>
+                                        <path d="M12 19.5V22"></path>
+                                        <path d="M4.93 4.93l1.77 1.77"></path>
+                                        <path d="M17.3 17.3l1.77 1.77"></path>
+                                        <path d="M2 12h2.5"></path>
+                                        <path d="M19.5 12H22"></path>
+                                        <path d="M4.93 19.07l1.77-1.77"></path>
+                                        <path d="M17.3 6.7l1.77-1.77"></path>
+                                    </svg>
+                                </span>
+                                <span class="theme-toggle-label">Dark mode</span>
+                            </button>
+                        </li>
+                    </ul>
+                </nav>
             </div>
         </div>
     </div>

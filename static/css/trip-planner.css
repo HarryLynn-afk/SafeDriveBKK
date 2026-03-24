@@ -2272,27 +2272,89 @@ html[data-theme="dark"] {
 .planner-menu-wrap { position: relative; }
 
 .planner-menu-dropdown {
-    position: absolute;
-    top: 48px; right: 0;
+    position: fixed;
+    top: 0;
+    right: 0;
+    width: 260px;
+    height: 100vh;
     background: var(--planner-menu-bg);
-    border-radius: 12px;
+    border-radius: 12px 0 0 12px;
     border: 1px solid var(--planner-border);
-    padding: 8px 0;
-    min-width: 180px;
-    z-index: 100;
+    padding: 20px 0 0;
+    z-index: 1000;
     box-shadow: var(--planner-control-shadow);
     backdrop-filter: blur(14px);
+    overflow: hidden;
+    transform: translateX(100%);
+    opacity: 0;
+    visibility: hidden;
+    transition: transform 0.25s ease, opacity 0.2s ease;
+}
+
+.planner-menu-dropdown.is-open {
+    transform: translateX(0);
+    opacity: 1;
+    visibility: visible;
+}
+
+.planner-menu-nav,
+.planner-menu-list {
+    height: 100%;
+}
+
+.planner-menu-list {
+    list-style: none;
+    margin: 0;
+    padding: 0;
+    display: flex;
+    flex-direction: column;
+}
+
+.planner-menu-list-item {
+    display: flex;
+    flex-direction: column;
+    border-bottom: 1px solid #f0f0f0;
 }
 
 .planner-menu-item {
-    display: block;
-    padding: 10px 16px;
+    display: flex;
+    flex-direction: column;
+    align-items: flex-start;
+    justify-content: center;
+    width: 100%;
+    padding: 14px 20px;
     color: var(--planner-text);
-    font-size: 14px;
+    font-size: 15px;
+    line-height: 1.4;
     text-decoration: none;
+    background: transparent;
+    border: 0;
+    text-align: left;
+    cursor: pointer;
     transition: background 0.15s;
 }
 .planner-menu-item:hover { background: var(--planner-menu-hover); }
+
+.planner-menu-theme-row {
+    order: 99;
+    margin-top: auto;
+}
+
+.planner-theme-toggle-drawer {
+    flex-direction: row;
+    align-items: center;
+    gap: 12px;
+}
+
+.planner-theme-toggle-drawer .planner-theme-icon {
+    width: 18px;
+    height: 18px;
+}
+
+.planner-theme-toggle-drawer .theme-toggle-label {
+    font-size: 15px;
+    font-weight: 600;
+}
 
 .planner-icon-btn {
     background: var(--planner-control-bg);

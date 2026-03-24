@@ -2786,9 +2786,13 @@ document.addEventListener("DOMContentLoaded", () => {
     }
 
     // Fix 3: close hamburger menu on outside click
-    document.addEventListener("click", () => {
+    document.addEventListener("click", (event) => {
         const dd = document.getElementById("planner-menu-dropdown");
-        if (dd) dd.style.display = "none";
+        const wrap = document.querySelector(".planner-menu-wrap");
+        if (!dd || !wrap) return;
+        if (wrap.contains(event.target)) return;
+        dd.classList.remove("is-open");
+        dd.setAttribute("aria-hidden", "true");
     });
 
     // Fix 6: start in input state
@@ -2953,7 +2957,9 @@ function collapseSheet() {
 function togglePlannerMenu(e) {
     e.stopPropagation();
     const dd = document.getElementById("planner-menu-dropdown");
-    if (dd) dd.style.display = dd.style.display === "none" ? "block" : "none";
+    if (!dd) return;
+    dd.classList.toggle("is-open");
+    dd.setAttribute("aria-hidden", dd.classList.contains("is-open") ? "false" : "true");
 }
 
 function togglePlannerLayers() {
