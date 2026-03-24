@@ -2057,29 +2057,6 @@ body.demo-mode .start-nav-button {
     to { transform: rotate(360deg); }
 }
 
-/* ===== TRAFFIC SOURCE BADGES ===== */
-.traffic-badge {
-    display: inline-block;
-    padding: 2px 8px;
-    background: #667eea;
-    color: white;
-    border-radius: 12px;
-    font-size: 11px;
-    font-weight: 600;
-    margin-left: 6px;
-    vertical-align: middle;
-}
-
-.traffic-badge.live {
-    background: #28A745;
-    animation: pulse-badge 2s ease-in-out infinite;
-}
-
-@keyframes pulse-badge {
-    0%, 100% { opacity: 1; }
-    50% { opacity: 0.7; }
-}
-
 .simulated-note {
     color: var(--planner-muted);
     font-size: 11px;

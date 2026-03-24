@@ -46,6 +46,8 @@ const DEMO_ROUTE_NAMES = {
 };
 let demoRoutesCache = null;
 let demoRoutesForceVisible = false;
+let activeRouteAnalysisController = null;
+let routeAnalysisCancelled = false;
 
 // Pre-defined backup destinations
 const BACKUP_DESTINATIONS = [
@@ -537,9 +539,12 @@ async function calculateRoute(startLat, startLon, endLat, endLon, destName) {
     // Hide any stale results and show the AI overlay
     hideElement("route-preview");
     hideElement("route-results");
+    routeAnalysisCancelled = false;
     showAIAnalyzing();
 
     try {
+        activeRouteAnalysisController = new AbortController();
+
         // ── Step 1: real network call (duration is genuine) ──────────────
         const data = await runAnalysisStep(
             1,
@@ -554,7 +559,8 @@ async function calculateRoute(startLat, startLon, endLat, endLon, destName) {
                         end_lat: endLat,
                         end_lon: endLon,
                         destination_name: destName
-                    })
+                    }),
+                    signal: activeRouteAnalysisController.signal,
                 });
 
                 if (!response.ok) throw new Error("Route comparison failed");
@@ -563,6 +569,9 @@ async function calculateRoute(startLat, startLon, endLat, endLon, destName) {
                 return result;
             }
         );
+        if (routeAnalysisCancelled) return;
+
+        activeRouteAnalysisController = null;
 
         const routesAnalyzed = data.alternatives_analyzed || 5;
         const analyzedCounter = document.getElementById("routes-analyzed");
@@ -577,6 +586,7 @@ async function calculateRoute(startLat, startLon, endLat, endLon, destName) {
                 if (counter) counter.textContent = routesAnalyzed;
             }
         );
+        if (routeAnalysisCancelled) return;
 
         // ── Step 3: route comparison ──────────────────────────────────────
         await runAnalysisStep(
@@ -584,18 +594,22 @@ async function calculateRoute(startLat, startLon, endLat, endLon, destName) {
             "Comparing routes for optimal safety...",
             async () => {}
         );
+        if (routeAnalysisCancelled) return;
 
         updateStatus("Analysis complete!");
         await sleep(180);
+        if (routeAnalysisCancelled) return;
 
         hideAIAnalyzing();
         displayMultipleRoutes(data);
 
     } catch (error) {
+        if (error.name === "AbortError" || routeAnalysisCancelled) return;
         console.error("Route calculation error:", error);
         hideAIAnalyzing();
         showRouteError(error.message);
     } finally {
+        activeRouteAnalysisController = null;
         if (findBtn) {
             findBtn.textContent = "Find Safer Route";
             updateFindSaferRouteButton();
@@ -632,6 +646,22 @@ function hideAIAnalyzing() {
         overlay.style.display = "none";
         aiAnalyzingHideTimer = null;
     }, 220);
+}
+
+function cancelAIAnalyzing() {
+    routeAnalysisCancelled = true;
+    if (activeRouteAnalysisController) {
+        activeRouteAnalysisController.abort();
+        activeRouteAnalysisController = null;
+    }
+
+    hideAIAnalyzing();
+
+    const findBtn = document.getElementById("findSaferRouteBtn");
+    if (findBtn) {
+        findBtn.textContent = "Find Safer Route";
+        updateFindSaferRouteButton();
+    }
 }
 
 function showRouteError(rawMessage) {
@@ -1496,15 +1526,10 @@ function displayRoutePreview(data, destName) {
     document.getElementById("preview-time").textContent = route.duration_min;
     document.getElementById("preview-distance").textContent = route.distance_km.toFixed(1);
 
-    // Show traffic source badge
-    const trafficSrc = route.traffic_source || summary.traffic_source || "estimated";
     const previewTimeEl = document.getElementById("preview-time");
     if (previewTimeEl) {
-        const existingBadge = previewTimeEl.parentElement && previewTimeEl.parentElement.querySelector(".traffic-badge, .simulated-note");
+        const existingBadge = previewTimeEl.parentElement && previewTimeEl.parentElement.querySelector(".simulated-note");
         if (existingBadge) existingBadge.remove();
-        if (trafficSrc === "google_maps_traffic") {
-            previewTimeEl.insertAdjacentHTML("afterend", '<span class="traffic-badge live" style="font-size:11px;margin-left:6px;">Live Traffic</span>');
-        }
     }
 
     // Update risk indicator
