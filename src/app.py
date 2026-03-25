@@ -1939,17 +1939,17 @@ def model_info():
                 "status": "success",
                 "model": "xgboost",
                 "version": "1.0",
-                "accuracy": "83.8% holdout crash capture rate",
+                "accuracy": "83.8% holdout crash capture",
                 "test_performance": {
                     "holdout_split": "Jan-Sep 2024 train / Oct-Dec 2024 validation",
-                    "capture": "83.8% of later mapped crashes fell inside flagged high-risk grids",
+                    "capture": "83.8% of later mapped crashes fell inside flagged high-risk zones",
                     "lift": "17.5x over random selection",
                 },
                 "comparison": {
-                    "spatial_baseline": "83.8% capture rate",
+                    "spatial_baseline": "83.8% spatial crash capture",
                     "random_forest": "Compared during internal model benchmarking",
                     "xgboost": "Primary temporal holdout model",
-                    "improvement": "+16.2% over spatial baseline",
+                    "improvement": "Directional improvement over the spatial baseline during internal benchmarking",
                 },
                 "top_features": top_features,
                 "fallback_available": True,
@@ -1961,7 +1961,7 @@ def model_info():
         {
             "status": "success",
             "model": "spatial_analysis",
-            "accuracy": "83.8%",
+            "accuracy": "83.8% spatial crash capture",
             "method": "grid_based_counting",
             "ml_available": False,
         }

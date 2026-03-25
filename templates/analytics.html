@@ -924,7 +924,7 @@ html[data-theme="dark"] .zone-spotlight {
             <article class="metric-card">
                 <p class="metric-label">Active crash zones</p>
                 <div class="metric-value" id="stat-active-zones">276</div>
-                <p class="metric-context" id="stat-active-zones-copy">Only a limited share of monitored grids recorded crashes across the city.</p>
+                <p class="metric-context" id="stat-active-zones-copy">Only a limited share of monitored zones recorded mapped crashes across the city.</p>
             </article>
             <a class="metrics-scroll-indicator" href="#analytics-story-time" aria-label="Scroll to detailed analytics">
                 <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" aria-hidden="true">
@@ -1333,7 +1333,7 @@ function renderMetrics(data) {
     setText('stat-high-risk', formatNumber(highRiskZones));
     setText(
         'stat-high-risk-copy',
-        `Just ${formatPercent(highRiskGridShare)} of monitored grids hold ${formatPercent(highRiskAccidentShare)} of mapped crashes citywide.`
+        `Just ${formatPercent(highRiskGridShare)} of monitored zones contain ${formatPercent(highRiskAccidentShare)} of mapped crashes citywide.`
     );
     setText('stat-deaths', formatNumber(deaths));
     setText(
@@ -1345,7 +1345,7 @@ function renderMetrics(data) {
     setText('stat-active-zones', formatNumber(activeZones));
     setText(
         'stat-active-zones-copy',
-        `Just ${formatPercent(activeZoneShare)} of monitored grids recorded crashes across the city, which sharpens the concentration story.`
+        `Just ${formatPercent(activeZoneShare)} of monitored zones recorded mapped crashes across the city, which sharpens the concentration story.`
     );
 }
 
@@ -1969,4 +1969,3 @@ window.addEventListener('rr-theme-change', () => {
 });
 </script>
 {% endblock %}
-
