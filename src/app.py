@@ -369,7 +369,7 @@ try:
     ml_predictor = RiskPredictor(str(BASE_DIR / "models" / "xgboost_model.pkl"))
     USE_ML = ml_predictor._model is not None
     if USE_ML:
-        print("ML predictor: XGBoost loaded (39/39 zones, 83.8% temporal capture, 17.5x lift)")
+        print("ML predictor: XGBoost loaded (83.8% holdout crash capture, 17.5x lift)")
     else:
         print("ML predictor: model file missing, spatial fallback active")
 except Exception as exc:
@@ -1730,7 +1730,7 @@ def analyze_route():
                     "low_risk_segments": low_risk_count,
                     "total_alerts": len(alerts),
                     "prediction_method": prediction_method,
-                    "model_accuracy": "39/39 zones (83.8% capture)" if prediction_method == "xgboost" else "83.8% spatial",
+                    "model_accuracy": "83.8% holdout crash capture" if prediction_method == "xgboost" else "83.8% spatial baseline capture",
                     "traffic_source": analyze_traffic_source,
                 },
             }
@@ -1939,16 +1939,16 @@ def model_info():
                 "status": "success",
                 "model": "xgboost",
                 "version": "1.0",
-                "accuracy": "39/39 zones detected (83.8% temporal capture rate)",
+                "accuracy": "83.8% holdout crash capture rate",
                 "test_performance": {
-                    "recall": "39/39 zones in holdout test",
-                    "precision": "0 false positives",
+                    "holdout_split": "Jan-Sep 2024 train / Oct-Dec 2024 validation",
+                    "capture": "83.8% of later mapped crashes fell inside flagged high-risk grids",
                     "lift": "17.5x over random selection",
                 },
                 "comparison": {
                     "spatial_baseline": "83.8% capture rate",
-                    "random_forest": "37/39 zones",
-                    "xgboost": "39/39 zones",
+                    "random_forest": "Compared during internal model benchmarking",
+                    "xgboost": "Primary temporal holdout model",
                     "improvement": "+16.2% over spatial baseline",
                 },
                 "top_features": top_features,
@@ -2308,7 +2308,10 @@ def nlp_ml_metrics():
 def nlp_classify():
     """Classify Thai text into accident cause category using ML classifier."""
     try:
-        from nlp_analysis import get_cause_classifier
+        try:
+            from .nlp_analysis import get_cause_classifier
+        except ImportError:
+            from nlp_analysis import get_cause_classifier
 
         data = request.json
         text = data.get("text", "").strip()
@@ -2395,12 +2398,13 @@ def chatbot():
 def chatbot_suggestions():
     """Return suggested questions for UI."""
     suggestions = [
-        "Which areas have the most speeding accidents?",
-        "Is Asok Intersection safe?",
+        "Which areas are most dangerous?",
         "What time are accidents most common?",
-        "What should Bangkok do to improve road safety?",
-        "Show me drunk driving patterns",
+        "What day is most dangerous for drivers?",
         "What causes most accidents?",
+        "Which areas have the most speeding accidents?",
+        "How reliable is the model?",
+        "What should Bangkok do to improve road safety?",
         "Is Sukhumvit safe at night?",
     ]
     return jsonify({"success": True, "suggestions": suggestions})
@@ -2414,7 +2418,7 @@ if __name__ == "__main__":
 
     if USE_ML:
         print("Prediction: XGBoost (Machine Learning)")
-        print("  Detection:   39/39 danger zones (83.8% temporal capture, 17.5x lift)")
+        print("  Holdout:     83.8% crash capture, 17.5x lift vs random")
         print("  Improvement: +16.2% vs spatial baseline")
         print("  Features:    44-feature gradient boosting")
         print("  Fallback:    Spatial analysis available")

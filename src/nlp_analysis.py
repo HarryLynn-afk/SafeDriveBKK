@@ -10,12 +10,18 @@ Includes ML-based text classification (TF-IDF + Logistic Regression) trained on
 
 import json
 import logging
+import sys
 from pathlib import Path
 
 import joblib
 import pandas as pd
 
 LOGGER = logging.getLogger(__name__)
+
+# Joblib artifacts were serialized with `nlp_analysis.thai_tokenizer`.
+# Register the current module under that name so they can be loaded both as
+# `src.nlp_analysis` and `nlp_analysis`.
+sys.modules.setdefault("nlp_analysis", sys.modules[__name__])
 
 BASE_DIR = Path(__file__).resolve().parent.parent
 DATA_DIR = BASE_DIR / "data" / "processed"
