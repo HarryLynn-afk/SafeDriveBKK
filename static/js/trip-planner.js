@@ -3,8 +3,8 @@ let tripPlannerRouteData = null;
 let tripNavigationMap = null;
 
 // ===== MULTI-ROUTE COMPARISON STATE =====
-let routeOptions = {};   // { fast: routeObj, safe: routeObj }
-let routeLayers = {};    // { fast: google.maps.Polyline, safe: google.maps.Polyline }
+let routeOptions = {};   // { [routeId]: routeObj, fast: routeObj, safe: routeObj, recommended: routeObj }
+let routeLayers = {};    // { [routeId]: google.maps.Polyline, _start/_end: google.maps.Marker }
 let navPolylines = [];   // navigation map polylines for clearing
 let selectedRoute = null;
 // Preview markers + route line shown before the user hits "Find Safer Route"
@@ -45,6 +45,9 @@ const DEMO_ROUTE_NAMES = {
     "Huai Khwang": "huai_khwang",
 };
 let demoRoutesCache = null;
+let demoRoutesForceVisible = false;
+let activeRouteAnalysisController = null;
+let routeAnalysisCancelled = false;
 
 // Pre-defined backup destinations
 const BACKUP_DESTINATIONS = [
@@ -453,9 +456,47 @@ function detectMyLocation() {
 // ===== FIND SAFER ROUTE BUTTON =====
 function updateFindSaferRouteButton() {
     const btn = document.getElementById("findSaferRouteBtn");
+    syncDemoRoutesVisibility();
     if (!btn) return;
     const hasBoth = !!(window.startLat && window.startLon && window.endLat && window.endLon);
     btn.disabled = !hasBoth;
+}
+
+function syncDemoRoutesVisibility() {
+    const demoGrid = document.querySelector(".demo-routes-grid");
+    const demoToggle = document.getElementById("demo-routes-toggle");
+    const startInput = document.getElementById("start-location");
+    const destInput = document.getElementById("destination");
+    if (!demoGrid || !demoToggle || !startInput || !destInput) return;
+
+    const hasTypedSearch = Boolean(startInput.value.trim() || destInput.value.trim());
+    if (!hasTypedSearch) {
+        demoRoutesForceVisible = false;
+    }
+
+    const showGrid = demoRoutesForceVisible || !hasTypedSearch;
+    demoGrid.classList.toggle("is-hidden", !showGrid);
+    demoToggle.classList.toggle("is-visible", !showGrid);
+}
+
+function hideDemoRoutesAfterSelection() {
+    const demoGrid = document.querySelector(".demo-routes-grid");
+    const demoToggle = document.getElementById("demo-routes-toggle");
+    if (!demoGrid || !demoToggle) return;
+
+    demoRoutesForceVisible = false;
+    demoGrid.classList.add("is-hidden");
+    demoToggle.classList.add("is-visible");
+}
+
+function showDemoRoutesFromToggle() {
+    const demoGrid = document.querySelector(".demo-routes-grid");
+    const demoToggle = document.getElementById("demo-routes-toggle");
+    if (!demoGrid || !demoToggle) return;
+
+    demoRoutesForceVisible = true;
+    demoGrid.classList.remove("is-hidden");
+    demoToggle.classList.remove("is-visible");
 }
 
 function onFindSaferRouteClick() {
@@ -498,9 +539,12 @@ async function calculateRoute(startLat, startLon, endLat, endLon, destName) {
     // Hide any stale results and show the AI overlay
     hideElement("route-preview");
     hideElement("route-results");
+    routeAnalysisCancelled = false;
     showAIAnalyzing();
 
     try {
+        activeRouteAnalysisController = new AbortController();
+
         // ── Step 1: real network call (duration is genuine) ──────────────
         const data = await runAnalysisStep(
             1,
@@ -515,7 +559,8 @@ async function calculateRoute(startLat, startLon, endLat, endLon, destName) {
                         end_lat: endLat,
                         end_lon: endLon,
                         destination_name: destName
-                    })
+                    }),
+                    signal: activeRouteAnalysisController.signal,
                 });
 
                 if (!response.ok) throw new Error("Route comparison failed");
@@ -524,6 +569,9 @@ async function calculateRoute(startLat, startLon, endLat, endLon, destName) {
                 return result;
             }
         );
+        if (routeAnalysisCancelled) return;
+
+        activeRouteAnalysisController = null;
 
         const routesAnalyzed = data.alternatives_analyzed || 5;
         const analyzedCounter = document.getElementById("routes-analyzed");
@@ -538,6 +586,7 @@ async function calculateRoute(startLat, startLon, endLat, endLon, destName) {
                 if (counter) counter.textContent = routesAnalyzed;
             }
         );
+        if (routeAnalysisCancelled) return;
 
         // ── Step 3: route comparison ──────────────────────────────────────
         await runAnalysisStep(
@@ -545,18 +594,22 @@ async function calculateRoute(startLat, startLon, endLat, endLon, destName) {
             "Comparing routes for optimal safety...",
             async () => {}
         );
+        if (routeAnalysisCancelled) return;
 
         updateStatus("Analysis complete!");
         await sleep(180);
+        if (routeAnalysisCancelled) return;
 
         hideAIAnalyzing();
         displayMultipleRoutes(data);
 
     } catch (error) {
+        if (error.name === "AbortError" || routeAnalysisCancelled) return;
         console.error("Route calculation error:", error);
         hideAIAnalyzing();
         showRouteError(error.message);
     } finally {
+        activeRouteAnalysisController = null;
         if (findBtn) {
             findBtn.textContent = "Find Safer Route";
             updateFindSaferRouteButton();
@@ -593,6 +646,22 @@ function hideAIAnalyzing() {
         overlay.style.display = "none";
         aiAnalyzingHideTimer = null;
     }, 220);
+}
+
+function cancelAIAnalyzing() {
+    routeAnalysisCancelled = true;
+    if (activeRouteAnalysisController) {
+        activeRouteAnalysisController.abort();
+        activeRouteAnalysisController = null;
+    }
+
+    hideAIAnalyzing();
+
+    const findBtn = document.getElementById("findSaferRouteBtn");
+    if (findBtn) {
+        findBtn.textContent = "Find Safer Route";
+        updateFindSaferRouteButton();
+    }
 }
 
 function showRouteError(rawMessage) {
@@ -683,19 +752,122 @@ function initCompareMap() {
     return tripCompareMap;
 }
 
+function getRouteTheme(route) {
+    switch (route && route.primary_role) {
+        case "recommended":
+            return {
+                cardClass: "route-card-rec-style recommended",
+                badgeClass: "recommended-v2",
+                lineColor: "#F59E0B",
+                selectedColor: "#D97706",
+                buttonClass: "select-rec-btn primary",
+                rowToneClass: "route-row-recommended",
+                iconClass: "recommended",
+                iconGlyph: "AI",
+                chipLabel: "Recommended",
+            };
+        case "safe":
+            return {
+                cardClass: "route-card-safe-style",
+                badgeClass: "safest-v2",
+                lineColor: "#10B981",
+                selectedColor: "#059669",
+                buttonClass: "select-safe-btn primary",
+                rowToneClass: "route-row-safe",
+                iconClass: "safe",
+                iconGlyph: "S",
+                chipLabel: "Safest",
+            };
+        case "alternative":
+            return {
+                cardClass: "route-card-alt-style",
+                badgeClass: "alternative-v2",
+                lineColor: "#64748B",
+                selectedColor: "#475569",
+                buttonClass: "select-alt-btn",
+                rowToneClass: "route-row-alternative",
+                iconClass: "alternative",
+                iconGlyph: "A",
+                chipLabel: "Alternative",
+            };
+        case "fast":
+        default:
+            return {
+                cardClass: "route-card-fast-style",
+                badgeClass: "fastest-v2",
+                lineColor: "#3B82F6",
+                selectedColor: "#1D4ED8",
+                buttonClass: "select-fast-btn",
+                rowToneClass: "route-row-fast",
+                iconClass: "fast",
+                iconGlyph: "F",
+                chipLabel: "Fastest",
+            };
+    }
+}
+
+function cacheRouteOptions(data) {
+    routeOptions = {};
+
+    const allRoutes = Array.isArray(data.all_routes) ? data.all_routes : [];
+    allRoutes.forEach((route) => {
+        if (route && route.route_id) {
+            routeOptions[route.route_id] = route;
+        }
+    });
+
+    if (data.fast_route) {
+        routeOptions.fast = routeOptions[data.fast_route.route_id] || data.fast_route;
+    }
+    if (data.safe_route) {
+        routeOptions.safe = routeOptions[data.safe_route.route_id] || data.safe_route;
+    }
+    if (data.recommended_route) {
+        routeOptions.recommended = routeOptions[data.recommended_route.route_id] || data.recommended_route;
+    }
+}
+
+function buildDisplayRoutes(data) {
+    const displayRoutes = [];
+    const seen = new Set();
+    const candidates = Array.isArray(data.display_routes) && data.display_routes.length
+        ? data.display_routes
+        : [data.recommended_route, data.fast_route, data.safe_route];
+
+    candidates.forEach((route) => {
+        if (!route || !route.route_id || seen.has(route.route_id)) return;
+        displayRoutes.push(routeOptions[route.route_id] || route);
+        seen.add(route.route_id);
+    });
+
+    if (displayRoutes.length < 3 && Array.isArray(data.all_routes)) {
+        const remaining = [...data.all_routes].sort((a, b) => {
+            const scoreDelta = (Number(b.topsis_score) || 0) - (Number(a.topsis_score) || 0);
+            if (scoreDelta !== 0) return scoreDelta;
+            return (Number(a.time_min) || 0) - (Number(b.time_min) || 0);
+        });
+
+        remaining.forEach((route) => {
+            if (!route || !route.route_id || seen.has(route.route_id) || displayRoutes.length >= 3) return;
+            displayRoutes.push(routeOptions[route.route_id] || route);
+            seen.add(route.route_id);
+        });
+    }
+
+    return displayRoutes;
+}
+
 function displayMultipleRoutes(data) {
-    // Store both routes for later use
-    routeOptions = {
-        fast: data.fast_route,
-        safe: data.safe_route
-    };
+    cacheRouteOptions(data);
+    const displayRoutes = buildDisplayRoutes(data);
+    routeOptions.display = displayRoutes;
     selectedRoute = null;
 
     // Reveal results container (cards only — map is the full-screen background)
     showElement("route-results");
 
     // Render route selection cards
-    showRouteSelectionUI(data);
+    showRouteSelectionUI({ ...data, display_routes: displayRoutes });
 
     // Fix 6: transition to route comparison state
     setSheetState(2);
@@ -704,13 +876,15 @@ function displayMultipleRoutes(data) {
     setTimeout(() => {
         clearPreviewMap();
 
-        // Draw both routes: blue = fast, green = safe
-        displayRouteOnMap(data.fast_route, "fast", "#3B82F6", 0.75);
-        displayRouteOnMap(data.safe_route, "safe", "#10B981", 0.75);
+        displayRoutes.forEach((route) => {
+            const theme = getRouteTheme(route);
+            displayRouteOnMap(route, route.route_id, theme.lineColor, 0.75);
+        });
 
-        // Add start (green) and end (red) markers using fast_route waypoints
-        if (tripCompareMap && data.fast_route && data.fast_route.waypoints.length >= 2) {
-            const wps = data.fast_route.waypoints;
+        // Add start (green) and end (red) markers using a real displayed route.
+        const anchorRoute = data.fast_route || displayRoutes[0];
+        if (tripCompareMap && anchorRoute && anchorRoute.waypoints.length >= 2) {
+            const wps = anchorRoute.waypoints;
             const toLatLng = (wp) => Array.isArray(wp) ? { lat: wp[0], lng: wp[1] } : { lat: wp.lat, lng: wp.lon };
             const startPos = toLatLng(wps[0]);
             const endPos   = toLatLng(wps[wps.length - 1]);
@@ -752,6 +926,12 @@ function displayMultipleRoutes(data) {
                 else if (layer.getPosition) bounds.extend(layer.getPosition());
             });
             if (!bounds.isEmpty()) tripCompareMap.fitBounds(bounds, { top: 60, right: 60, bottom: 280, left: 60 });
+        }
+
+        const defaultRouteId = (routeOptions.recommended && routeOptions.recommended.route_id)
+            || (displayRoutes[0] && displayRoutes[0].route_id);
+        if (defaultRouteId) {
+            selectRoute(defaultRouteId);
         }
     }, 50);
 }
@@ -935,86 +1115,93 @@ function buildRouteComparisonCopy(fastRoute, safeRoute) {
 }
 
 function showRouteSelectionUI(data) {
-    const fastRoute = data.fast_route;
-    const safeRoute = data.safe_route;
-
-    const fastTime = fastRoute.time_min || 0;
-    const safeTime = safeRoute.time_min || 0;
-    const fastRiskScore = Math.round(fastRoute.risk_score || 0);
-    const safeRiskScore = Math.round(safeRoute.risk_score || 0);
-    const fastHighRisk = fastRoute.high_risk_zones || 0;
-    const safeHighRisk = safeRoute.high_risk_zones || 0;
-    const comparisonCopy = buildRouteComparisonCopy(fastRoute, safeRoute);
-    const fastTrafficSrc = fastRoute.traffic_source || "estimated";
-    const safeTrafficSrc = safeRoute.traffic_source || "estimated";
-    const trafficBadge = (src) => {
-        if (src === "google_maps_traffic") return '<span class="traffic-badge live">Live Traffic</span>';
-        if (src === "google_maps") return '<span class="traffic-badge">Google Maps</span>';
-        if (src === "osrm") return '';
-        return '<small class="simulated-note">*estimated</small>';
-    };
-
-    // Fix 1 + Fix 4: inline risk pill helper (small pill, not full-width bar)
+    const displayRoutes = Array.isArray(data.display_routes) ? data.display_routes : [];
     const riskPill = (level) => {
         const icon = getRiskIcon(level);
-        return `<span class="risk-pill-inline ${level}">${icon} ${(level || "unknown").toUpperCase()} RISK</span>`;
+        return `<span class="risk-pill-inline ${level || "unknown"}">${icon} ${(level || "unknown").toUpperCase()} RISK</span>`;
     };
+
+    const routeShortcutMap = [
+        { label: "Recommended", role: "recommended", route: data.recommended_route || data.safe_route },
+        { label: "Fastest", role: "fast", route: data.fast_route },
+        { label: "Safest", role: "safe", route: data.safe_route },
+    ].filter((item) => item.route && item.route.route_id);
+
+    const routeRowsHTML = displayRoutes.map((route, index) => {
+        const theme = getRouteTheme(route);
+        const badges = Array.isArray(route.badges) ? route.badges : [];
+        const extraBadges = badges.filter((badge) => badge !== route.primary_label);
+        const badgeHtml = extraBadges.map((badge) => `<span class="route-secondary-badge">${badge}</span>`).join("");
+        const distanceKm = Number(route.distance_km) || 0;
+        const riskScore = Math.round(Number(route.risk_score) || 0);
+
+        return `
+            <button
+                type="button"
+                class="route-list-row ${theme.rowToneClass} route-row-enter"
+                id="route-row-${route.route_id}"
+                onclick="selectRoute('${route.route_id}')"
+                style="animation-delay:${0.18 + (index * 0.08)}s"
+            >
+                <span class="route-row-main">
+                    <span class="route-row-top">
+                        <span class="route-row-title">${route.primary_label || "Route"}</span>
+                        <span class="route-row-badges">${badgeHtml}</span>
+                    </span>
+                    <span class="route-row-metrics">
+                        <span class="route-row-eta">${route.time_min || 0} min</span>
+                        <span class="route-row-distance">${distanceKm.toFixed(1)} km</span>
+                    </span>
+                    <span class="route-row-bottom">
+                        <span class="route-score-inline">
+                            <span class="route-score-caption">Risk score</span>
+                            <span class="route-score-value">${riskScore}</span>
+                        </span>
+                        ${riskPill(route.risk_level)}
+                    </span>
+                </span>
+            </button>
+        `;
+    }).join("");
+
+    const routeShortcutHTML = routeShortcutMap.map((item, index) => {
+        const route = routeOptions[item.route.route_id] || item.route;
+        const theme = getRouteTheme(route);
+        return `
+            <button
+                type="button"
+                class="route-shortcut-chip ${theme.iconClass} route-fade-up route-fade-up-${Math.min(index + 4, 6)}"
+                data-route-role="${item.role}"
+                onclick="jumpToRouteOption('${item.role}')"
+            >
+                <span>${item.label}</span>
+            </button>
+        `;
+    }).join("");
 
     const routeSelectionHTML = `
         <div class="route-selection-container route-selection-enter">
-            <!-- Fix 6: back to input state -->
-            <button class="sheet-back-btn route-fade-up route-fade-up-1" onclick="setSheetState(1)">← Change route</button>
-
-            <div class="ml-analysis-badge route-fade-up route-fade-up-2">
-                <strong>AI-Powered Route Analysis</strong>
-                <span class="ml-model">XGBoost ML &bull; 83.8% Validated</span>
-            </div>
-
-            <!-- Fix 4: tradeoff line OUTSIDE cards, centered above grid -->
-            <div class="tradeoff-between route-fade-up route-fade-up-3">${comparisonCopy.tradeoffHeadline}</div>
-
-            <div class="route-options-grid">
-                <!-- Fix 1: Fast card — red border + bg -->
-                <div class="route-card route-card-fast-style route-card-enter route-card-enter-fast" id="route-card-fast" onclick="selectRoute('fast')">
-                    <div>
-                        <div class="route-badge-v2 fastest-v2">FASTEST</div>
-                        <div class="route-time">${fastTime} min ${trafficBadge(fastTrafficSrc)}</div>
-                        <div class="route-distance">${(fastRoute.distance_km || 0).toFixed(1)} km</div>
-                        ${riskPill(fastRoute.risk_level)}
-                    </div>
-                    <div>
-                        ${fastHighRisk > 0
-                            ? `<div class="warning-note">! ${fastHighRisk} danger zone${fastHighRisk > 1 ? "s" : ""}</div>`
-                            : '<div class="safe-note">No danger zones</div>'}
-                        <button class="select-route-btn select-fast-btn" onclick="selectRoute('fast'); event.stopPropagation();">
-                            Select This Route
-                        </button>
-                    </div>
-                </div>
-
-                <!-- Fix 1: Safe card — green border + bg -->
-                <div class="route-card route-card-safe-style recommended route-card-enter route-card-enter-safe" id="route-card-safe" onclick="selectRoute('safe')">
-                    <div>
-                        <div class="route-badge-v2 safest-v2">SAFEST</div>
-                        ${safeRiskScore < fastRiskScore ? '<div class="recommended-badge">REC</div>' : ""}
-                        <div class="route-time">${safeTime} min ${trafficBadge(safeTrafficSrc)}</div>
-                        <div class="route-distance">${(safeRoute.distance_km || 0).toFixed(1)} km</div>
-                        ${riskPill(safeRoute.risk_level)}
-                    </div>
-                    <div>
-                        ${safeHighRisk > 0
-                            ? `<div class="warning-note">! ${safeHighRisk} danger zone${safeHighRisk > 1 ? "s" : ""}</div>`
-                            : '<div class="safe-note">No danger zones</div>'}
-                        <button class="select-route-btn primary select-safe-btn" onclick="selectRoute('safe'); event.stopPropagation();">
-                            Select This Route
-                        </button>
-                    </div>
+            <div class="route-selection-header route-fade-up route-fade-up-1">
+                <button class="sheet-back-btn" onclick="setSheetState(1)">Change route</button>
+                <div class="route-header-meta">
+                    <strong>AI-Powered Route Analysis</strong>
+                    <span class="ml-model">XGBoost ML &bull; 83.8% Validated</span>
                 </div>
             </div>
 
-            ${comparisonCopy.recommendationText
-                ? `<div class="ai-recommendation route-fade-up route-fade-up-4">${comparisonCopy.recommendationText}</div>`
-                : ""}
+            <div class="route-shortcut-chips" aria-label="Route shortcuts">
+                ${routeShortcutHTML}
+            </div>
+
+            <div class="route-list" role="list">
+                ${routeRowsHTML}
+            </div>
+
+            <div class="route-selection-footer route-fade-up route-fade-up-7">
+                <button id="start-navigation-btn" class="start-navigation-btn" onclick="startNavigationWithSelected()" disabled>
+                    Start Navigation
+                </button>
+            </div>
         </div>
     `;
 
@@ -1022,6 +1209,61 @@ function showRouteSelectionUI(data) {
     if (selectionContent) {
         selectionContent.innerHTML = routeSelectionHTML;
     }
+}
+
+function getRouteShortcutRole(routeId) {
+    if (!routeId) return "";
+    if (routeOptions.recommended && routeOptions.recommended.route_id === routeId) return "recommended";
+    if (routeOptions.fast && routeOptions.fast.route_id === routeId) return "fast";
+    if (routeOptions.safe && routeOptions.safe.route_id === routeId) return "safe";
+    return "";
+}
+
+function jumpToRouteOption(role) {
+    const targetRoute = routeOptions[role];
+    if (!targetRoute || !targetRoute.route_id) return;
+    const routeId = targetRoute.route_id;
+    const row = document.getElementById(`route-row-${routeId}`);
+    if (row) {
+        row.scrollIntoView({ behavior: "smooth", block: "nearest" });
+        row.classList.remove("route-row-pulse");
+        void row.offsetWidth;
+        row.classList.add("route-row-pulse");
+        window.setTimeout(() => {
+            row.classList.remove("route-row-pulse");
+        }, 650);
+    }
+
+    selectRoute(routeId);
+}
+
+function syncRouteShortcutState(routeId) {
+    const activeRole = getRouteShortcutRole(routeId);
+    document.querySelectorAll(".route-shortcut-chip").forEach((chip) => {
+        chip.classList.toggle("active", chip.dataset.routeRole === activeRole);
+    });
+}
+
+function getRouteStartButtonLabel(route) {
+    const label = route && route.primary_label ? route.primary_label : "Selected Route";
+    return label.toLowerCase().includes("route") ? `Start ${label}` : `Start ${label} Route`;
+}
+
+function getRouteSubtitle(route) {
+    const bits = [route && route.peak_label, route && route.peak_detail].filter(Boolean);
+    return bits.length ? bits.join(" · ") : "Route risk summary unavailable.";
+}
+
+function getRouteRiskScore(route) {
+    return Math.round(Number(route && route.risk_score) || 0);
+}
+
+function getRouteDistanceKm(route) {
+    return (Number(route && route.distance_km) || 0).toFixed(1);
+}
+
+function getRouteDuration(route) {
+    return Math.round(Number(route && route.time_min) || 0);
 }
 
 function getRiskIcon(level) {
@@ -1042,53 +1284,33 @@ function selectRoute(routeId) {
     Object.keys(routeLayers).forEach((id) => {
         if (id.startsWith("_")) return; // skip _start/_end markers
         const poly = routeLayers[id];
+        const theme = getRouteTheme(routeOptions[id] || {});
         if (id === routeId) {
-            poly.setOptions({ strokeWeight: 9, strokeOpacity: 1.0, strokeColor: id === "fast" ? "#1D4ED8" : "#059669", zIndex: 2 });
+            poly.setOptions({ strokeWeight: 9, strokeOpacity: 1.0, strokeColor: theme.selectedColor, zIndex: 2 });
         } else {
-            poly.setOptions({ strokeWeight: 4, strokeOpacity: 0.3, zIndex: 1 });
+            poly.setOptions({ strokeWeight: 4, strokeOpacity: 0.28, strokeColor: theme.lineColor, zIndex: 1 });
         }
     });
 
-    // Highlight the selected card
-    document.querySelectorAll(".route-card").forEach((card) => card.classList.remove("selected"));
-    const card = document.getElementById(`route-card-${routeId}`);
+    document.querySelectorAll(".route-card, .route-list-row").forEach((card) => card.classList.remove("selected"));
+    const card = document.getElementById(`route-card-${routeId}`) || document.getElementById(`route-row-${routeId}`);
     if (card) card.classList.add("selected");
+    syncRouteShortcutState(routeId);
 
     // Show detailed info + Start Navigation button
     showRouteDetails(routeOptions[routeId]);
 }
 
 function showRouteDetails(route) {
-    const routeLabel = selectedRoute === "fast" ? "Fastest Route" : "Safest Route";
-    const riskClass  = route.risk_level || "medium";
-    const riskLabel  = (route.risk_level || "").toUpperCase();
+    if (!route) return;
 
-    const detailsHTML = `
-        <div class="selected-route-details selected-route-compact">
-            <div class="compact-route-summary">
-                <span class="compact-route-name">${routeLabel}</span>
-                <span class="compact-route-time">${route.time_min} min</span>
-                <span class="risk-pill-inline ${riskClass}">${riskLabel}</span>
-            </div>
-            <button id="start-navigation-btn" class="start-navigation-btn" onclick="startNavigationWithSelected()">
-                Start Navigation
-            </button>
-        </div>
-    `;
+    const btn = document.getElementById("start-navigation-btn") || document.querySelector(".start-navigation-btn");
+    if (btn) {
+        btn.textContent = getRouteStartButtonLabel(route);
+        btn.disabled = false;
+    }
 
-    const container = document.querySelector(".route-selection-container");
-    const existing = document.querySelector(".selected-route-details");
-    if (existing) existing.remove();
-    if (container) container.insertAdjacentHTML("beforeend", detailsHTML);
-
-    // Jump straight to Start Navigation — scroll sheet so button is first thing visible
     setSheetState(3);
-    setTimeout(() => {
-        const sheet = document.getElementById("planner-sheet");
-        if (sheet) sheet.scrollTop = sheet.scrollHeight;
-    }, 100);
-
-    resetStartNavigationButton();
 }
 
 function changeRoute() {
@@ -1097,13 +1319,13 @@ function changeRoute() {
     // Reset map route styles to original colours/opacity (skip marker keys)
     Object.keys(routeLayers).forEach((id) => {
         if (id.startsWith("_")) return; // skip _start/_end markers
-        routeLayers[id].setOptions({ strokeWeight: 6, strokeOpacity: 0.75, strokeColor: id === "fast" ? "#3B82F6" : "#10B981", zIndex: 1 });
+        const theme = getRouteTheme(routeOptions[id] || {});
+        routeLayers[id].setOptions({ strokeWeight: 6, strokeOpacity: 0.75, strokeColor: theme.lineColor, zIndex: 1 });
     });
 
-    document.querySelectorAll(".route-card").forEach((card) => card.classList.remove("selected"));
-
-    const details = document.querySelector(".selected-route-details");
-    if (details) details.remove();
+    document.querySelectorAll(".route-card, .route-list-row").forEach((card) => card.classList.remove("selected"));
+    syncRouteShortcutState("");
+    resetStartNavigationButton();
 
     // Fix 6: go back to route comparison state
     setSheetState(2);
@@ -1215,7 +1437,7 @@ function resetStartNavigationButton() {
     const btn = document.getElementById("start-navigation-btn") || document.querySelector(".start-navigation-btn");
     if (!btn) return;
     btn.textContent = "Start Navigation";
-    btn.disabled = false;
+    btn.disabled = true;
 }
 
 function setStartNavigationButtonLoading() {
@@ -1304,17 +1526,10 @@ function displayRoutePreview(data, destName) {
     document.getElementById("preview-time").textContent = route.duration_min;
     document.getElementById("preview-distance").textContent = route.distance_km.toFixed(1);
 
-    // Show traffic source badge
-    const trafficSrc = route.traffic_source || summary.traffic_source || "estimated";
     const previewTimeEl = document.getElementById("preview-time");
     if (previewTimeEl) {
-        if (trafficSrc === "google_maps_traffic") {
-            previewTimeEl.insertAdjacentHTML("afterend", '<span class="traffic-badge live" style="font-size:11px;margin-left:6px;">Live Traffic</span>');
-        } else if (trafficSrc === "google_maps") {
-            previewTimeEl.insertAdjacentHTML("afterend", '<span class="traffic-badge" style="font-size:11px;margin-left:6px;">Google Maps</span>');
-        } else if (trafficSrc === "estimated") {
-            previewTimeEl.insertAdjacentHTML("afterend", '<small class="simulated-note" style="font-size:11px;margin-left:6px;color:#999;">*estimated</small>');
-        }
+        const existingBadge = previewTimeEl.parentElement && previewTimeEl.parentElement.querySelector(".simulated-note");
+        if (existingBadge) existingBadge.remove();
     }
 
     // Update risk indicator
@@ -1533,6 +1748,8 @@ function selectDemoRoute(startName, startLat, startLon, endName, endLat, endLon)
     window.endLat = endLat;
     window.endLon = endLon;
     updateFindSaferRouteButton();
+    hideDemoRoutesAfterSelection();
+    expandSheet();
 
     const btn = document.getElementById("findSaferRouteBtn");
     if (btn) {
@@ -2169,7 +2386,10 @@ function exitNavigation() {
 
     // Close summary modal if open
     const summaryModal = document.getElementById("nav-summary-modal");
-    if (summaryModal) summaryModal.style.display = "none";
+    if (summaryModal) {
+        summaryModal.style.display = "none";
+        summaryModal.classList.remove("is-visible", "is-closing");
+    }
 }
 
 // ===== NAV TOP BANNER (lookahead) =====
@@ -2225,16 +2445,21 @@ function showTripSummaryModal() {
     if (!modal || !tripPlannerRouteData) return;
 
     // ── Determine which route the user took ──
-    const pickedFast = selectedRoute === "fast";
-    const myRO  = routeOptions[pickedFast ? "fast" : "safe"] || {};
-    const altRO = routeOptions[pickedFast ? "safe" : "fast"] || {};
-
     const fastRO = routeOptions.fast || {};
+    const recommendedRO = routeOptions.recommended || routeOptions.safe || fastRO;
     const safeRO = routeOptions.safe || {};
-    const fastZones = Math.round(fastRO.high_risk_zones || 0);
-    const safeZones = Math.round(safeRO.high_risk_zones || 0);
-    const fastLevel = (fastRO.risk_level || "high").toUpperCase();
-    const safeLevel = (safeRO.risk_level || "medium").toUpperCase().replace("MEDIUM", "MED");
+    const myRO = routeOptions[selectedRoute] || recommendedRO || fastRO;
+    const pickedFast = Boolean(fastRO.route_id) && myRO.route_id === fastRO.route_id;
+    const altRO = pickedFast
+        ? ((recommendedRO.route_id && recommendedRO.route_id !== myRO.route_id) ? recommendedRO
+            : ((safeRO.route_id && safeRO.route_id !== myRO.route_id) ? safeRO : myRO))
+        : fastRO;
+    const compareLabel = pickedFast
+        ? ((altRO.route_id && recommendedRO.route_id && altRO.route_id === recommendedRO.route_id) ? "recommended route" : "safer route")
+        : "fast route";
+
+    const myHighKm = parseFloat(myRO.high_risk_km || 0);
+    const altHighKm = parseFloat(altRO.high_risk_km || 0);
 
     const myRisk  = Math.round(myRO.risk_score  || tripPlannerRouteData.route.risk_score || 30);
     const altRisk = Math.round(altRO.risk_score || myRisk);
@@ -2244,17 +2469,19 @@ function showTripSummaryModal() {
     // ── Compute framing based on which route was chosen ──
     let mainStat, mainStatLabel, pctStat, pctStatLabel, pctColor;
     let timeStat, timeStatLabel, timePrefix, timeCostColor;
-    let arrivedText, verdictText, row1Label, row2Label, tryBtnText;
+    let arrivedText, verdictText, tryBtnText;
 
     if (!pickedFast) {
-        // ── User took the SAFE route ──
-        const avoided  = Math.max(0, fastZones - safeZones);
-        const saferPct = altRisk > 0 ? Math.min(99, Math.max(0, Math.round((altRisk - myRisk) / altRisk * 100))) : 0;
+        // ── User took the recommended/safer route ──
+        const avoidedKm = parseFloat(Math.max(0, altHighKm - myHighKm).toFixed(1));
+        const saferPct = altRisk > 0
+            ? Math.round(((altRisk - myRisk) / altRisk) * 100)
+            : 0;
         const timeCost = Math.max(0, myTime - altTime);
 
-        mainStat       = avoided;
-        mainStatLabel  = `danger zone${avoided !== 1 ? "s" : ""}<br>avoided`;
-        pctStat        = saferPct;
+        mainStat       = avoidedKm;
+        mainStatLabel  = `km high-risk<br>avoided`;
+        pctStat        = Math.max(0, saferPct);
         pctStatLabel   = "safer than<br>fast route";
         pctColor       = "#22c55e";
         timeStat       = timeCost;
@@ -2262,39 +2489,37 @@ function showTripSummaryModal() {
         timePrefix     = "+";
         timeCostColor  = "#fbbf24";
         arrivedText    = "Arrived safely";
-        row1Label      = "Fast route";
-        row2Label      = "Your route";
         tryBtnText     = "Plan a new route";
 
-        verdictText = avoided > 0 && timeCost > 0
-            ? `+${timeCost} min kept you out of ${avoided} danger zone${avoided !== 1 ? "s" : ""}`
-            : avoided > 0
-                ? `You avoided ${avoided} danger zone${avoided !== 1 ? "s" : ""}`
+        verdictText = avoidedKm > 0 && timeCost > 0
+            ? `+${timeCost} min kept you out of ${avoidedKm} km of high-risk areas`
+            : avoidedKm > 0
+                ? `You avoided ${avoidedKm} km of high-risk areas`
                 : "You chose the safer path";
     } else {
         // ── User took the FAST route ──
-        const extraZones = Math.max(0, fastZones - safeZones);
+        const extraKm = Math.max(0, myHighKm - altHighKm).toFixed(1);
         const riskierPct = myRisk > 0 ? Math.min(99, Math.max(0, Math.round((myRisk - altRisk) / myRisk * 100))) : 0;
         const timeSaved  = Math.max(0, altTime - myTime);
 
-        mainStat       = extraZones;
-        mainStatLabel  = `more zone${extraZones !== 1 ? "s" : ""}<br>vs safe route`;
+        mainStat       = extraKm;
+        mainStatLabel  = `km more<br>high-risk areas`;
         pctStat        = riskierPct;
-        pctStatLabel   = "higher risk<br>than safe route";
+        pctStatLabel   = compareLabel === "recommended route"
+            ? "higher risk<br>than AI route"
+            : "higher risk<br>than safe route";
         pctColor       = "#f97316";
         timeStat       = timeSaved;
         timeStatLabel  = "min<br>faster";
         timePrefix     = "";
         timeCostColor  = "#22c55e";
         arrivedText    = "Arrived on time";
-        row1Label      = "Your route";
-        row2Label      = "Safe option";
         tryBtnText     = "Try safer route";
 
-        verdictText = timeSaved > 0 && extraZones > 0
-            ? `Saved ${timeSaved} min — safe route had ${extraZones} fewer risk zone${extraZones !== 1 ? "s" : ""}`
+        verdictText = timeSaved > 0 && parseFloat(extraKm) > 0
+            ? `Saved ${timeSaved} min — ${compareLabel} had ${extraKm} km less high-risk areas`
             : timeSaved > 0
-                ? `You arrived ${timeSaved} min faster on this route`
+                ? ""
                 : "Both routes had similar travel time";
     }
 
@@ -2323,22 +2548,16 @@ function showTripSummaryModal() {
     const timeCostEl = document.getElementById("s-time-cost");
     if (timeCostEl) timeCostEl.style.color = timeCostColor;
 
-    // Compare row labels — for fast-chose, row 1 = "Your route", row 2 = "Safe option"
-    // bars: fast-bar (red) always shows fast route; safe-bar (green) always shows safe route
-    const row1LabelEl = document.getElementById("s-row1-label");
-    const row2LabelEl = document.getElementById("s-row2-label");
-    if (row1LabelEl) row1LabelEl.textContent = row1Label;
-    if (row2LabelEl) row2LabelEl.textContent = row2Label;
-
-    const fZoneEl = document.getElementById("s-fast-zones");
-    const sZoneEl = document.getElementById("s-safe-zones");
-    if (fZoneEl) fZoneEl.textContent = `${fastZones} zones · ${fastLevel}`;
-    if (sZoneEl) sZoneEl.textContent = `${safeZones} zones · ${safeLevel}`;
+    const modalFastRouteLabel = document.getElementById("modal-fast-route-label");
+    const modalSafeRouteLabel = document.getElementById("modal-safe-route-label");
+    if (modalFastRouteLabel) modalFastRouteLabel.textContent = pickedFast ? "YOUR ROUTE" : "FAST ROUTE";
+    if (modalSafeRouteLabel) modalSafeRouteLabel.textContent = pickedFast ? compareLabel.toUpperCase() : "YOUR ROUTE";
 
     const verdictEl = document.getElementById("s-verdict");
     if (verdictEl) {
         verdictEl.textContent = verdictText;
         verdictEl.style.color = pickedFast ? "#fbbf24" : "#4ade80";
+        verdictEl.classList.toggle("is-hidden", !verdictText);
     }
 
     const tryBtn = document.getElementById("s-try-btn");
@@ -2349,14 +2568,14 @@ function showTripSummaryModal() {
     const mark   = modal.querySelector(".check-mark");
     const stage2 = modal.querySelector(".summary-s2");
     const stage3 = modal.querySelector(".summary-s3");
-    const fBar   = document.getElementById("s-fast-bar");
-    const sBar   = document.getElementById("s-safe-bar");
+    const modalFastBar = document.getElementById("modal-fast-bar");
+    const modalSafeBar = document.getElementById("modal-safe-bar");
 
     if (ring)   ring.style.strokeDashoffset   = "226";
     if (mark)   mark.style.strokeDashoffset   = "50";
     if (arc)    arc.style.strokeDashoffset    = "141";
-    if (fBar)   fBar.style.width = "0%";
-    if (sBar)   sBar.style.width = "0%";
+    if (modalFastBar) modalFastBar.style.width = "0%";
+    if (modalSafeBar) modalSafeBar.style.width = "0%";
     if (stage2) stage2.classList.remove("visible");
     if (stage3) stage3.classList.remove("visible");
 
@@ -2368,6 +2587,19 @@ function showTripSummaryModal() {
 
     // ── Show modal ──
     modal.style.display = "flex";
+    modal.classList.remove("is-closing");
+    void modal.offsetWidth;
+    modal.classList.add("is-visible");
+    applyModalRiskBadge(
+        "modal-fast-score-num", "modal-fast-bar", "modal-fast-badge",
+        "modal-fast-icon", "modal-fast-label", "modal-fast-detail",
+        pickedFast ? myRO : fastRO
+    );
+    applyModalRiskBadge(
+        "modal-safe-score-num", "modal-safe-bar", "modal-safe-badge",
+        "modal-safe-icon", "modal-safe-label", "modal-safe-detail",
+        pickedFast ? altRO : myRO
+    );
 
     // ── Stage 1: SVG checkmark draws (CSS transition) ──
     requestAnimationFrame(() => {
@@ -2380,33 +2612,68 @@ function showTripSummaryModal() {
     // ── Stage 2: Stats count up (0.6s delay) ──
     setTimeout(() => {
         if (stage2) stage2.classList.add("visible");
-        _summaryCountUp("s-avoided",   0, mainStat, 700);
+        _summaryCountUp("s-avoided",   0, mainStat, 700, "", 1);
         _summaryCountUp("s-safer-pct", 0, pctStat,  700);
         _summaryCountUp("s-time-cost", 0, timeStat, 700, timePrefix);
         _summaryArcAnimate(pctStat, 700);
     }, 600);
 
-    // ── Stage 3: Comparison bars slide in (1.4s delay) ──
-    // fast-bar always represents the fast route; safe-bar the safe route
+    // ── Stage 3: Risk blocks reveal (1.4s delay) ──
     setTimeout(() => {
         if (stage3) stage3.classList.add("visible");
-        const maxZ = Math.max(fastZones, safeZones, 1);
-        setTimeout(() => {
-            if (fBar) fBar.style.width = Math.round((fastZones / maxZ) * 100) + "%";
-            if (sBar) sBar.style.width = Math.round((safeZones / maxZ) * 100) + "%";
-        }, 120);
     }, 1400);
 }
 
-function _summaryCountUp(id, from, to, duration, prefix = "") {
+function applyModalRiskBadge(scoreNumId, barId, badgeId, iconId, labelId, detailId, route) {
+    if (!route) return;
+
+    const score = route.risk_score;
+
+    const bar = document.getElementById(barId);
+    if (bar) {
+        bar.style.width = score + "%";
+        if (score >= 80)      bar.style.background = "#D85A30";
+        else if (score >= 60) bar.style.background = "#EF9F27";
+        else if (score >= 40) bar.style.background = "#639922";
+        else                  bar.style.background = "#1D9E75";
+    }
+
+    const scoreNum = document.getElementById(scoreNumId);
+    if (scoreNum) {
+        scoreNum.textContent = score + " / 100";
+        scoreNum.style.color = score >= 80 ? "#993C1D" : score >= 60 ? "#854F0B" : "#3B6D11";
+    }
+
+    const badge = document.getElementById(badgeId);
+    if (badge) {
+        badge.className = "peak-badge " + (score >= 60 ? "danger" : score >= 40 ? "medium" : "safe");
+    }
+
+    const icon = document.getElementById(iconId);
+    if (icon) icon.textContent = score >= 60 ? "!" : "✓";
+
+    const label = document.getElementById(labelId);
+    if (label) label.textContent = route.peak_label || "";
+
+    const detail = document.getElementById(detailId);
+    if (detail) detail.textContent = route.peak_detail || "";
+}
+
+function _summaryCountUp(id, from, to, duration, prefix = "", decimals = 0) {
     const el = document.getElementById(id);
     if (!el) return;
-    if (to === from) { el.textContent = prefix + to; return; }
+    if (to === from) {
+        el.textContent = prefix + (decimals > 0 ? parseFloat(Number(to).toFixed(decimals)) : to);
+        return;
+    }
     const start = performance.now();
     function step(now) {
         const t = Math.min(1, (now - start) / duration);
         const e = 1 - Math.pow(1 - t, 3);
-        el.textContent = prefix + Math.round(from + (to - from) * e);
+        const value = from + (to - from) * e;
+        el.textContent = prefix + (
+            decimals > 0 ? parseFloat(value.toFixed(decimals)) : Math.round(value)
+        );
         if (t < 1) requestAnimationFrame(step);
     }
     requestAnimationFrame(step);
@@ -2429,15 +2696,33 @@ function _summaryArcAnimate(pct, duration) {
 
 function closeSummaryModal() {
     const modal = document.getElementById("nav-summary-modal");
-    if (modal) modal.style.display = "none";
-    window.location.assign("/");
+    if (!modal) {
+        window.location.assign("/");
+        return;
+    }
+    modal.classList.remove("is-visible");
+    modal.classList.add("is-closing");
+    window.setTimeout(() => {
+        modal.style.display = "none";
+        modal.classList.remove("is-closing");
+        window.location.assign("/");
+    }, 280);
 }
 
 function closeSummaryAndFindRoute() {
     const modal = document.getElementById("nav-summary-modal");
-    if (modal) modal.style.display = "none";
-    exitNavigation();
-    setSheetState(1);
+    if (modal) {
+        modal.classList.remove("is-visible");
+        modal.classList.add("is-closing");
+    }
+    window.setTimeout(() => {
+        if (modal) {
+            modal.style.display = "none";
+            modal.classList.remove("is-closing");
+        }
+        exitNavigation();
+        setSheetState(1);
+    }, 280);
 }
 
 // ===== DEMO MODE TOGGLE =====
@@ -2477,16 +2762,6 @@ function setNetworkStatusVisibility(showOfflineMessage) {
 
 // Initialize on page load
 document.addEventListener("DOMContentLoaded", () => {
-    // Pre-set start location so demo chips work immediately
-    if (!window.startLat || !window.startLon) {
-        window.startLat = DEFAULT_START.lat;
-        window.startLon = DEFAULT_START.lon;
-        const startInput = document.getElementById("start-location");
-        if (startInput) {
-            startInput.value = DEFAULT_START.name;
-        }
-    }
-
     // Map is initialized in initGooglePlaces (after Google Maps API loads)
 
     // ── Bottom sheet handle: toggle expanded/collapsed on tap ──
@@ -2494,24 +2769,35 @@ document.addEventListener("DOMContentLoaded", () => {
     if (handle) {
         handle.addEventListener("click", () => {
             const sheet = document.getElementById("planner-sheet");
+            const resultsEl = document.getElementById("route-results");
             if (sheet) {
-                if (sheet.classList.contains("collapsed")) {
-                    expandSheet();
+                if (sheet.classList.contains("expanded")) {
+                    const resultsVisible = !!resultsEl && !resultsEl.classList.contains("hidden");
+                    if (resultsVisible) {
+                        peekSheet();
+                    } else {
+                        collapseSheet();
+                    }
                 } else {
-                    collapseSheet();
+                    expandSheet();
                 }
             }
         });
     }
 
     // Fix 3: close hamburger menu on outside click
-    document.addEventListener("click", () => {
+    document.addEventListener("click", (event) => {
         const dd = document.getElementById("planner-menu-dropdown");
-        if (dd) dd.style.display = "none";
+        const wrap = document.querySelector(".planner-menu-wrap");
+        if (!dd || !wrap) return;
+        if (wrap.contains(event.target)) return;
+        dd.classList.remove("is-open");
+        dd.setAttribute("aria-hidden", "true");
     });
 
     // Fix 6: start in input state
     setSheetState(1);
+    updateFindSaferRouteButton();
 
     // Fix 19: auto-trigger route if URL contains deep-link params
     const urlParams = new URLSearchParams(window.location.search);
@@ -2530,8 +2816,19 @@ document.addEventListener("DOMContentLoaded", () => {
         const destInput  = document.getElementById("destination");
         if (startInput && fromName) startInput.value = fromName;
         if (destInput  && toName)   destInput.value  = toName;
+        syncDemoRoutesVisibility();
         // short delay so map tiles are ready
         setTimeout(() => calculateRoute(slat, slon, elat, elon, toName), 800);
+    }
+
+    const startInput = document.getElementById("start-location");
+    const destInput = document.getElementById("destination");
+    [startInput, destInput].filter(Boolean).forEach((input) => {
+        input.addEventListener("input", syncDemoRoutesVisibility);
+    });
+    const demoToggle = document.getElementById("demo-routes-toggle");
+    if (demoToggle) {
+        demoToggle.addEventListener("click", showDemoRoutesFromToggle);
     }
 });
 
@@ -2605,28 +2902,40 @@ function setSheetState(state) {
         collapseSheet();
     } else if (state === 2) {
         if (results) results.classList.remove("hidden");
-        expandSheet();
-        // Fix 2: scroll sheet to top so cards are immediately visible
+        peekSheet();
+        // scroll list back to the top edge of the sheet
         setTimeout(() => {
             if (sheet) sheet.scrollTop = 0;
         }, 150);
     } else if (state === 3) {
         if (results) results.classList.remove("hidden");
-        expandSheet();
-        // Fix 3: scroll sheet so Start Navigation button is visible
+        peekSheet();
+        // Keep the sticky route footer visible without forcing a jump.
         setTimeout(() => {
             const btn = document.getElementById("start-navigation-btn");
-            if (sheet && btn) {
+            const stickyFooter = document.querySelector(".route-selection-footer");
+            if (sheet && btn && !stickyFooter) {
                 sheet.scrollTop = btn.offsetTop - 20;
             }
         }, 200);
     }
 }
 
+function peekSheet() {
+    const sheet = document.getElementById("planner-sheet");
+    if (sheet) {
+        sheet.classList.remove("collapsed", "expanded");
+        sheet.classList.add("results-peek");
+    }
+    setTimeout(() => {
+        if (tripCompareMap) google.maps.event.trigger(tripCompareMap, "resize");
+    }, 300);
+}
+
 function expandSheet() {
     const sheet = document.getElementById("planner-sheet");
     if (sheet) {
-        sheet.classList.remove("collapsed");
+        sheet.classList.remove("collapsed", "results-peek");
         sheet.classList.add("expanded");
     }
     setTimeout(() => {
@@ -2637,7 +2946,7 @@ function expandSheet() {
 function collapseSheet() {
     const sheet = document.getElementById("planner-sheet");
     if (sheet) {
-        sheet.classList.remove("expanded");
+        sheet.classList.remove("expanded", "results-peek");
         sheet.classList.add("collapsed");
     }
     setTimeout(() => {
@@ -2648,7 +2957,9 @@ function collapseSheet() {
 function togglePlannerMenu(e) {
     e.stopPropagation();
     const dd = document.getElementById("planner-menu-dropdown");
-    if (dd) dd.style.display = dd.style.display === "none" ? "block" : "none";
+    if (!dd) return;
+    dd.classList.toggle("is-open");
+    dd.setAttribute("aria-hidden", dd.classList.contains("is-open") ? "false" : "true");
 }
 
 function togglePlannerLayers() {
@@ -2659,4 +2970,48 @@ function togglePlannerLayers() {
             ? google.maps.MapTypeId.SATELLITE
             : google.maps.MapTypeId.ROADMAP
     );
+}
+
+function applyRiskBadge(cardElement, route) {
+    if (!cardElement || !route) return;
+    const score = route.risk_score;
+
+    // Bar width and color
+    const bar = cardElement.querySelector('[id^="risk-bar-"]');
+    if (bar) {
+        bar.style.width = score + '%';
+        if (score >= 80)      bar.style.background = '#D85A30';
+        else if (score >= 60) bar.style.background = '#EF9F27';
+        else if (score >= 40) bar.style.background = '#639922';
+        else                  bar.style.background = '#1D9E75';
+    }
+
+    // Score number
+    const scoreNum = cardElement.querySelector('[id^="risk-score-"]');
+    if (scoreNum) {
+        scoreNum.textContent = score + ' / 100';
+        scoreNum.style.color = score >= 80 ? '#993C1D' : score >= 60 ? '#854F0B' : '#3B6D11';
+    }
+
+    // Badge class
+    const badge = cardElement.querySelector('[id^="peak-badge-"]');
+    if (badge) {
+        badge.className = 'peak-badge ' + (score >= 60 ? 'danger' : score >= 40 ? 'medium' : 'safe');
+    }
+
+    // Icon (unicode, no emoji)
+    const icon = cardElement.querySelector('[id^="peak-icon-"]');
+    if (icon) {
+        icon.textContent = score >= 60 ? '!' : '✓';
+    }
+
+    // Labels
+    const labelText = cardElement.querySelector('[id^="peak-label-"]');
+    if (labelText) {
+        labelText.textContent = route.peak_label || '';
+    }
+    const detailText = cardElement.querySelector('[id^="peak-detail-"]');
+    if (detailText) {
+        detailText.textContent = route.peak_detail || '';
+    }
 }

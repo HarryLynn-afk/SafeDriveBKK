@@ -42,6 +42,50 @@
         width: min(280px, calc(100vw - 36px));
     }
 
+    .heatmap-legend-toggle {
+        display: none;
+        list-style: none;
+        cursor: pointer;
+        user-select: none;
+    }
+
+    .heatmap-legend-toggle::-webkit-details-marker {
+        display: none;
+    }
+
+    .heatmap-legend-content {
+        display: grid;
+        gap: 0;
+    }
+
+    .heatmap-layer-toggle {
+        display: none;
+        position: fixed;
+        right: 16px;
+        bottom: 16px;
+        z-index: 9999;
+        align-items: center;
+        justify-content: center;
+        gap: 8px;
+        min-height: 40px;
+        padding: 0 14px;
+        border: 1px solid rgba(148, 163, 184, 0.22);
+        border-radius: 999px;
+        background: linear-gradient(180deg, rgba(255, 255, 255, 0.96), rgba(248, 250, 252, 0.9));
+        color: #111827;
+        font-size: 13px;
+        font-weight: 700;
+        line-height: 1;
+        box-shadow: 0 18px 40px rgba(15, 23, 42, 0.14);
+        backdrop-filter: blur(12px);
+        cursor: pointer;
+        transition: transform 0.18s ease, opacity 0.18s ease, background 0.18s ease;
+    }
+
+    .heatmap-layer-toggle:hover {
+        transform: translateY(-1px);
+    }
+
     .heatmap-panel-title {
         margin: 0;
         font-size: 17px;
@@ -156,19 +200,105 @@
     }
 
     @media (max-width: 768px) {
+        .heatmap-floating-panel,
+        .leaflet-control-layers {
+            border-radius: 16px;
+            background: rgba(255, 255, 255, 0.72);
+            backdrop-filter: blur(10px);
+        }
+
         .heatmap-title-panel {
-            top: 16px;
+            top: 12px;
             left: 68px;
-            width: calc(100vw - 84px);
-            padding: 16px 18px;
+            width: auto;
+            max-width: calc(100vw - 84px);
+            padding: 10px 12px;
+        }
+
+        .heatmap-panel-title {
+            font-size: 14px;
+        }
+
+        .heatmap-panel-copy {
+            display: none;
         }
 
         .heatmap-legend-panel {
             left: 12px;
-            right: 12px;
+            right: auto;
             bottom: 16px;
+            width: min(180px, calc(100vw - 24px));
+            max-width: calc(100vw - 24px);
+            padding: 0;
+            overflow: hidden;
+        }
+
+        .heatmap-legend-toggle {
+            display: inline-flex;
+            align-items: center;
+            gap: 8px;
+            padding: 10px 12px;
+            font-size: 12px;
+            font-weight: 700;
+            letter-spacing: 0.04em;
+            text-transform: uppercase;
+            color: #334155;
+        }
+
+        .heatmap-legend-toggle::before {
+            content: "i";
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            width: 18px;
+            height: 18px;
+            border-radius: 999px;
+            background: rgba(37, 99, 235, 0.14);
+            color: #1d4ed8;
+            font-size: 11px;
+            font-weight: 800;
+            text-transform: none;
+        }
+
+        .heatmap-legend-panel:not([open]) {
             width: auto;
-            padding: 16px 18px;
+        }
+
+        .heatmap-legend-panel:not([open]) .heatmap-legend-content {
+            max-height: 0;
+            opacity: 0;
+            overflow: hidden;
+        }
+
+        .heatmap-legend-panel[open] {
+            width: min(220px, calc(100vw - 24px));
+        }
+
+        .heatmap-legend-panel[open] .heatmap-legend-content {
+            max-height: 240px;
+            opacity: 1;
+            padding: 0 12px 12px;
+        }
+
+        .heatmap-legend-content {
+            transition: max-height 0.22s ease, opacity 0.18s ease;
+        }
+
+        .heatmap-legend-title {
+            margin-bottom: 10px;
+            font-size: 11px;
+        }
+
+        .heatmap-legend-list {
+            gap: 8px;
+        }
+
+        .heatmap-legend-item {
+            gap: 10px;
+        }
+
+        .heatmap-legend-text {
+            font-size: 12px;
         }
 
         .leaflet-top .leaflet-control {
@@ -177,11 +307,28 @@
 
         .leaflet-right .leaflet-control {
             margin-right: 12px;
+            margin-top: 64px;
         }
 
         .leaflet-control-layers-expanded {
             min-width: 220px;
             padding: 16px 18px !important;
+        }
+
+        .heatmap-layer-toggle {
+            display: inline-flex;
+        }
+
+        .leaflet-control-layers {
+            transition: opacity 0.18s ease, transform 0.2s ease, visibility 0.18s ease;
+            transform-origin: top right;
+        }
+
+        .leaflet-control-layers.heatmap-mobile-hidden {
+            opacity: 0;
+            visibility: hidden;
+            pointer-events: none;
+            transform: translateY(-8px) scale(0.98);
         }
     }
 </style>
@@ -228,23 +375,30 @@
     </div>
     
     
-    <div class="heatmap-floating-panel heatmap-legend-panel">
-        <div class="heatmap-legend-title">Segment risk level</div>
-        <div class="heatmap-legend-list">
-            <div class="heatmap-legend-item">
-                <span class="heatmap-legend-swatch" style="background: #28a745;"></span>
-                <span class="heatmap-legend-text">Low (Green)</span>
-            </div>
-            <div class="heatmap-legend-item">
-                <span class="heatmap-legend-swatch" style="background: #fbbf24;"></span>
-                <span class="heatmap-legend-text">Medium (Yellow)</span>
-            </div>
-            <div class="heatmap-legend-item">
-                <span class="heatmap-legend-swatch" style="background: #dc2626;"></span>
-                <span class="heatmap-legend-text">High (Red)</span>
+    <details class="heatmap-floating-panel heatmap-legend-panel">
+        <summary class="heatmap-legend-toggle">Map legend</summary>
+        <div class="heatmap-legend-content">
+            <div class="heatmap-legend-title">Segment risk level</div>
+            <div class="heatmap-legend-list">
+                <div class="heatmap-legend-item">
+                    <span class="heatmap-legend-swatch" style="background: #28a745;"></span>
+                    <span class="heatmap-legend-text">Low (Green)</span>
+                </div>
+                <div class="heatmap-legend-item">
+                    <span class="heatmap-legend-swatch" style="background: #fbbf24;"></span>
+                    <span class="heatmap-legend-text">Medium (Yellow)</span>
+                </div>
+                <div class="heatmap-legend-item">
+                    <span class="heatmap-legend-swatch" style="background: #dc2626;"></span>
+                    <span class="heatmap-legend-text">High (Red)</span>
+                </div>
             </div>
         </div>
-    </div>
+    </details>
+
+    <button type="button" class="heatmap-layer-toggle" id="heatmap-layer-toggle" aria-expanded="false">
+        Layers
+    </button>
     
     
             <div class="folium-map" id="map_d44ecd00ebeab615640c42c7c1223d64" ></div>
@@ -8335,6 +8489,52 @@
                 layer_control_36e7d86625f02823d1f9b95d6dd6497d_layers.overlays,
                 {"autoZIndex": true, "collapsed": false, "position": "topright"}
             ).addTo(map_d44ecd00ebeab615640c42c7c1223d64);
+
+            (function () {
+                const toggleBtn = document.getElementById("heatmap-layer-toggle");
+                const layerControlEl = layer_control_36e7d86625f02823d1f9b95d6dd6497d.getContainer();
+                const mobileMedia = window.matchMedia("(max-width: 768px)");
+
+                if (!toggleBtn || !layerControlEl) return;
+
+                const syncMobileVisibility = () => {
+                    if (mobileMedia.matches) {
+                        layerControlEl.classList.add("heatmap-mobile-hidden");
+                        toggleBtn.setAttribute("aria-expanded", "false");
+                    } else {
+                        layerControlEl.classList.remove("heatmap-mobile-hidden");
+                        toggleBtn.setAttribute("aria-expanded", "true");
+                    }
+                };
+
+                toggleBtn.addEventListener("click", function (event) {
+                    if (!mobileMedia.matches) return;
+                    event.stopPropagation();
+                    layerControlEl.classList.toggle("heatmap-mobile-hidden");
+                    toggleBtn.setAttribute(
+                        "aria-expanded",
+                        layerControlEl.classList.contains("heatmap-mobile-hidden") ? "false" : "true"
+                    );
+                });
+
+                layerControlEl.addEventListener("click", function (event) {
+                    event.stopPropagation();
+                });
+
+                document.addEventListener("click", function () {
+                    if (!mobileMedia.matches) return;
+                    layerControlEl.classList.add("heatmap-mobile-hidden");
+                    toggleBtn.setAttribute("aria-expanded", "false");
+                });
+
+                if (typeof mobileMedia.addEventListener === "function") {
+                    mobileMedia.addEventListener("change", syncMobileVisibility);
+                } else if (typeof mobileMedia.addListener === "function") {
+                    mobileMedia.addListener(syncMobileVisibility);
+                }
+
+                syncMobileVisibility();
+            })();
 
         
 </script>

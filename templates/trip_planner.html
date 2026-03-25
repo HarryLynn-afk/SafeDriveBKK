@@ -19,6 +19,8 @@ main, .container, .container-fluid, .container-lg,
 main { background: transparent !important; position: relative; z-index: auto; }
 /* Hide floating chat widget on trip planner */
 .chat-fab, #chatFab, #chatWindow { display: none !important; }
+.modal-route-label { font-size: 10px; font-weight: 500; color: #888;
+  letter-spacing: 0.05em; margin: 0 0 6px; }
 </style>
 {% endblock %}
 
@@ -63,11 +65,15 @@ main { background: transparent !important; position: relative; z-index: auto; }
                     <rect y="10" width="16" height="2" rx="1" fill="currentColor"/>
                 </svg>
             </button>
-            <div id="planner-menu-dropdown" class="planner-menu-dropdown" style="display:none;">
-                <a href="/" class="planner-menu-item">Dashboard</a>
-                <a href="/analytics" class="planner-menu-item">Analytics</a>
-                <a href="/nlp" class="planner-menu-item">Safety Assistant</a>
-                <a href="/about" class="planner-menu-item">About</a>
+            <div id="planner-menu-dropdown" class="planner-menu-dropdown" aria-hidden="true">
+                <nav class="planner-menu-nav" aria-label="Planner navigation">
+                    <ul class="planner-menu-list">
+                        <li class="planner-menu-list-item"><a href="/" class="planner-menu-item">Dashboard</a></li>
+                        <li class="planner-menu-list-item"><a href="/analytics" class="planner-menu-item">Analytics</a></li>
+                        <li class="planner-menu-list-item"><a href="/nlp" class="planner-menu-item">Safety Assistant</a></li>
+                        <li class="planner-menu-list-item"><a href="/about" class="planner-menu-item">About</a></li>
+                    </ul>
+                </nav>
             </div>
         </div>
     </div>
@@ -133,34 +139,34 @@ main { background: transparent !important; position: relative; z-index: auto; }
             <div id="suggestions-dropdown" class="suggestions-dropdown" style="display:none;"></div>
         </div>
     </div>
+    <button type="button" id="demo-routes-toggle" class="demo-routes-toggle">View Demo Routes</button>
 
     <!-- Demo routes -->
-    <div class="quick-destinations">
-        <p class="quick-label">Try a demo route:</p>
+    <div class="quick-destinations" id="demo-routes-section">
         <div class="quick-chips">
-            <button class="quick-chip quick-chip-danger" onclick="selectDemoRoute('Dusit', 13.7845, 100.5200, 'Bang Kruai', 13.7845, 100.3700)">
-                <span class="quick-chip-dot" aria-hidden="true"></span>
-                <span>Highest Danger Zone</span>
-            </button>
-            <button class="quick-chip quick-chip-warning" onclick="selectDemoRoute('Chatuchak', 13.8000, 100.5500, 'Taling Chan', 13.7800, 100.3500)">
-                <span class="quick-chip-dot" aria-hidden="true"></span>
-                <span>Long High-Risk Commute</span>
-            </button>
-            <button class="quick-chip quick-chip-caution" onclick="selectDemoRoute('Ekkamai', 13.7200, 100.5850, 'Bang Na', 13.7305, 100.7300)">
-                <span class="quick-chip-dot" aria-hidden="true"></span>
-                <span>Eastern Risk Corridor</span>
-            </button>
-            <button class="quick-chip quick-chip-primary" onclick="selectDemoRoute('Victory Monument', 13.7648, 100.5378, 'Lat Krabang', 13.7300, 100.7500)">
-                <span class="quick-chip-dot" aria-hidden="true"></span>
-                <span>Cross-City Journey</span>
-            </button>
+            <div class="demo-routes-grid">
+                <button class="quick-chip quick-chip-danger" onclick="selectDemoRoute('Dusit', 13.7831, 100.5103, 'Lat Krabang', 13.7250, 100.7490)">
+                    <span>Risk Gauntlet</span>
+                </button>
+                <button class="quick-chip quick-chip-warning" onclick="selectDemoRoute('Chatuchak', 13.8000, 100.5500, 'Taling Chan', 13.7800, 100.3500)">
+                    <span>Risk Commute</span>
+                </button>
+                <button class="quick-chip quick-chip-caution" onclick="selectDemoRoute('Watthana', 13.7380, 100.5600, 'Lat Krabang', 13.7250, 100.7490)">
+                    <span>Sukhumvit Split</span>
+                </button>
+                <button class="quick-chip quick-chip-primary" onclick="selectDemoRoute('Chatuchak', 13.8038, 100.5503, 'Lat Krabang', 13.7250, 100.7490)">
+                    <span>North Split</span>
+                </button>
+            </div>
         </div>
     </div>
 
     <!-- Find route CTA -->
-    <button id="findSaferRouteBtn" class="find-safer-route-btn" disabled onclick="onFindSaferRouteClick()">
-        Find Safer Route
-    </button>
+    <div class="sheet-primary-action">
+        <button id="findSaferRouteBtn" class="find-safer-route-btn" disabled onclick="onFindSaferRouteClick()">
+            Find Safer Route
+        </button>
+    </div>
 
     <!-- Route error -->
     <div id="route-error" style="display:none; margin-top:12px; background:#422006; border:1px solid #92400e; border-radius:10px; padding:12px 14px;">
@@ -211,9 +217,9 @@ main { background: transparent !important; position: relative; z-index: auto; }
         <button class="start-nav-button" onclick="startNavigation()">Start Navigation</button>
     </div>
 
-    <!-- ── Step 5: Multi-route results (cards only — map is the background) ── -->
+    <!-- ── Step 5: Multi-route results (bottom-sheet route list; map is the background) ── -->
     <div id="route-results" style="display:none;">
-        <div id="route-selection-content"></div>
+        <div id="route-selection-content" aria-live="polite" aria-label="Route options"></div>
     </div>
 </div>
 
@@ -243,8 +249,11 @@ main { background: transparent !important; position: relative; z-index: auto; }
                 <div class="step-status">...</div>
             </div>
         </div>
-        <div class="analysis-stats">
-            <span id="routes-analyzed">0</span> routes analyzed
+        <div class="analysis-footer">
+            <button type="button" class="analysis-cancel-btn" onclick="cancelAIAnalyzing()">Cancel</button>
+            <div class="analysis-stats">
+                <span id="routes-analyzed">0</span> routes analyzed
+            </div>
         </div>
     </div>
 </div>
@@ -359,19 +368,38 @@ main { background: transparent !important; position: relative; z-index: auto; }
         <!-- Stage 3: Comparison bars + verdict + actions -->
         <div class="summary-s3">
             <div class="compare-section">
-                <div class="compare-row">
-                    <span class="compare-label" id="s-row1-label">Fast route</span>
-                    <div class="compare-track">
-                        <div class="compare-bar fast-bar" id="s-fast-bar" style="width:0%;"></div>
-                    </div>
-                    <span class="compare-tag fast-tag" id="s-fast-zones">-- · HIGH</span>
+                <!-- FAST ROUTE RISK BLOCK -->
+                <p class="modal-route-label" id="modal-fast-route-label">FAST ROUTE</p>
+                <div class="risk-block">
+                  <div class="risk-header">
+                    <span class="risk-label-text">Overall risk score</span>
+                    <span class="risk-score-number" id="modal-fast-score-num"></span>
+                  </div>
+                  <div class="risk-bar-track">
+                    <div class="risk-bar-fill" id="modal-fast-bar"></div>
+                  </div>
                 </div>
-                <div class="compare-row">
-                    <span class="compare-label" id="s-row2-label">Your route</span>
-                    <div class="compare-track">
-                        <div class="compare-bar your-bar" id="s-safe-bar" style="width:0%;"></div>
-                    </div>
-                    <span class="compare-tag your-tag" id="s-safe-zones">-- · MED</span>
+                <div class="peak-badge" id="modal-fast-badge">
+                  <span class="peak-icon" id="modal-fast-icon"></span>
+                  <span class="peak-text" id="modal-fast-label"></span>
+                  <span class="peak-detail" id="modal-fast-detail"></span>
+                </div>
+
+                <!-- YOUR ROUTE RISK BLOCK -->
+                <p class="modal-route-label" id="modal-safe-route-label">YOUR ROUTE</p>
+                <div class="risk-block">
+                  <div class="risk-header">
+                    <span class="risk-label-text">Overall risk score</span>
+                    <span class="risk-score-number" id="modal-safe-score-num"></span>
+                  </div>
+                  <div class="risk-bar-track">
+                    <div class="risk-bar-fill" id="modal-safe-bar"></div>
+                  </div>
+                </div>
+                <div class="peak-badge" id="modal-safe-badge">
+                  <span class="peak-icon" id="modal-safe-icon"></span>
+                  <span class="peak-text" id="modal-safe-label"></span>
+                  <span class="peak-detail" id="modal-safe-detail"></span>
                 </div>
             </div>
             <p class="summary-verdict" id="s-verdict">+4 min kept you out of 22 danger zones</p>

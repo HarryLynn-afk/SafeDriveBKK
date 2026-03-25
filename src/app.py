@@ -3,6 +3,7 @@ Flask web app for Bangkok Road Risk system.
 """
 
 import json
+import hashlib
 import math
 import os
 import re
@@ -50,6 +51,7 @@ BANGKOK_ACCIDENTS_PATH = DATA_DIR / "bangkok_accidents_clean.csv"
 GRID_STATS_PATH = DATA_DIR / "bangkok_grid_stats.csv"
 RISK_MAP_HTML_PATH = DATA_DIR / "bangkok_risk_map.html"
 RISK_HEATMAP_HTML_PATH = BASE_DIR / "static" / "bangkok_risk_heatmap.html"
+OSRM_BASE_URL = "https://router.project-osrm.org"
 
 BKK_LAT_MIN = 13.6
 BKK_LAT_MAX = 13.95
@@ -679,7 +681,7 @@ def _find_grid_for_point(lat, lon, grid_df):
 def get_osrm_route(start_lat, start_lon, end_lat, end_lon):
     """Get real road route from OSRM API."""
     url = (
-        "http://router.project-osrm.org/route/v1/driving/"
+        f"{OSRM_BASE_URL}/route/v1/driving/"
         f"{start_lon},{start_lat};{end_lon},{end_lat}?overview=full&geometries=geojson"
     )
 
@@ -721,7 +723,7 @@ def get_osrm_route_from_waypoints(waypoints):
         if len(coords) < 2:
             return None
 
-        url = f"http://router.project-osrm.org/route/v1/driving/{';'.join(coords)}"
+        url = f"{OSRM_BASE_URL}/route/v1/driving/{';'.join(coords)}"
         response = requests.get(
             url,
             params={"overview": "full", "geometries": "geojson", "steps": "true"},
@@ -746,7 +748,7 @@ def get_osrm_route_from_waypoints(waypoints):
 def get_osrm_alternatives(start_lat, start_lon, end_lat, end_lon, num_alternatives=3):
     """Get multiple alternative routes from OSRM."""
     url = (
-        "http://router.project-osrm.org/route/v1/driving/"
+        f"{OSRM_BASE_URL}/route/v1/driving/"
         f"{start_lon},{start_lat};{end_lon},{end_lat}"
         f"?overview=full&geometries=geojson&alternatives={num_alternatives}"
     )
@@ -1011,6 +1013,7 @@ def calculate_route_risk_ml(waypoints):
     # Distance-weighted risk: each segment's risk is weighted by its length.
     total_risk_exposure = 0.0
     total_distance = 0.0
+    high_risk_km = 0.0
     max_score = 0
 
     for i in range(len(waypoints)):
@@ -1027,6 +1030,9 @@ def calculate_route_risk_ml(waypoints):
             seg_risk = (results[i - 1]["risk_score"] + score) / 2.0
             total_risk_exposure += seg_risk * seg_dist
             total_distance += seg_dist
+            # Track distance where either endpoint is high-risk.
+            if results[i - 1]["risk_level"] == "high" or results[i]["risk_level"] == "high":
+                high_risk_km += seg_dist
 
     if total_distance > 0:
         weighted_avg = total_risk_exposure / total_distance
@@ -1048,6 +1054,7 @@ def calculate_route_risk_ml(waypoints):
         "risk_score": risk_score,
         "risk_level": risk_level,
         "high_risk_zones": high_risk_zones,
+        "high_risk_km": round(high_risk_km, 1),
         "medium_risk_zones": medium_risk_zones,
         "matched_grids": len(results),
         "evaluated_waypoints": len(waypoints),
@@ -1068,8 +1075,9 @@ def calculate_route_risk_density_aware(waypoints, grid_df):
     max_accidents_in_grid = 0
     matched_grid_count = 0
 
-    # Collect per-waypoint accident counts and grid risk scores.
+    # Collect per-waypoint accident counts, grid risk scores, and risk levels.
     point_accidents = []
+    point_risk_levels = []
     for lat, lon in waypoints:
         grid = _find_grid_for_point(lat, lon, grid_df)
         if grid is not None:
@@ -1080,17 +1088,20 @@ def calculate_route_risk_density_aware(waypoints, grid_df):
                 max_accidents_in_grid = accidents
 
             risk_level = str(grid["risk_level"]).lower()
+            point_risk_levels.append(risk_level)
             if risk_level == "high":
                 high_risk_zones += 1
             elif risk_level == "medium":
                 medium_risk_zones += 1
         else:
             point_accidents.append(0)
+            point_risk_levels.append("low")
 
     # Distance-weighted accident density: each segment's accident count
     # is the average of its two endpoints, weighted by segment length.
     total_weighted_accidents = 0.0
     total_distance = 0.0
+    high_risk_km = 0.0
 
     for i in range(1, len(waypoints)):
         seg_dist = _haversine_km(
@@ -1100,6 +1111,9 @@ def calculate_route_risk_density_aware(waypoints, grid_df):
         seg_accidents = (point_accidents[i - 1] + point_accidents[i]) / 2.0
         total_weighted_accidents += seg_accidents * seg_dist
         total_distance += seg_dist
+        # Track distance where either endpoint is high-risk.
+        if point_risk_levels[i - 1] == "high" or point_risk_levels[i] == "high":
+            high_risk_km += seg_dist
 
     if total_distance > 0:
         weighted_avg_accidents = total_weighted_accidents / total_distance
@@ -1132,6 +1146,7 @@ def calculate_route_risk_density_aware(waypoints, grid_df):
         "risk_score": risk_score,
         "risk_level": risk_level,
         "high_risk_zones": high_risk_zones,
+        "high_risk_km": round(high_risk_km, 1),
         "medium_risk_zones": medium_risk_zones,
         "matched_grids": matched_grid_count,
         "evaluated_waypoints": len(waypoints),
@@ -1167,6 +1182,7 @@ def _evaluate_route(route_points, grid_df):
         "risk_score": min(100, risk_metrics["risk_score"]),
         "risk_level": risk_metrics["risk_level"],
         "high_risk_zones": risk_metrics["high_risk_zones"],
+        "high_risk_km": risk_metrics["high_risk_km"],
         "medium_risk_zones": risk_metrics["medium_risk_zones"],
         "matched_grids": risk_metrics["matched_grids"],
         "evaluated_waypoints": risk_metrics["evaluated_waypoints"],
@@ -1701,6 +1717,7 @@ def analyze_route():
                     "duration_min": route_duration_min,
                     "risk_score": min(100, overall_risk["risk_score"]),
                     "risk_level": overall_risk["risk_level"],
+                    "high_risk_km": overall_risk.get("high_risk_km", 0),
                     "traffic_source": analyze_traffic_source,
                 },
                 "segments": segments,
@@ -1778,27 +1795,13 @@ def compare_routes():
                     "risk_score": risk["risk_score"],
                     "risk_level": risk["risk_level"],
                     "high_risk_zones": risk.get("high_risk_zones", 0),
+                    "high_risk_km": risk.get("high_risk_km", 0),
                     "medium_risk_zones": risk.get("medium_risk_zones", 0),
                     "matched_grids": risk.get("matched_grids", 0),
                     "evaluated_waypoints": risk.get("evaluated_waypoints", len(sampled)),
                     "traffic_source": "google_maps_traffic" if groute["has_traffic"] else "google_maps",
                     "summary": groute.get("summary", ""),
                 })
-
-            # ── Step 5: Sort and pick FASTEST and SAFEST ──
-            fastest = min(scored_routes, key=lambda r: r["time_min"])
-            safest = min(scored_routes, key=lambda r: r["risk_score"])
-
-            # If safest == fastest (same route), try to pick a different one
-            # for the safe option that has lower risk
-            if len(scored_routes) > 1 and safest["waypoints"] == fastest["waypoints"]:
-                # Pick the route with 2nd lowest risk that isn't the fastest
-                alternatives = [r for r in scored_routes if r["waypoints"] != fastest["waypoints"]]
-                if alternatives:
-                    safest = min(alternatives, key=lambda r: r["risk_score"])
-
-            route_fast = fastest
-            route_safe = safest
             alternatives_analyzed = len(gmaps_routes)
         else:
             # ── Fallback: original OSRM/interpolation logic ──
@@ -1808,6 +1811,7 @@ def compare_routes():
             )
             route_fast = _evaluate_route(fast_waypoints, grid_df)
             route_safe = _evaluate_route(safe_waypoints, grid_df)
+            scored_routes = [route_fast, route_safe]
 
             # Try Google Maps for accurate travel times
             gmaps_time = get_google_maps_travel_time(start_lat, start_lon, end_lat, end_lon)
@@ -1823,9 +1827,19 @@ def compare_routes():
             route_safe["traffic_source"] = "estimated"
             alternatives_analyzed = 1
 
+        scored_routes = _dedupe_scored_routes(scored_routes)
+        for index, route in enumerate(scored_routes):
+            route["route_id"] = f"route_{index}"
+
+        _apply_topsis(scored_routes)
+
+        route_fast = min(scored_routes, key=lambda route: route["time_min"])
+        route_safe = min(scored_routes, key=lambda route: route["risk_score"])
+        route_recommended = max(scored_routes, key=lambda route: route.get("topsis_score", 0.0))
+
         # ── Metadata ──
         prediction_method = "xgboost" if (USE_ML and ml_predictor) else "spatial"
-        for _route in (route_fast, route_safe):
+        for _route in scored_routes:
             matched = _route.get("matched_grids", 0)
             evaluated = max(1, _route.get("evaluated_waypoints", 1))
             _route["confidence"] = round(min(0.99, 0.75 + (matched / evaluated) * 0.24), 2)
@@ -1841,6 +1855,26 @@ def compare_routes():
 
         fast_risk_score = int(route_fast["risk_score"])
         safe_risk_score = int(route_safe["risk_score"])
+
+        # Compute peak labels for all routes that may be shown in the UI.
+        for _route in scored_routes:
+            _score = int(_route["risk_score"])
+            if _score >= 80:
+                _route["peak_label"] = "Crosses extreme danger zone"
+                _route["peak_detail"] = "top 5% accident hotspots"
+            elif _score >= 60:
+                _route["peak_label"] = "Crosses high-risk zones"
+                _route["peak_detail"] = "above-average severity"
+            elif _score >= 40:
+                _route["peak_label"] = "Moderate risk areas ahead"
+                _route["peak_detail"] = "exercise caution"
+            else:
+                _route["peak_label"] = "Bypasses extreme danger zones"
+                _route["peak_detail"] = "30% safer peak risk"
+
+        _annotate_route_roles(scored_routes, route_fast, route_safe, route_recommended)
+        display_routes = _build_display_routes(scored_routes, route_fast, route_safe, route_recommended)
+
         if safe_risk_score >= fast_risk_score:
             recommendation = "Fast route is already the safest available option. No safer alternative exists for this trip."
         else:
@@ -1877,6 +1911,9 @@ def compare_routes():
             {
                 "fast_route": route_fast,
                 "safe_route": route_safe,
+                "recommended_route": route_recommended,
+                "display_routes": display_routes,
+                "all_routes": sorted(scored_routes, key=lambda route: route["time_min"]),
                 "route_fast": route_fast,
                 "route_safe": route_safe,
                 "recommendation": recommendation,
@@ -2028,6 +2065,114 @@ def _interpolate_waypoints(waypoints, target_count):
         else:
             result.append(list(waypoints[-1]))
     return result
+
+
+def _route_key(waypoints):
+    """Stable geometry key so identical routes can be deduplicated."""
+    normalized = [[round(lat, 6), round(lon, 6)] for lat, lon in waypoints]
+    raw = json.dumps(normalized, separators=(",", ":")).encode("utf-8")
+    return hashlib.sha1(raw).hexdigest()[:16]
+
+
+def _dedupe_scored_routes(scored_routes):
+    """Collapse duplicate geometries, keeping the better-timed copy."""
+    deduped = {}
+    order = []
+    for route in scored_routes:
+        key = _route_key(route["waypoints"])
+        route["route_key"] = key
+        existing = deduped.get(key)
+        if existing is None:
+            deduped[key] = route
+            order.append(key)
+            continue
+        if (route["time_min"], route["risk_score"]) < (existing["time_min"], existing["risk_score"]):
+            deduped[key] = route
+    return [deduped[key] for key in order]
+
+
+def _apply_topsis(scored_routes, w_time=0.5, w_risk=0.5):
+    """Attach a TOPSIS score using clean, non-redundant criteria."""
+    if not scored_routes:
+        return
+    if len(scored_routes) == 1:
+        scored_routes[0]["topsis_score"] = 1.0
+        return
+
+    times = np.array([route["time_min"] for route in scored_routes], dtype=float)
+    risks = np.array([route["risk_score"] for route in scored_routes], dtype=float)
+
+    norm_times = times / np.sqrt(np.sum(times ** 2)) if np.sum(times ** 2) != 0 else times
+    norm_risks = risks / np.sqrt(np.sum(risks ** 2)) if np.sum(risks ** 2) != 0 else risks
+
+    weighted_matrix = np.column_stack((norm_times * w_time, norm_risks * w_risk))
+    ideal_best = np.min(weighted_matrix, axis=0)
+    ideal_worst = np.max(weighted_matrix, axis=0)
+
+    dist_to_best = np.sqrt(np.sum((weighted_matrix - ideal_best) ** 2, axis=1))
+    dist_to_worst = np.sqrt(np.sum((weighted_matrix - ideal_worst) ** 2, axis=1))
+    topsis_scores = dist_to_worst / (dist_to_best + dist_to_worst + 1e-10)
+
+    for index, route in enumerate(scored_routes):
+        route["topsis_score"] = float(topsis_scores[index])
+
+
+def _annotate_route_roles(scored_routes, route_fast, route_safe, route_recommended):
+    fast_id = route_fast["route_id"]
+    safe_id = route_safe["route_id"]
+    recommended_id = route_recommended["route_id"]
+
+    for route in scored_routes:
+        badges = []
+        if route["route_id"] == recommended_id:
+            badges.append("AI Recommended")
+        if route["route_id"] == fast_id:
+            badges.append("Fastest")
+        if route["route_id"] == safe_id:
+            badges.append("Safest")
+
+        route["badges"] = badges
+        if route["route_id"] == recommended_id:
+            route["primary_role"] = "recommended"
+            route["primary_label"] = "AI Recommended"
+        elif route["route_id"] == fast_id:
+            route["primary_role"] = "fast"
+            route["primary_label"] = "Fastest"
+        elif route["route_id"] == safe_id:
+            route["primary_role"] = "safe"
+            route["primary_label"] = "Safest"
+        else:
+            route["primary_role"] = "alternative"
+            route["primary_label"] = "Alternative"
+
+
+def _build_display_routes(scored_routes, route_fast, route_safe, route_recommended, max_routes=3):
+    """Choose up to three distinct routes for the frontend cards."""
+    display_routes = []
+    seen_ids = set()
+
+    for candidate in (route_recommended, route_fast, route_safe):
+        if candidate["route_id"] in seen_ids:
+            continue
+        display_routes.append(candidate)
+        seen_ids.add(candidate["route_id"])
+        if len(display_routes) >= max_routes:
+            return display_routes
+
+    ranked_remaining = sorted(
+        scored_routes,
+        key=lambda route: (route.get("topsis_score", 0.0), -route["time_min"]),
+        reverse=True,
+    )
+    for route in ranked_remaining:
+        if route["route_id"] in seen_ids:
+            continue
+        display_routes.append(route)
+        seen_ids.add(route["route_id"])
+        if len(display_routes) >= max_routes:
+            break
+
+    return display_routes
 
 
 @app.route("/api/refresh-demo-routes", methods=["POST"])
