@@ -33,6 +33,18 @@ def load_chatbot_data():
         return json.load(f)
 
 
+def _has_thai_text(text):
+    return any("\u0e00" <= char <= "\u0e7f" for char in str(text or ""))
+
+
+def _get_cause_classifier():
+    try:
+        from .nlp_analysis import get_cause_classifier
+    except ImportError:
+        from nlp_analysis import get_cause_classifier
+    return get_cause_classifier()
+
+
 def _fmt_zone_list(zones, limit=5):
     """Format a list of zone dicts into simple bullet lines."""
     lines = []
@@ -211,6 +223,10 @@ INTENTS = {
             re.compile(r"(?:how|which).*(?:route|way|path).*(?:safe|avoid)", re.I),
             re.compile(r"(?:navigate|drive|travel|go).*(?:safe|avoid.*danger)", re.I),
             re.compile(r"route.*(?:recommendation|suggest|plan)", re.I),
+            re.compile(r"(?:เส้นทาง|route).*(?:ไหน|ใด|นี้).*(?:ปลอดภัย|เสี่ยง|อันตราย)", re.I),
+            re.compile(r"(?:ไป|ขับ|เดินทาง).*(?:อย่างไร|ยังไง).*(?:ปลอดภัย|เลี่ยง|เสี่ยง)", re.I),
+            re.compile(r"(?:คืนนี้|ตอนกลางคืน).*(?:ขับรถ|เดินทาง).*(?:ปลอดภัย|เสี่ยง|อันตราย)", re.I),
+            re.compile(r"(?:ช่วย|ขอ).*(?:แนะนำ|หา).*(?:เส้นทาง).*(?:ปลอดภัย|เลี่ยง)", re.I),
         ],
         "handler": "handle_route_safety",
     },
@@ -258,6 +274,8 @@ INTENTS = {
             re.compile(r"(?:main|top|primary|common).*caus(?:e|es)", re.I),
             re.compile(r"why.*(?:accidents?|crashes?).*happen", re.I),
             re.compile(r"accident.*caus(?:e|es)", re.I),
+            re.compile(r"(?:สาเหตุ|อะไร).*(?:อุบัติเหตุ|ชน|เกิดเหตุ).*(?:หลัก|มาก|บ่อย|ส่วนใหญ่)", re.I),
+            re.compile(r"อุบัติเหตุ.*(?:เกิดจาก|เพราะ|สาเหตุ).*(?:อะไร|อะไรบ้าง)", re.I),
         ],
         "handler": "handle_cause_breakdown",
     },
@@ -281,6 +299,8 @@ INTENTS = {
             re.compile(r"(?:time|temporal|hourly|daily|monthly).*(?:pattern|trend|distribution)", re.I),
             re.compile(r"when.*(?:should|shouldn't).*(?:drive|travel|avoid)", re.I),
             re.compile(r"(?:peak|worst).*(?:hours?|times?|days?)", re.I),
+            re.compile(r"(?:เวลา|ช่วงเวลา|วัน|เดือนไหน).*(?:อันตราย|เสี่ยง|อุบัติเหตุ).*(?:มาก|เยอะ|สูง|ที่สุด)", re.I),
+            re.compile(r"(?:ควร|ไม่ควร).*(?:ขับรถ|เดินทาง).*(?:เวลา|ช่วงเวลา).*(?:ไหน|ใด)", re.I),
         ],
         "handler": "handle_time_patterns",
     },
@@ -313,6 +333,8 @@ INTENTS = {
             re.compile(r"(?:explain|describe).*(?:system|model|method|approach|pipeline|architecture)", re.I),
             re.compile(r"what.*(?:technology|tech|stack|model|algorithm|method).*(?:use|behind|under)", re.I),
             re.compile(r"(?:xgboost|nlp|machine.?learning).*(?:how|explain|work)", re.I),
+            re.compile(r"(?:ระบบ|โมเดล|แอป|โปรเจกต์).*(?:ทำงาน|วิเคราะห์|ทำนาย|ตรวจจับ).*(?:อย่างไร|ยังไง)", re.I),
+            re.compile(r"(?:ใช้|มี).*(?:เทคโนโลยี|โมเดล|วิธี).*(?:อะไร|แบบไหน)", re.I),
         ],
         "handler": "handle_how_it_works",
     },
@@ -323,6 +345,8 @@ INTENTS = {
             re.compile(r"data.*(?:source|origin|from|about)", re.I),
             re.compile(r"(?:about|tell).*(?:the|your).*data(?:set)?", re.I),
             re.compile(r"(?:how big|size|scope).*data", re.I),
+            re.compile(r"(?:ข้อมูล|ดาต้า).*(?:มาจาก|ที่มา|แหล่ง|ใช้)", re.I),
+            re.compile(r"(?:มี|ใช้).*(?:ข้อมูล|อุบัติเหตุ).*(?:กี่|เท่าไร|เท่าไหร่)", re.I),
         ],
         "handler": "handle_data_source",
     },
@@ -480,24 +504,25 @@ def handle_judge_model_accuracy(user_message=""):
     stats = data["stats"]
     accuracy = stats["model_accuracy"]
     lift = stats["model_lift"]
-    detected = stats["danger_zones_detected"]
     is_thai = any("\u0e00" <= char <= "\u0e7f" for char in user_message)
 
     if is_thai:
         message = (
-            f"โมเดลมี **ความแม่นยำเชิงเวลา {accuracy}%** และให้ **lift {lift}x** เทียบกับการสุ่มหาโซนเสี่ยง.\n\n"
-            f"อีกจุดที่ใช้ตอบกรรมการได้ทันทีคือระบบตรวจเจอ **{detected} จุดเสี่ยง** ในชุด holdout."
+            f"ในการทดสอบแบบ **Jan-Sep 2024 train / Oct-Dec 2024 holdout** ระบบจับครอบคลุมอุบัติเหตุที่เกิดภายหลังได้ **{accuracy}%** "
+            f"และให้ **lift {lift}x** เทียบกับการสุ่มหาโซนเสี่ยง.\n\n"
+            "สรุปแบบตอบกรรมการคือโมเดลมีสัญญาณเชิงเวลาและทำได้ดีกว่าการเลือกโซนแบบสุ่มอย่างชัดเจน."
         )
     else:
         message = (
-            f"SafeDrive BKK reports **{accuracy}% temporal accuracy** with **{lift}x lift** over random danger-zone selection.\n\n"
-            f"The judge-safe summary is that the model also detected **{detected} danger zones** in the holdout evaluation."
+            f"On a **Jan-Sep 2024 train / Oct-Dec 2024 holdout**, SafeDrive BKK captured **{accuracy}%** of later mapped crashes inside flagged high-risk grids "
+            f"with **{lift}x lift** over random danger-zone selection.\n\n"
+            "The judge-safe summary is that the model shows temporal signal and performs materially better than random zone selection."
         )
 
     return {
         "type": "stats",
         "message": message,
-        "data": [{"temporal_accuracy": accuracy, "lift": lift, "danger_zones_detected": detected}],
+        "data": [{"holdout_capture": accuracy, "lift": lift}],
         "followup": "Want the top danger corridors as well?",
     }
 
@@ -653,18 +678,23 @@ def handle_zone_safety(user_message=""):
 
 def handle_route_safety(user_message=""):
     route_reference = _extract_route_reference(user_message)
+    is_thai = _has_thai_text(user_message)
     acknowledgement = (
         f"That trip {route_reference} needs a path-specific check rather than a generic answer."
         if route_reference
         else "That is a route-specific question, so the safest answer depends on the exact path and time of travel."
     )
+    message = (
+        "คำถามแบบนี้ต้องดูตามเส้นทางจริงและช่วงเวลาที่จะเดินทาง ไม่ควรตอบแบบเหมารวม. "
+        "**ใช้ Trip Planner** เพื่อเทียบเส้นทางที่เร็วกับเส้นทางที่ปลอดภัยกว่า แล้วดูจุดเสี่ยงบนทางจริงได้เลย."
+        if is_thai
+        else f"{acknowledgement} **Use the Trip Planner** to compare a faster option with a safer option and see the danger zones along the way."
+    )
     return {
         "type": "info",
-        "message": (
-            f"{acknowledgement} **Use the Trip Planner** to compare a faster option with a safer option and see the danger zones along the way."
-        ),
+        "message": message,
         "data": [],
-        "followup": "Want to know which areas to avoid first?",
+        "followup": "อยากรู้ก่อนว่าควรหลบย่านไหนบ้างไหม?" if is_thai else "Want to know which areas to avoid first?",
         "actions": [_trip_planner_action()],
     }
 
@@ -932,34 +962,60 @@ def handle_camera_deployment(user_message=""):
 
 def handle_how_it_works(user_message=""):
     data = load_chatbot_data()
+    is_thai = _has_thai_text(user_message)
+
+    if is_thai:
+        message = (
+            "ระบบนี้ใช้ AI หลัก 2 ส่วน:\n"
+            "1. **Thai NLP** สำหรับอ่านรายงานอุบัติเหตุและจัดกลุ่มสาเหตุ เพื่อช่วยตอบคำถามใน Safety Assistant\n"
+            f"2. **XGBoost ML** สำหรับให้คะแนนความเสี่ยงของแต่ละโซนขนาดประมาณ 1 กม. ({data['stats']['model_accuracy']}% holdout capture)\n\n"
+            "ทั้งสองส่วนทำงานร่วมกันในแผนที่ความเสี่ยง Trip Planner และหน้า Analytics."
+        )
+        followup = "อยากรู้ต่อว่าข้อมูลมาจากไหนไหม?"
+    else:
+        message = (
+            f"We combine 2 core AI techniques:\n"
+            f"1. **Thai NLP** - reads accident reports to classify causes and power our Safety Assistant chatbot\n"
+            f"2. **XGBoost ML** - predicts risk scores for every 1km zone ({data['stats']['model_accuracy']}% holdout capture)\n\n"
+            f"Together, they power our risk map, trip planner, and analytics dashboard."
+        )
+        followup = "Want to know about our data source?"
 
     return {
         "type": "info",
-        "message": (
-            f"We combine 2 core AI techniques:\n"
-            f"1. **Thai NLP** - reads accident reports to classify causes and power our Safety Assistant chatbot\n"
-            f"2. **XGBoost ML** - predicts risk scores for every 1km zone ({data['stats']['model_accuracy']}% accuracy)\n\n"
-            f"Together, they power our risk map, trip planner, and analytics dashboard. ✅"
-        ),
+        "message": message,
         "data": [],
-        "followup": "Want to know about our data source?",
+        "followup": followup,
     }
 
 
 def handle_data_source(user_message=""):
     data = load_chatbot_data()
     stats = data["stats"]
+    is_thai = _has_thai_text(user_message)
 
-    return {
-        "type": "info",
-        "message": (
+    if is_thai:
+        message = (
+            f"เราใช้ข้อมูลอุบัติเหตุในกรุงเทพฯ **{stats['total_accidents']:,} เคส** จาก **{stats['data_source']} ปี 2024** "
+            f"ครอบคลุมช่วง **{stats['date_range']}**.\n\n"
+            f"ในชุดข้อมูลนี้มีผู้เสียชีวิต **{stats['deaths']} ราย** และผู้บาดเจ็บสาหัส **{stats['serious_injuries']} ราย** "
+            f"กระจายอยู่ในโซนที่ระบบติดตาม **{stats['total_zones']:,} โซน** โดยข้อความภาษาไทยถูกประมวลผลด้วย NLP เพื่อสรุปสาเหตุหลัก."
+        )
+        followup = "อยากดูต่อไหมว่าระบบวิเคราะห์ข้อมูลพวกนี้อย่างไร?"
+    else:
+        message = (
             f"We analyzed **{stats['total_accidents']:,} Bangkok accidents** from {stats['data_source']} (2024), "
             f"covering {stats['date_range']}.\n\n"
             f"The data includes {stats['deaths']} deaths and {stats['serious_injuries']} serious injuries across "
             f"{stats['total_zones']:,} monitored zones. All Thai text was processed with NLP to extract causes."
-        ),
+        )
+        followup = "Want to see how the model works?"
+
+    return {
+        "type": "info",
+        "message": message,
         "data": [],
-        "followup": "Want to see how the model works? ✅",
+        "followup": followup,
     }
 
 
@@ -983,28 +1039,34 @@ _CAUSE_KEYWORDS = {
     "speeding": [
         "speed", "speeding", "overspeeding", "over-speed", "over speed",
         "driving fast", "fast driving", "velocity", "accelerat",
+        "ขับเร็ว", "ขับรถเร็ว", "เร็วเกินกำหนด", "เร็วเกินอัตรา", "ใช้ความเร็ว",
     ],
     "drunk_driving": [
         "drunk", "alcohol", "dui", "dwi", "drink driv", "drinking and driv",
         "intoxicat", "booze", "drink and drive", "impaired driv",
+        "เมา", "เมาแล้วขับ", "ดื่มแล้วขับ", "แอลกอฮอล์",
     ],
     "drowsy_driving": [
         "drowsy", "sleepy", "fatigue", "tired", "drowsiness", "fall asleep",
         "microsleep", "asleep at the wheel", "sleep depri", "nodding off",
+        "หลับใน", "ง่วง", "ง่วงนอน", "อ่อนล้า", "เพลีย",
     ],
     "equipment_failure": [
         "equipment failure", "brake fail", "tire blowout", "tyre blowout",
         "mechanical failure", "vehicle fault", "car fault", "engine fail",
         "blowout", "worn tire", "worn tyre", "bald tire",
+        "ยางแตก", "ยางเสื่อม", "เบรกเสีย", "เบรกขัดข้อง", "อุปกรณ์บกพร่อง",
     ],
     "traffic_violation": [
         "red light", "traffic violation", "traffic signal", "signal violation",
         "ran a light", "ran red", "run red", "traffic sign violation",
         "wrong side", "illegal turn",
+        "ฝ่าไฟแดง", "ฝ่าฝืนสัญญาณไฟ", "ฝ่าฝืนเครื่องหมาย", "ย้อนศร", "ผิดกฎจราจร",
     ],
     "cutting_in_front": [
         "cut in front", "cutting in front", "cut off", "cutting off",
         "sudden lane change", "aggressive lane", "merging dangerously",
+        "ตัดหน้า", "เปลี่ยนเลนกะทันหัน", "ปาดหน้า",
     ],
 }
 
@@ -1031,8 +1093,7 @@ def detect_cause_from_question(user_message: str):
     if not scores:
         # Fallback: try the Thai ML classifier (may catch transliterated/Thai text)
         try:
-            from nlp_analysis import get_cause_classifier
-            classifier = get_cause_classifier()
+            classifier = _get_cause_classifier()
             result = classifier.classify(user_message, confidence_threshold=0.5)
             if result and result.get("cause") and result.get("confidence", 0) > 0.6:
                 ml_cause = result["cause"]
@@ -1099,6 +1160,40 @@ def handle_ml_cause_response(cause_key: str, confidence: float, user_message: st
         advice = "Zones with high cutting-in-front rates are especially risky — keep safe following distance."
     else:
         advice = "Stay alert and drive defensively in affected zones."
+
+    if _has_thai_text(user_message):
+        thai_name_map = {
+            "speeding": "การขับรถเร็ว",
+            "cutting_in_front": "การตัดหน้า",
+            "drowsy_driving": "การหลับใน",
+            "tire_blowout___worn_tires": "ปัญหายางหรืออุปกรณ์รถ",
+            "running_red_light___traffic_sign_violation": "การฝ่าฝืนสัญญาณไฟหรือป้ายจราจร",
+        }
+        thai_advice_map = {
+            "speeding": "จุดเหล่านี้เหมาะกับการเน้นบังคับใช้กฎหมายเรื่องความเร็วมากที่สุดในข้อมูลชุดนี้.",
+            "cutting_in_front": "จุดที่มีการตัดหน้าสูงมักเสี่ยงมาก ควรเว้นระยะและระวังการเปลี่ยนเลนกะทันหัน.",
+        }
+        thai_name = thai_name_map.get(cause_key, name)
+        thai_advice = thai_advice_map.get(
+            cause_key,
+            "ควรเพิ่มความระวังและขับแบบตั้งรับเมื่อผ่านโซนที่ได้รับผลกระทบ.",
+        )
+        zone_text_th = ""
+        if top_zones:
+            zone_text_th = f"\n\nโซนเด่น:\n{_fmt_zone_list(top_zones, 3)}"
+
+        return {
+            "type": "stats",
+            "message": (
+                f"**{thai_name}** คิดเป็น **{pct}%** ของอุบัติเหตุในกรุงเทพฯ "
+                f"({count:,} เคส).{zone_text_th}\n\n{thai_advice}"
+            ),
+            "data": top_zones,
+            "followup": f"อยากดูโซนที่เจอ{thai_name}มากที่สุดไหม?",
+            "source": "ml_detected",
+            "detected_cause": cause_key,
+            "confidence": round(confidence, 2),
+        }
 
     return {
         "type": "stats",

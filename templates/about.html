@@ -383,10 +383,10 @@ html[data-theme="dark"] .cta-section {
             </div>
             <div class="metric-card">
                 <div>
-                    <span class="metric-value">39/39</span>
-                    <span class="metric-label">Danger zones detected</span>
+                    <span class="metric-value">83.8%</span>
+                    <span class="metric-label">Holdout crash capture</span>
                 </div>
-                <p class="metric-description">Detected all 39 known high-risk zones in the test set — 100% recall on the validation split.</p>
+                <p class="metric-description">On the Jan-Sep to Oct-Dec 2024 holdout, flagged high-risk grids captured 83.8% of later mapped crashes.</p>
             </div>
             <div class="metric-card">
                 <div>
@@ -397,10 +397,10 @@ html[data-theme="dark"] .cta-section {
             </div>
             <div class="metric-card">
                 <div>
-                    <span class="metric-value">83.8%</span>
-                    <span class="metric-label">Temporal accuracy</span>
+                    <span class="metric-value">Oct-Dec</span>
+                    <span class="metric-label">Validation window</span>
                 </div>
-                <p class="metric-description">Validated on a held-out Oct to Dec 2024 time window.</p>
+                <p class="metric-description">Performance is summarized against a held-out Oct to Dec 2024 period rather than a random split.</p>
             </div>
         </div>
     </div>
@@ -432,8 +432,8 @@ html[data-theme="dark"] .cta-section {
                 <ul>
                     <li>pythainlp tokenization on accident reports</li>
                     <li>TF-IDF with Logistic Regression classification</li>
-                    <li>Six cause categories with 99.5% cross-validation accuracy on training data</li>
-                    <li>NLP outputs feed directly into the zone risk model</li>
+                    <li>Six cause categories surfaced in the Safety Assistant and crash analytics</li>
+                    <li>Used to interpret Thai crash-report language for assistant responses</li>
                 </ul>
             </div>
             <div class="ai-card">
