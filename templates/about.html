@@ -6,9 +6,7 @@
 {% block extra_css %}
 <style>
 .about-shell {
-    background:
-        radial-gradient(circle at 50% 0%, rgba(219, 234, 254, 0.72), transparent 26rem),
-        linear-gradient(180deg, #f7f7f8 0%, #fbfbfc 22%, #ffffff 100%);
+    background: linear-gradient(180deg, #f8fafc 0%, #ffffff 100%);
 }
 
 .about-page {
@@ -21,47 +19,29 @@
 .methodology,
 .cta-section {
     border: 1px solid rgba(148, 163, 184, 0.18);
-    border-radius: 28px;
-    box-shadow: 0 16px 40px rgba(15, 23, 42, 0.06);
+    border-radius: 16px;
+    box-shadow: 0 8px 20px rgba(15, 23, 42, 0.04);
 }
 
 .about-hero {
-    position: relative;
-    overflow: hidden;
     background: #ffffff;
-    padding: 40px 32px;
-    text-align: center;
-}
-
-.about-hero::after {
-    content: "";
-    position: absolute;
-    top: -54px;
-    right: -18px;
-    width: 220px;
-    height: 220px;
-    border-radius: 999px;
-    background: radial-gradient(circle, rgba(37, 99, 235, 0.18) 0%, rgba(37, 99, 235, 0) 72%);
-    pointer-events: none;
+    padding: 28px 24px;
+    text-align: left;
 }
 
 .about-hero h1 {
-    position: relative;
-    z-index: 1;
     margin: 0;
-    font-size: clamp(38px, 5vw, 56px);
-    font-weight: 800;
-    letter-spacing: -0.05em;
+    font-size: clamp(30px, 4vw, 40px);
+    font-weight: 700;
+    letter-spacing: -0.03em;
     color: var(--rr-text);
 }
 
 .about-hero p {
-    position: relative;
-    z-index: 1;
     max-width: 52rem;
-    margin: 12px auto 0;
-    font-size: 18px;
-    line-height: 1.7;
+    margin: 10px 0 0;
+    font-size: 16px;
+    line-height: 1.65;
     color: var(--rr-muted);
 }
 
@@ -112,13 +92,12 @@
     display: flex;
     flex-direction: column;
     justify-content: space-between;
-    min-height: 168px;
+    min-height: 156px;
     padding: 18px 20px;
-    border-radius: 20px;
-    background: rgba(255, 255, 255, 0.72);
-    border: 1px solid rgba(219, 234, 254, 0.95);
-    backdrop-filter: blur(12px);
-    box-shadow: 0 16px 34px rgba(15, 23, 42, 0.05);
+    border-radius: 14px;
+    background: #ffffff;
+    border: 1px solid rgba(203, 213, 225, 0.7);
+    box-shadow: 0 8px 20px rgba(15, 23, 42, 0.04);
 }
 
 .metric-value {
@@ -168,8 +147,8 @@
 .ai-card {
     padding: 24px;
     border: 1px solid rgba(148, 163, 184, 0.16);
-    border-radius: 22px;
-    box-shadow: 0 14px 30px rgba(15, 23, 42, 0.04);
+    border-radius: 14px;
+    box-shadow: 0 8px 20px rgba(15, 23, 42, 0.03);
 }
 
 .ai-card h4 {
@@ -367,8 +346,8 @@ html[data-theme="dark"] .cta-section {
 <div class="about-page">
     <div class="section">
         <div class="about-hero">
-            <h1>SafeDrive BKK</h1>
-            <p>AI-powered road danger zone prediction that helps drivers, fleets, and planners understand crash concentration before a route is taken.</p>
+            <h1>SafeDrive BKK Foundation Build</h1>
+            <p>This branch contains the working data pipeline, risk model, route planner, analytics, and chatbot base that we can bring to the hackathon and continue improving live.</p>
         </div>
     </div>
 
@@ -412,6 +391,13 @@ html[data-theme="dark"] .cta-section {
         </p>
         <p class="section-copy">
             Just 126 high-risk zones capture <strong>88.4% of mapped crashes</strong>. Drivers get route-aware safety guidance, risk visualization, and conversational answers from a single data system built around that concentration.
+        </p>
+    </div>
+
+    <div class="section">
+        <h2 class="section-title">Planned Hackathon Work</h2>
+        <p class="section-copy">
+            This version is intentionally functional before it is presentation-ready. During the hackathon we expect to improve route UX, tighten the Thai assistant flow, refine analytics storytelling, and polish the final demo copy.
         </p>
     </div>
 
@@ -506,9 +492,9 @@ html[data-theme="dark"] .cta-section {
 
     <div class="section">
         <div class="cta-section">
-            <h3>Ready to plan a safer route?</h3>
-            <p>Use the Trip Planner to compare exposure, avoid concentrated danger zones, and turn the citywide crash map into a practical driving decision.</p>
-            <a href="/trip-planner" class="cta-button">Try Trip Planner</a>
+            <h3>Current working demo</h3>
+            <p>The Trip Planner already compares a faster route with a safer route. The next step is to make that experience cleaner and stronger during the hackathon.</p>
+            <a href="/trip-planner" class="cta-button">Open Trip Planner</a>
         </div>
     </div>
 </div>
