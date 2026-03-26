@@ -50,8 +50,57 @@ def _fmt_zone_list(zones, limit=5):
     lines = []
     for z in zones[:limit]:
         count = z.get("cause_count", z.get("total_accidents", "?"))
-        lines.append(f"• **{z['location']}** - {count} accidents")
+        lines.append(f"- **{z['location']}**: {count} accidents")
     return "\n".join(lines)
+
+
+def _format_zone_list_markdown(zones, limit=5, value_key=None, value_label="accidents"):
+    """Format zone dicts as markdown bullets that the UI will render cleanly."""
+    lines = []
+    for zone in zones[:limit]:
+        if value_key:
+            value = zone.get(value_key, "?")
+            lines.append(f"- **{zone['location']}**: {value} {value_label}")
+            continue
+        count = zone.get("cause_count", zone.get("total_accidents", "?"))
+        lines.append(f"- **{zone['location']}**: {count} accidents")
+    return "\n".join(lines)
+
+
+def _clarify_message(user_message=""):
+    """Provide a reliable scripted fallback for vague or underspecified questions."""
+    is_thai = _has_thai_text(user_message)
+
+    if is_thai:
+        return {
+            "type": "info",
+            "message": (
+                "ฉันตอบได้แม่นที่สุดเมื่อคำถามชัดเจนขึ้นอีกนิด ลองถามแบบนี้ได้เลย:\n"
+                "- **Which areas are most dangerous?**\n"
+                "- **What time are accidents most common?**\n"
+                "- **What causes most accidents?**\n"
+                "- **How reliable is the model?**\n"
+                "- **คนนขบรถปลอดภยไหม**\n"
+                "- **หลบในอนตรายแคไหน**"
+            ),
+            "data": [],
+            "followup": "ถ้าต้องการเช็กเส้นทาง ให้พิมพ์ต้นทางและปลายทางได้เลย",
+        }
+
+    return {
+        "type": "info",
+        "message": (
+            "I can help best if the question is a little more specific. Good demo prompts are:\n"
+            "- **Which areas are most dangerous?**\n"
+            "- **What time are accidents most common?**\n"
+            "- **What causes most accidents?**\n"
+            "- **How reliable is the model?**\n"
+            "- **คนนขบรถปลอดภยไหม**\n"
+            "- **หลบในอนตรายแคไหน**"
+        ),
+        "data": [],
+        "followup": "If you want a route check, include a start and destination.",
+    }
 
 
 def _search_zone_by_name(query):
@@ -350,6 +399,17 @@ INTENTS = {
         ],
         "handler": "handle_data_source",
     },
+    "clarify_question": {
+        "patterns": [
+            re.compile(r"^\s*(?:help|examples?|suggestions?|ideas?)\s*\??$", re.I),
+            re.compile(r"^\s*(?:what can i ask|where should i start|not sure|i don't know|idk)\s*\??$", re.I),
+            re.compile(r"^\s*(?:is it safe|safe\??|dangerous\??|risky\??)\s*$", re.I),
+            re.compile(r"^(?:ถามอะไรได้บ้าง|ช่วยอะไรได้บ้าง|เริ่มยังไง|ควรถามอะไร)\s*\??$", re.I),
+            re.compile(r"^คนนขบรถปลอดภยไหม\s*$"),
+            re.compile(r"^หลบในอนตรายแคไหน\s*$"),
+        ],
+        "handler": "handle_clarify_question",
+    },
 }
 
 
@@ -536,11 +596,11 @@ def handle_speeding_zones(user_message=""):
         "type": "list",
         "message": (
             f"Speeding is Bangkok's #1 problem ({speeding['percentage']}% of accidents). "
-            f"Worst areas:\n{_fmt_zone_list(speeding['top_zones'], 5)}\n\n"
+            f"Worst areas:\n{_format_zone_list_markdown(speeding['top_zones'], 5)}\n\n"
             f"These are Bangkok's highest-priority zones for enforcement."
         ),
         "data": speeding["top_zones"][:5],
-        "followup": "Need route alternatives? 🚗",
+        "followup": "Ask for a route check if you want a safer path through these areas.",
     }
 
 
@@ -558,21 +618,23 @@ def handle_drunk_zones(user_message=""):
             })
     weekend_zones.sort(key=lambda z: z["weekend_pct"], reverse=True)
 
-    zone_lines = "\n".join(
-        f"• **{z['location']}** - {z['weekend_pct']}% weekend accidents"
-        for z in weekend_zones[:5]
+    zone_lines = _format_zone_list_markdown(
+        weekend_zones,
+        5,
+        value_key="weekend_pct",
+        value_label="% weekend accidents",
     )
 
     return {
         "type": "list",
         "message": (
-            f"⚠️ Drunk driving is underreported, but weekend nights are the biggest red flag. "
+            f"Drunk driving is underreported, but weekend nights are the biggest red flag. "
             f"Saturday is the worst day ({data['time_patterns']['most_dangerous_day_count']} accidents).\n\n"
             f"High-risk weekend zones:\n{zone_lines}\n\n"
             f"Avoid driving late on Friday/Saturday nights if possible."
         ),
         "data": weekend_zones[:5],
-        "followup": "Want weekend vs weekday details? 🕐",
+        "followup": "Ask if you want the weekend-versus-weekday breakdown.",
     }
 
 
@@ -591,8 +653,8 @@ def handle_dangerous_zones(user_message=""):
 
     lines = []
     for z in top5:
-        fatality = " ⚠️" if z["has_fatality"] else ""
-        lines.append(f"• **{z['location']}** - {z['total_accidents']} accidents ({z['dominant_cause']}){fatality}")
+        fatality = " [fatal crash recorded]" if z["has_fatality"] else ""
+        lines.append(f"- **{z['location']}**: {z['total_accidents']} accidents ({z['dominant_cause']}){fatality}")
 
     return {
         "type": "list",
@@ -602,7 +664,7 @@ def handle_dangerous_zones(user_message=""):
             f"\n\nSpeeding is the main cause in most of these areas."
         ),
         "data": top5,
-        "followup": "Want safer route alternatives? 🚗",
+        "followup": "Ask for a route check if you want a safer path around these zones.",
     }
 
 
@@ -632,7 +694,7 @@ def handle_zone_safety(user_message=""):
 
     if zone and gid:
         z = zone
-        risk_desc = "HIGH RISK ⚠️" if z["risk_score"] >= 55 else "MEDIUM RISK" if z["risk_score"] >= 30 else "LOW RISK ✅"
+        risk_desc = "HIGH RISK" if z["risk_score"] >= 55 else "MEDIUM RISK" if z["risk_score"] >= 30 else "LOW RISK"
         top_cause = max(z["cause_breakdown"].items(), key=lambda x: x[1])
 
         return {
@@ -643,7 +705,7 @@ def handle_zone_safety(user_message=""):
                 f"{'Avoid rush hours (5-7 PM) when it gets most dangerous.' if z['rush_hour_pct'] > 30 else 'Exercise caution at all hours.'}"
             ),
             "data": [z],
-            "followup": "Want safer route alternatives? 🚗",
+            "followup": "Ask for a route check if you want a safer option nearby.",
         }
     elif zone:
         return {
@@ -653,13 +715,13 @@ def handle_zone_safety(user_message=""):
                 f"For detailed risk information, ask about a specific area like Asok or Lat Krabang."
             ),
             "data": [zone],
-            "followup": "Want to see the most dangerous zones? ⚠️",
+            "followup": "Ask for the most dangerous zones if you want a citywide answer.",
         }
     else:
         # Show the most dangerous zones as a useful fallback
         top_zones = list(data["zones"].values())[:5]
         lines = [
-            f"• **{z['location']}** - {z['total_accidents']} accidents"
+            f"- **{z['location']}**: {z['total_accidents']} accidents"
             for z in top_zones
         ]
         return {
@@ -672,7 +734,7 @@ def handle_zone_safety(user_message=""):
                 f"\n\nFor any specific route, the **Trip Planner** can analyse safety along your path."
             ),
             "data": top_zones,
-            "followup": "Want to plan a safe route? 🚗",
+            "followup": "If you have a route in mind, send the start and destination.",
         }
 
 
@@ -694,7 +756,7 @@ def handle_route_safety(user_message=""):
         "type": "info",
         "message": message,
         "data": [],
-        "followup": "อยากรู้ก่อนว่าควรหลบย่านไหนบ้างไหม?" if is_thai else "Want to know which areas to avoid first?",
+        "followup": "อยากดูว่าย่านไหนเสี่ยงที่สุดก่อนไหม?" if is_thai else "Want the top danger zones first?",
         "actions": [_trip_planner_action()],
     }
 
@@ -706,7 +768,7 @@ def handle_rain_data_gap(user_message=""):
             "While this isn't in our Bangkok dataset, based on general road safety research, rain usually increases risk by reducing visibility and tire grip. I can't give a Bangkok-specific number yet, but the safest response is to slow down, increase following distance, and avoid abrupt braking or lane changes."
         ),
         "data": [],
-        "followup": "I can still help with danger zones, peak times, or route-specific checks.",
+        "followup": "I can still help with danger zones, peak times, or route checks.",
     }
 
 
@@ -720,17 +782,17 @@ def handle_high_risk_zones(user_message=""):
 
     high_risk.sort(key=lambda z: z["risk_score"], reverse=True)
 
-    lines = [f"• **{z['location']}** - {z['total_accidents']} accidents" for z in high_risk[:5]]
+    lines = [f"- **{z['location']}**: {z['total_accidents']} accidents" for z in high_risk[:5]]
 
     return {
         "type": "list",
         "message": (
-            f"⚠️ Bangkok has {data['stats']['high_risk_zones']} high-risk zones. Top ones to avoid:\n" +
+            f"Bangkok has {data['stats']['high_risk_zones']} high-risk zones. Top ones to avoid:\n" +
             "\n".join(lines) +
             f"\n\nThese make up ~5% of the city but cause most accidents."
         ),
         "data": high_risk[:5],
-        "followup": "Want safer route suggestions? 🚗",
+        "followup": "Ask for a route check if you want to avoid these zones.",
     }
 
 
@@ -745,7 +807,7 @@ def handle_motorcycle_zones(user_message=""):
     moto_zones.sort(key=lambda z: z["motorcycle_pct"], reverse=True)
 
     if moto_zones:
-        lines = [f"• **{z['location']}** - {z['motorcycle_pct']}% motorcycle involvement" for z in moto_zones[:5]]
+        lines = [f"- **{z['location']}**: {z['motorcycle_pct']}% motorcycle involvement" for z in moto_zones[:5]]
         zone_text = "\n".join(lines)
     else:
         zone_text = "No major motorcycle hotspots in the top monitored zones."
@@ -753,12 +815,12 @@ def handle_motorcycle_zones(user_message=""):
     return {
         "type": "list",
         "message": (
-            f"🏍️ Motorcycle accidents are a big concern in Bangkok. Riskiest areas:\n" +
+            f"Motorcycle accidents are a big concern in Bangkok. Riskiest areas:\n" +
             zone_text +
             f"\n\nRiders: wear helmets and watch for blind spots at intersections."
         ),
         "data": moto_zones[:5],
-        "followup": "Want safer routes for motorcyclists? 🚗",
+        "followup": "Ask for a route check if you want a safer rider-friendly option.",
     }
 
 
@@ -771,7 +833,7 @@ def handle_cause_breakdown(user_message=""):
     lines = []
     for cause in sorted(causes.values(), key=lambda c: c["count"], reverse=True):
         if cause["count"] > 0:
-            lines.append(f"• **{cause['english_name']}** - {cause['percentage']}%")
+            lines.append(f"- **{cause['english_name']}**: {cause['percentage']}%")
 
     return {
         "type": "stats",
@@ -782,7 +844,7 @@ def handle_cause_breakdown(user_message=""):
         ),
         "data": [{"cause": c["english_name"], "count": c["count"], "pct": c["percentage"]}
                  for c in causes.values()],
-        "followup": "Want to see the worst zones for any cause? 💡",
+        "followup": "Ask for the worst zones for any one cause if you want more detail.",
     }
 
 
@@ -798,7 +860,7 @@ def handle_speeding_stats(user_message=""):
             f"That makes it one of the clearest enforcement targets in the dataset."
         ),
         "data": speeding["top_zones"][:3],
-        "followup": "Want to see top speeding zones? 🚗",
+        "followup": "Ask for the top speeding zones if you want the full hotspot list.",
     }
 
 
@@ -814,7 +876,7 @@ def handle_drunk_stats(user_message=""):
             f"Best advice: avoid driving on Friday/Saturday nights if you can."
         ),
         "data": [],
-        "followup": "Want to see weekend patterns? 🕐",
+        "followup": "Ask if you want the weekend pattern next.",
     }
 
 
@@ -830,7 +892,7 @@ def handle_cutting_stats(user_message=""):
             f"especially risky. Stay alert at busy intersections and keep safe following distance."
         ),
         "data": cutting["top_zones"][:3],
-        "followup": "Want to see the worst intersections for this? ⚠️",
+        "followup": "Ask for the worst intersections for this pattern if you want specifics.",
     }
 
 
@@ -847,7 +909,7 @@ def handle_cause_comparison(user_message=""):
         })
     rows.sort(key=lambda r: r["count"], reverse=True)
 
-    lines = [f"• **{r['cause']}** - {r['percentage']}%" for r in rows if r["count"] > 0]
+    lines = [f"- **{r['cause']}**: {r['percentage']}%" for r in rows if r["count"] > 0]
 
     return {
         "type": "comparison",
@@ -858,7 +920,7 @@ def handle_cause_comparison(user_message=""):
             f"per zone - those intersections are especially risky."
         ),
         "data": rows,
-        "followup": "Want to see the worst zones for any cause? 💡",
+        "followup": "Ask for the worst zones for a specific cause if you want to drill in.",
     }
 
 
@@ -894,7 +956,7 @@ def handle_rush_hour(user_message=""):
             f"The evening rush (4-8 PM) is {'worse' if evening > morning else 'slightly lighter'} than the morning rush (7-10 AM), with **{evening} vs {morning} accidents**. If your schedule is flexible, avoid those peaks instead of aiming for one supposedly 'safe' daytime block."
         ),
         "data": [],
-        "followup": "Want weekend patterns too? 🕐",
+        "followup": "Ask for the weekend pattern if you want the day-level view.",
     }
 
 
@@ -915,7 +977,7 @@ def handle_weekend_pattern(user_message=""):
             f"Weekdays still make up **{tp['weekday_accidents']} crashes** overall because there are more weekday travel days, but weekend pressure is concentrated hardest on Saturday. If you are traveling on the weekend, Saturday deserves the most caution."
         ),
         "data": [{"day": d, **daily[d]} for d in ["Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday", "Sunday"]],
-        "followup": "Want to see the riskiest weekend zones?",
+        "followup": "Ask for the riskiest weekend zones if you want the map-oriented view.",
     }
 
 
@@ -932,7 +994,7 @@ def handle_policy_recommendations(user_message=""):
         "message": (
             f"Top fixes for Bangkok road safety:\n" +
             "\n".join(lines) +
-            f"\n\nAll backed by accident data analysis. 💡"
+            f"\n\nAll backed by accident data analysis."
         ),
         "data": recs,
         "followup": "Want specifics on any recommendation?",
@@ -944,7 +1006,7 @@ def handle_camera_deployment(user_message=""):
     speeding = data["causes"]["speeding"]
     top_zones = speeding["top_zones"][:5]
 
-    lines = [f"• **{z['location']}** - {z['cause_count']} speeding accidents" for z in top_zones]
+    lines = [f"- **{z['location']}**: {z['cause_count']} speeding accidents" for z in top_zones]
 
     return {
         "type": "recommendation",
@@ -954,7 +1016,7 @@ def handle_camera_deployment(user_message=""):
             f"\n\nThese locations show the heaviest speeding concentration in the dataset, so they are the clearest enforcement candidates."
         ),
         "data": top_zones,
-        "followup": "Want to see other recommendations?",
+        "followup": "Ask for other recommendations if you want the rest of the action list.",
     }
 
 
@@ -979,7 +1041,7 @@ def handle_how_it_works(user_message=""):
             f"2. **XGBoost ML** - predicts risk scores for every 1km zone ({data['stats']['model_accuracy']}% holdout capture)\n\n"
             f"Together, they power our risk map, trip planner, and analytics dashboard."
         )
-        followup = "Want to know about our data source?"
+        followup = "Ask about the data source if you want the dataset details."
 
     return {
         "type": "info",
@@ -1009,7 +1071,7 @@ def handle_data_source(user_message=""):
             f"The data includes {stats['deaths']} deaths and {stats['serious_injuries']} serious injuries across "
             f"{stats['total_zones']:,} monitored zones. All Thai text was processed with NLP to extract causes."
         )
-        followup = "Want to see how the model works?"
+        followup = "Ask how the model works if you want the method summary."
 
     return {
         "type": "info",
@@ -1017,6 +1079,10 @@ def handle_data_source(user_message=""):
         "data": [],
         "followup": followup,
     }
+
+
+def handle_clarify_question(user_message=""):
+    return _clarify_message(user_message)
 
 
 # ---------------------------------------------------------------------------
@@ -1135,7 +1201,7 @@ def handle_ml_cause_response(cause_key: str, confidence: float, user_message: st
                 "Best advice: avoid driving on Friday/Saturday nights if possible."
             ),
             "data": [],
-            "followup": "Want to see weekend accident patterns? 🕐",
+            "followup": "Ask if you want the weekend accident pattern next.",
             "source": "ml_detected",
             "detected_cause": cause_key,
             "confidence": round(confidence, 2),
@@ -1202,7 +1268,7 @@ def handle_ml_cause_response(cause_key: str, confidence: float, user_message: st
             f"({count:,} incidents).{zone_text}\n\n{advice}"
         ),
         "data": top_zones,
-        "followup": f"Want to see the worst zones for {name.lower()}? ⚠️",
+        "followup": f"Ask for the worst zones for {name.lower()} if you want the hotspot list.",
         "source": "ml_detected",
         "detected_cause": cause_key,
         "confidence": round(confidence, 2),
@@ -1238,6 +1304,7 @@ _HANDLERS = {
     "handle_camera_deployment": handle_camera_deployment,
     "handle_how_it_works": handle_how_it_works,
     "handle_data_source": handle_data_source,
+    "handle_clarify_question": handle_clarify_question,
 }
 
 

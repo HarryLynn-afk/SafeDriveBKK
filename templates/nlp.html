@@ -14,10 +14,11 @@
             <div class="assistant-copy">
                 <p class="assistant-kicker">Bangkok Safety Assistant</p>
                 <h1>How can I help today?</h1>
-                <p class="assistant-subtitle">Ask about dangerous zones, safer travel windows, crash causes, or route risk across Bangkok.</p>
+                <p class="assistant-subtitle">Ask for a clear demo takeaway: danger zones, peak crash times, major causes, route risk, or model reliability.</p>
             </div>
 
             <div class="chat-suggestions" id="chatSuggestions">
+                <p class="assistant-subtitle">Starter prompts below are tuned for fast, reliable answers in both English and Thai.</p>
                 <div class="suggestions-buttons" id="suggestionsButtons">
                     <!-- Populated by JavaScript -->
                 </div>
@@ -91,4 +92,45 @@
 
 {% block extra_js %}
 <script src="{{ url_for('static', filename='js/chatbot.js', v='20260322a') }}"></script>
+<script>
+    (function () {
+        var curatedPrompts = [
+            "Which areas are most dangerous?",
+            "What time are accidents most common?",
+            "What causes most accidents?",
+            "How reliable is the model?",
+            "คนนขบรถปลอดภยไหม",
+            "หลบในอนตรายแคไหน"
+        ];
+
+        function renderCuratedSuggestions() {
+            var container = document.getElementById("suggestionsButtons");
+            var input = document.getElementById("chatInput");
+            var send = document.getElementById("chatSend");
+            if (!container || !input || !send) return;
+
+            container.innerHTML = "";
+            curatedPrompts.forEach(function (text) {
+                var btn = document.createElement("button");
+                btn.type = "button";
+                btn.className = "suggestion-btn";
+                btn.textContent = text;
+                btn.addEventListener("click", function () {
+                    input.value = text;
+                    input.dispatchEvent(new Event("input", { bubbles: true }));
+                    send.click();
+                });
+                container.appendChild(btn);
+            });
+        }
+
+        if (document.readyState === "loading") {
+            document.addEventListener("DOMContentLoaded", renderCuratedSuggestions);
+        } else {
+            renderCuratedSuggestions();
+        }
+
+        window.setTimeout(renderCuratedSuggestions, 250);
+    })();
+</script>
 {% endblock %}
