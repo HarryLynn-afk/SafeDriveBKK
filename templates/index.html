@@ -479,6 +479,50 @@ html {
     margin: 0;
 }
 
+.org-section {
+    background: var(--landing-panel-bg);
+}
+
+.org-cards-grid {
+    display: grid;
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+    gap: 1.3rem;
+}
+
+.org-card {
+    padding: 1.6rem 1.5rem;
+    border-radius: 20px;
+    border: 1px solid var(--landing-card-border);
+    background: var(--landing-card-bg);
+    backdrop-filter: blur(12px);
+}
+
+.org-card-icon {
+    font-size: 1.6rem;
+    margin-bottom: 0.75rem;
+}
+
+.org-card h3 {
+    font-size: 1rem;
+    font-weight: 700;
+    letter-spacing: -0.02em;
+    margin-bottom: 0.5rem;
+    color: var(--landing-ink);
+}
+
+.org-card p {
+    font-size: 0.9rem;
+    color: var(--landing-copy);
+    line-height: 1.65;
+    margin: 0;
+}
+
+@media (max-width: 640px) {
+    .org-cards-grid {
+        grid-template-columns: 1fr;
+    }
+}
+
 .route-section {
     background: var(--landing-panel-bg);
 }
@@ -1496,12 +1540,12 @@ html[data-theme="dark"] .landing-shell .route-metric {
             <div class="hero-grid">
                 <div class="hero-copy">
                     <p class="hero-problem-statement">
-                        Bangkok records thousands of crashes every year — SafeDrive BKK helps drivers, commuters, and city planners avoid danger zones before they drive.
+                        Bangkok records thousands of crashes every year — SafeDrive BKK gives individual drivers, fleet dispatchers, and city planners the same AI risk intelligence so route decisions are grounded in data before anyone moves.
                     </p>
 
                     <span class="eyebrow">
                         <span class="eyebrow-dot"></span>
-                        Built for Bangkok journeys
+                        Road risk intelligence for drivers, fleets, and planners
                     </span>
 
                     <h1 class="hero-title">
@@ -1519,7 +1563,7 @@ html[data-theme="dark"] .landing-shell .route-metric {
                     </div>
 
                     <p class="hero-note">
-                        Built on Ministry of Transport data with 44 engineered features, live route planning, and an explainable safety assistant.
+                        Built on Ministry of Transport data with 44 engineered features — the same engine works for a single commute or an operations team planning the day's routes.
                     </p>
                 </div>
             </div>
@@ -1540,6 +1584,37 @@ html[data-theme="dark"] .landing-shell .route-metric {
                 <div class="proof-card">
                     <strong class="hero-stat-value" data-counter="17.5" data-decimals="1" data-suffix="x">0x</strong>
                     <span>Lift over random when finding danger zones</span>
+                </div>
+            </div>
+        </section>
+
+        <section class="landing-section org-section surface-card" id="who-uses-this">
+            <div class="landing-section-intro">
+                <span class="section-chip">
+                    <span class="section-chip-dot"></span>
+                    From individual to organizational
+                </span>
+                <h2 class="landing-section-heading">One platform. Three decision makers.</h2>
+                <p class="landing-section-subline">
+                    The same AI risk engine supports a single driver choosing a commute route and an operations team planning the day's dispatch — without any change to the underlying model.
+                </p>
+            </div>
+
+            <div class="org-cards-grid">
+                <div class="org-card">
+                    <div class="org-card-icon">🚗</div>
+                    <h3>Individual Drivers</h3>
+                    <p>Choose the safer route before you leave. Compare two paths by predicted crash risk, not just travel time. The Safety Assistant answers zone-level questions in plain language.</p>
+                </div>
+                <div class="org-card">
+                    <div class="org-card-icon">🚚</div>
+                    <h3>Fleet Dispatchers</h3>
+                    <p>Test routes before assigning drivers. The same route comparison engine that works for one vehicle scales to a full day's operations planning — risk scores across every Bangkok corridor.</p>
+                </div>
+                <div class="org-card">
+                    <div class="org-card-icon">🏛️</div>
+                    <h3>City Planners</h3>
+                    <p>Identify where crashes concentrate and which corridors need intervention. The Analytics dashboard surfaces patterns by zone, time, and severity — grounded in official Ministry of Transport data.</p>
                 </div>
             </div>
         </section>
@@ -1579,7 +1654,7 @@ html[data-theme="dark"] .landing-shell .route-metric {
                 </span>
                 <h2 class="landing-section-heading">Two routes. One clear winner.</h2>
                 <p class="landing-section-subline">
-                    SafeDrive BKK scores every route using XGBoost predictions across 44 engineered features — so you always know which path is safer before you leave.
+                    SafeDrive BKK scores every route using XGBoost predictions across 44 engineered features — so drivers, dispatchers, and planners know which path is safer before anyone moves.
                 </p>
             </div>
 
