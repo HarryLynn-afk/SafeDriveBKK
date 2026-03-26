@@ -346,8 +346,8 @@ html[data-theme="dark"] .cta-section {
 <div class="about-page">
     <div class="section">
         <div class="about-hero">
-            <h1>SafeDrive BKK Foundation Build</h1>
-            <p>This branch contains the working data pipeline, risk model, route planner, analytics, and chatbot base that we can bring to the hackathon and continue improving live.</p>
+            <h1>About SafeDrive BKK</h1>
+            <p>SafeDrive BKK is a hackathon demo that turns Bangkok crash data into practical decision support: where road risk concentrates, when pressure rises, and how a safer route can differ from the fastest one.</p>
         </div>
     </div>
 
@@ -356,78 +356,81 @@ html[data-theme="dark"] .cta-section {
             <div class="metric-card">
                 <div>
                     <span class="metric-value">2,669</span>
-                    <span class="metric-label">Bangkok accidents analyzed</span>
+                    <span class="metric-label">Bangkok crashes analyzed</span>
                 </div>
-                <p class="metric-description">2024 official crash records from the Thai Ministry of Transport.</p>
+                <p class="metric-description">Official 2024 Bangkok crash records from the Thai Ministry of Transport.</p>
             </div>
             <div class="metric-card">
                 <div>
                     <span class="metric-value">83.8%</span>
                     <span class="metric-label">Holdout crash capture</span>
                 </div>
-                <p class="metric-description">On the Jan-Sep to Oct-Dec 2024 holdout, flagged high-risk grids captured 83.8% of later mapped crashes.</p>
+                <p class="metric-description">On a Jan-Sep versus Oct-Dec 2024 holdout, flagged high-risk grids captured 83.8% of later mapped crashes.</p>
             </div>
             <div class="metric-card">
                 <div>
-                    <span class="metric-value">17.5×</span>
-                    <span class="metric-label">Prediction lift</span>
+                    <span class="metric-value">17.5x</span>
+                    <span class="metric-label">Lift vs random</span>
                 </div>
-                <p class="metric-description">The model performs far above random zone selection.</p>
+                <p class="metric-description">The model surfaces risky zones far more effectively than random zone selection.</p>
             </div>
             <div class="metric-card">
                 <div>
                     <span class="metric-value">Oct-Dec</span>
-                    <span class="metric-label">Validation window</span>
+                    <span class="metric-label">Validation period</span>
                 </div>
-                <p class="metric-description">Performance is summarized against a held-out Oct to Dec 2024 period rather than a random split.</p>
+                <p class="metric-description">Performance is summarized on a held-out Oct-Dec 2024 period rather than only a random split.</p>
             </div>
         </div>
     </div>
 
     <div class="section">
-        <h2 class="section-title">What We Do</h2>
+        <h2 class="section-title">What Judges Should Know</h2>
         <p class="section-copy">
-            Government agencies usually react after a crash. SafeDrive BKK predicts <strong>where accidents are most likely to happen before someone drives there</strong>, using 2024 Bangkok crash data to identify persistent danger zones across the city.
+            SafeDrive BKK is built around one simple idea: public safety data is most useful <strong>before a trip starts</strong>. Instead of only describing where crashes already happened, the demo highlights persistent danger zones that can inform routing, planning, and public communication.
         </p>
         <p class="section-copy">
-            Just 126 high-risk zones capture <strong>88.4% of mapped crashes</strong>. Drivers get route-aware safety guidance, risk visualization, and conversational answers from a single data system built around that concentration.
-        </p>
-    </div>
-
-    <div class="section">
-        <h2 class="section-title">Planned Hackathon Work</h2>
-        <p class="section-copy">
-            This version is intentionally functional before it is presentation-ready. During the hackathon we expect to improve route UX, tighten the Thai assistant flow, refine analytics storytelling, and polish the final demo copy.
+            The core signal is concentration. Just 126 high-risk zones capture <strong>88.4% of mapped crashes</strong>, which is why the product focuses on targeted risk explanation, route-aware guidance, and hotspot storytelling rather than claiming every street can be predicted with equal precision.
         </p>
     </div>
 
     <div class="section">
-        <h2 class="section-title">Technology</h2>
+        <h2 class="section-title">What The Demo Includes Today</h2>
+        <p class="section-copy">
+            The current build already includes four connected surfaces: a citywide risk map, a safer-versus-faster Trip Planner, an analytics page for explaining the data story, and a Safety Assistant for grounded Q&amp;A.
+        </p>
+        <p class="section-copy">
+            For the hackathon demo, the goal is not to claim a finished production system. The goal is to show a credible working prototype with a clear user need, measurable signal, and responsible framing around what the model can and cannot do.
+        </p>
+    </div>
+
+    <div class="section">
+        <h2 class="section-title">How It Works</h2>
         <div class="responsible-ai-grid">
             <div class="ai-card">
-                <h4>XGBoost ML Model</h4>
+                <h4>Risk Prediction Model</h4>
                 <ul>
-                    <li>44 engineered features per 1 km² zone</li>
-                    <li>Severity, spatial, temporal, and vehicle mix inputs</li>
+                    <li>44 engineered features per 1 km2 grid zone</li>
+                    <li>Spatial, temporal, severity, and vehicle-mix inputs</li>
                     <li>Trained on 2,089 records and tested on 569</li>
-                    <li>17.5× lift over baseline zone selection</li>
+                    <li>17.5x lift over random zone selection</li>
                 </ul>
             </div>
             <div class="ai-card">
                 <h4>Thai NLP Pipeline</h4>
                 <ul>
-                    <li>pythainlp tokenization on accident reports</li>
-                    <li>TF-IDF with Logistic Regression classification</li>
-                    <li>Six cause categories surfaced in the Safety Assistant and crash analytics</li>
-                    <li>Used to interpret Thai crash-report language for assistant responses</li>
+                    <li>Thai crash-report text is tokenized with pythainlp</li>
+                    <li>TF-IDF and Logistic Regression support cause classification</li>
+                    <li>Six cause categories feed analytics and assistant answers</li>
+                    <li>Used to interpret crash-report language, not replace source data</li>
                 </ul>
             </div>
             <div class="ai-card">
-                <h4>Product Surfaces</h4>
+                <h4>Demo Experience</h4>
                 <ul>
-                    <li>Interactive Folium citywide risk heatmap</li>
-                    <li>Analytics dashboards built with Chart.js</li>
-                    <li>Trip Planner route comparison with safety context</li>
+                    <li>Interactive citywide risk heatmap</li>
+                    <li>Analytics views designed for live narration</li>
+                    <li>Trip Planner comparing faster and safer options</li>
                     <li>Safety Assistant grounded in Bangkok crash data</li>
                 </ul>
             </div>
@@ -435,7 +438,7 @@ html[data-theme="dark"] .cta-section {
     </div>
 
     <div class="section">
-        <h2 class="section-title">Data, Trust &amp; Ethics</h2>
+        <h2 class="section-title">Trust, Privacy &amp; Limitations</h2>
         <div class="responsible-ai-grid ethics-grid">
             <div class="ai-card">
                 <h4>Data Source</h4>
@@ -443,57 +446,57 @@ html[data-theme="dark"] .cta-section {
                     <li>Thai Ministry of Transport, 2024</li>
                     <li>23,952 nationwide records in the source release</li>
                     <li>2,669 Bangkok crashes with 91.5% GPS coverage</li>
-                    <li>Public official government data</li>
+                    <li>Public official government data, not synthetic examples</li>
                 </ul>
             </div>
             <div class="ai-card">
                 <h4>Privacy</h4>
                 <ul>
-                    <li>No personal data is collected or stored</li>
-                    <li>GPS is processed in memory for route guidance only</li>
-                    <li>No user tracking or identity profiles</li>
-                    <li>Outputs rely on public aggregate crash patterns</li>
+                    <li>No personal identities are collected or stored</li>
+                    <li>Trip locations are used in memory for route guidance</li>
+                    <li>No user profiling, behavioral targeting, or driver scoring</li>
+                    <li>Outputs are based on aggregate crash patterns from public data</li>
                 </ul>
             </div>
             <div class="ai-card warning">
                 <h4>Limitations</h4>
                 <ul>
-                    <li>Predictions are based on 2024 historical data</li>
-                    <li>The system does not guarantee future safety</li>
-                    <li>1 km grid resolution still hides local street variation</li>
-                    <li>Not intended for legal or insurance decisions</li>
+                    <li>Predictions are based on 2024 historical crash patterns</li>
+                    <li>The system indicates relative risk, not guaranteed safety</li>
+                    <li>1 km grid resolution still hides street-level variation</li>
+                    <li>Not appropriate for legal, insurance, or enforcement decisions</li>
                 </ul>
             </div>
             <div class="ai-card limitation">
-                <h4>Known Biases</h4>
+                <h4>Known Data Gaps</h4>
                 <ul>
                     <li>Not every crash is reported into the source system</li>
                     <li>8.5% of records lack precise GPS coordinates</li>
-                    <li>Coverage is specific to Bangkok urban conditions</li>
-                    <li>Infrastructure conditions may have changed since 2024</li>
+                    <li>Coverage reflects Bangkok urban conditions more than rural ones</li>
+                    <li>Road conditions and enforcement may have changed since 2024</li>
                 </ul>
             </div>
         </div>
 
         <div class="methodology">
-            <h4>Appropriate Use Cases</h4>
-            <p>✓ Route planning awareness for daily commuters</p>
-            <p>✓ Fleet safety decision support for logistics operators</p>
-            <p>✓ Infrastructure planning and resource targeting</p>
-            <p>✓ Public communication around concentrated high-risk areas</p>
+            <h4>Reasonable Uses</h4>
+            <p>Route planning awareness for daily commuters and fleet operators.</p>
+            <p>Infrastructure planning and resource targeting around persistent hotspots.</p>
+            <p>Public communication that explains concentrated high-risk corridors.</p>
+            <p>Decision support that helps teams ask better safety questions.</p>
 
-            <h4>Inappropriate Use Cases</h4>
-            <p>✗ Discriminatory insurance pricing based on location</p>
-            <p>✗ Restricting access or stigmatizing neighborhoods</p>
-            <p>✗ Replacing safe driving judgment and legal road rules</p>
-            <p>✗ Determining liability in an accident case</p>
+            <h4>Not What This Demo Should Be Used For</h4>
+            <p>Insurance pricing, legal judgment, or enforcement decisions.</p>
+            <p>Stigmatizing neighborhoods or claiming a location is "safe" in absolute terms.</p>
+            <p>Replacing driver judgment, traffic law, or real-time road awareness.</p>
+            <p>Assigning liability after an accident.</p>
         </div>
     </div>
 
     <div class="section">
         <div class="cta-section">
-            <h3>Current working demo</h3>
-            <p>The Trip Planner already compares a faster route with a safer route. The next step is to make that experience cleaner and stronger during the hackathon.</p>
+            <h3>See the core user story in the Trip Planner</h3>
+            <p>The strongest live demo is the route comparison: one option is faster, another is safer, and both are explained with the same underlying crash-risk system.</p>
             <a href="/trip-planner" class="cta-button">Open Trip Planner</a>
         </div>
     </div>
