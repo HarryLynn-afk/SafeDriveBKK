@@ -38,14 +38,7 @@ const ANALYSIS_STEP_MIN_MS = 1500;
 const SIMULATION_TARGET_SECONDS = 18;
 const SIMULATION_TICK_MS = 100;
 let simulationPaused = false;
-const DEMO_ROUTE_NAMES = {
-    "Ratchada": "ratchada",
-    "Din Daeng": "din_daeng",
-    "Asok": "asok",
-    "Huai Khwang": "huai_khwang",
-};
-let demoRoutesCache = null;
-let demoRoutesForceVisible = false;
+let routePresetForceVisible = false;
 let activeRouteAnalysisController = null;
 let routeAnalysisCancelled = false;
 
@@ -456,47 +449,47 @@ function detectMyLocation() {
 // ===== FIND SAFER ROUTE BUTTON =====
 function updateFindSaferRouteButton() {
     const btn = document.getElementById("findSaferRouteBtn");
-    syncDemoRoutesVisibility();
+    syncRoutePresetVisibility();
     if (!btn) return;
     const hasBoth = !!(window.startLat && window.startLon && window.endLat && window.endLon);
     btn.disabled = !hasBoth;
 }
 
-function syncDemoRoutesVisibility() {
-    const demoGrid = document.querySelector(".demo-routes-grid");
-    const demoToggle = document.getElementById("demo-routes-toggle");
+function syncRoutePresetVisibility() {
+    const presetGrid = document.querySelector(".route-presets-grid");
+    const presetToggle = document.getElementById("route-presets-toggle");
     const startInput = document.getElementById("start-location");
     const destInput = document.getElementById("destination");
-    if (!demoGrid || !demoToggle || !startInput || !destInput) return;
+    if (!presetGrid || !presetToggle || !startInput || !destInput) return;
 
     const hasTypedSearch = Boolean(startInput.value.trim() || destInput.value.trim());
     if (!hasTypedSearch) {
-        demoRoutesForceVisible = false;
+        routePresetForceVisible = false;
     }
 
-    const showGrid = demoRoutesForceVisible || !hasTypedSearch;
-    demoGrid.classList.toggle("is-hidden", !showGrid);
-    demoToggle.classList.toggle("is-visible", !showGrid);
+    const showGrid = routePresetForceVisible || !hasTypedSearch;
+    presetGrid.classList.toggle("is-hidden", !showGrid);
+    presetToggle.classList.toggle("is-visible", !showGrid);
 }
 
-function hideDemoRoutesAfterSelection() {
-    const demoGrid = document.querySelector(".demo-routes-grid");
-    const demoToggle = document.getElementById("demo-routes-toggle");
-    if (!demoGrid || !demoToggle) return;
+function hideRoutePresetsAfterSelection() {
+    const presetGrid = document.querySelector(".route-presets-grid");
+    const presetToggle = document.getElementById("route-presets-toggle");
+    if (!presetGrid || !presetToggle) return;
 
-    demoRoutesForceVisible = false;
-    demoGrid.classList.add("is-hidden");
-    demoToggle.classList.add("is-visible");
+    routePresetForceVisible = false;
+    presetGrid.classList.add("is-hidden");
+    presetToggle.classList.add("is-visible");
 }
 
-function showDemoRoutesFromToggle() {
-    const demoGrid = document.querySelector(".demo-routes-grid");
-    const demoToggle = document.getElementById("demo-routes-toggle");
-    if (!demoGrid || !demoToggle) return;
+function showRoutePresetsFromToggle() {
+    const presetGrid = document.querySelector(".route-presets-grid");
+    const presetToggle = document.getElementById("route-presets-toggle");
+    if (!presetGrid || !presetToggle) return;
 
-    demoRoutesForceVisible = true;
-    demoGrid.classList.remove("is-hidden");
-    demoToggle.classList.remove("is-visible");
+    routePresetForceVisible = true;
+    presetGrid.classList.remove("is-hidden");
+    presetToggle.classList.remove("is-visible");
 }
 
 function onFindSaferRouteClick() {
@@ -1606,136 +1599,8 @@ function displayDangerZones(alerts) {
     showElement("danger-zones-list");
 }
 
-async function loadDemoRoute(routeName) {
-    try {
-        if (!demoRoutesCache) {
-            const response = await fetch("/static/demo_routes.json", { cache: "no-store" });
-            if (!response.ok) {
-                throw new Error("Unable to load demo route definitions");
-            }
-            demoRoutesCache = await response.json();
-        }
-        const route = demoRoutesCache[routeName];
-        if (
-            !route
-            || !route.start
-            || !route.end
-            || Number.isNaN(Number(route.end.lat))
-            || Number.isNaN(Number(route.end.lon))
-        ) {
-            throw new Error("Demo route not found or invalid");
-        }
-        // console.log("Loading pre-saved demo route:", routeName);
-        return route;
-    } catch (error) {
-        console.error("Failed to load demo route:", error);
-        return null;
-    }
-}
-
-async function useDemoRoute(demoRoute, destName, startLat, startLon) {
-    document.getElementById("preview-title").textContent = "Loading route to " + destName + "...";
-    showElement("route-preview");
-    document.getElementById("preview-time").textContent = "--";
-    document.getElementById("preview-distance").textContent = "--";
-    document.getElementById("risk-text").textContent = "ANALYZING...";
-    document.getElementById("risk-details").textContent = "Connecting to routing service...";
-
-    // === HYBRID STRATEGY: Try OSRM first, fall back to embedded dense waypoints ===
-
-    // 1) Try OSRM (live routing with perfect road geometry)
-    try {
-        // console.log("[Hybrid] Trying OSRM live routing first...");
-        document.getElementById("risk-details").textContent = "Fetching live OSRM route...";
-
-        const osrmPayload = {
-            start_lat: startLat,
-            start_lon: startLon,
-            end_lat: demoRoute.end.lat,
-            end_lon: demoRoute.end.lon,
-            // No waypoints = backend will call OSRM for fresh routing
-        };
-
-        const osrmResponse = await fetch("/api/analyze-route", {
-            method: "POST",
-            headers: { "Content-Type": "application/json" },
-            body: JSON.stringify(osrmPayload),
-        });
-
-        if (osrmResponse.ok) {
-            const osrmData = await osrmResponse.json();
-            if (osrmData.success) {
-                // console.log(`[Hybrid] OSRM success: ${osrmData.route.waypoints.length} waypoints, ${osrmData.route.distance_km} km`);
-                setTripPlannerRouteData(osrmData);
-                displayRoutePreview(osrmData, destName);
-                hideElement("loading-route");
-                return true;
-            }
-        }
-        console.warn("[Hybrid] OSRM response not ok, falling back to embedded waypoints");
-    } catch (osrmError) {
-        console.warn("[Hybrid] OSRM failed:", osrmError.message, "- using embedded fallback");
-    }
-
-    // 2) Fallback: Use embedded dense waypoints from demo_routes.json
-    try {
-        // console.log("[Hybrid] Using embedded dense waypoints as fallback...");
-        document.getElementById("risk-details").textContent = "Using pre-computed route...";
-
-        const fallbackPayload = {
-            start_lat: startLat,
-            start_lon: startLon,
-            end_lat: demoRoute.end.lat,
-            end_lon: demoRoute.end.lon,
-        };
-
-        if (Array.isArray(demoRoute.waypoints) && demoRoute.waypoints.length > 1) {
-            fallbackPayload.waypoints = demoRoute.waypoints;
-            if (demoRoute.distance !== undefined) {
-                fallbackPayload.distance_km = demoRoute.distance;
-            }
-            if (demoRoute.duration !== undefined) {
-                fallbackPayload.duration_min = demoRoute.duration;
-            }
-        }
-
-        const fallbackResponse = await fetch("/api/analyze-route", {
-            method: "POST",
-            headers: { "Content-Type": "application/json" },
-            body: JSON.stringify(fallbackPayload),
-        });
-
-        if (!fallbackResponse.ok) {
-            throw new Error("Fallback route analysis failed");
-        }
-
-        const fallbackData = await fallbackResponse.json();
-        if (!fallbackData.success) {
-            throw new Error(fallbackData.error || "Unknown fallback error");
-        }
-
-        // console.log(`[Hybrid] Fallback success: ${fallbackData.route.waypoints.length} waypoints (embedded dense)`);
-        setTripPlannerRouteData(fallbackData);
-        displayRoutePreview(fallbackData, destName);
-        hideElement("loading-route");
-        return true;
-    } catch (fallbackError) {
-        console.error("[Hybrid] Both OSRM and fallback failed:", fallbackError);
-        hideElement("loading-route");
-        return false;
-    }
-}
-
-function selectQuickDestination(name, lat, lon) {
-    document.getElementById("destination").value = name;
-    window.endLat = lat;
-    window.endLon = lon;
-    updateFindSaferRouteButton();
-    setPreviewMarker(lat, lon, false);
-}
-
-function selectDemoRoute(startName, startLat, startLon, endName, endLat, endLon) {
-    // Reset any prior comparison state; demo chips should only prefill the form.
+function selectRoutePreset(startName, startLat, startLon, endName, endLat, endLon) {
+    // Reset any prior comparison state; preset chips should only prefill the form.
     selectedRoute = null;
     routeOptions = {};
     hideElement("route-error");
@@ -1748,7 +1613,7 @@ function selectDemoRoute(startName, startLat, startLon, endName, endLat, endLon)
     window.endLat = endLat;
     window.endLon = endLon;
     updateFindSaferRouteButton();
-    hideDemoRoutesAfterSelection();
+    hideRoutePresetsAfterSelection();
     expandSheet();
 
     const btn = document.getElementById("findSaferRouteBtn");
@@ -2725,22 +2590,6 @@ function closeSummaryAndFindRoute() {
     }, 280);
 }
 
-// ===== DEMO MODE TOGGLE =====
-function toggleDemoMode() {
-    document.body.classList.toggle("demo-mode");
-    // console.log("Demo mode:", document.body.classList.contains("demo-mode") ? "ON" : "OFF");
-}
-
-// Enable demo mode by pressing 'D' key
-document.addEventListener("keydown", (event) => {
-    if (event.key === "d" || event.key === "D") {
-        if (event.ctrlKey || event.metaKey) {
-            event.preventDefault();
-            toggleDemoMode();
-        }
-    }
-});
-
 // ===== UTILITY FUNCTIONS =====
 function hideElement(id) {
     const element = document.getElementById(id);
@@ -2816,7 +2665,7 @@ document.addEventListener("DOMContentLoaded", () => {
         const destInput  = document.getElementById("destination");
         if (startInput && fromName) startInput.value = fromName;
         if (destInput  && toName)   destInput.value  = toName;
-        syncDemoRoutesVisibility();
+        syncRoutePresetVisibility();
         // short delay so map tiles are ready
         setTimeout(() => calculateRoute(slat, slon, elat, elon, toName), 800);
     }
@@ -2824,35 +2673,13 @@ document.addEventListener("DOMContentLoaded", () => {
     const startInput = document.getElementById("start-location");
     const destInput = document.getElementById("destination");
     [startInput, destInput].filter(Boolean).forEach((input) => {
-        input.addEventListener("input", syncDemoRoutesVisibility);
+        input.addEventListener("input", syncRoutePresetVisibility);
     });
-    const demoToggle = document.getElementById("demo-routes-toggle");
-    if (demoToggle) {
-        demoToggle.addEventListener("click", showDemoRoutesFromToggle);
+    const presetToggle = document.getElementById("route-presets-toggle");
+    if (presetToggle) {
+        presetToggle.addEventListener("click", showRoutePresetsFromToggle);
     }
 });
-
-// === AUTO-REFRESH DEMO ROUTES ON STARTUP ===
-// Attempt to refresh demo_routes.json with real OSRM data on first load.
-// This upgrades interpolated fallback waypoints to real road geometry.
-async function tryRefreshDemoRoutes() {
-    try {
-        const response = await fetch("/api/refresh-demo-routes", {
-            method: "POST",
-            headers: { "Content-Type": "application/json" },
-        });
-        if (response.ok) {
-            const data = await response.json();
-            if (data.success) {
-                // console.log("[DemoRoutes] Refreshed with OSRM data:", data.updated);
-                // Invalidate cache so next loadDemoRoute picks up fresh data
-                demoRoutesCache = null;
-            }
-        }
-    } catch (err) {
-        // console.log("[DemoRoutes] Auto-refresh skipped (OSRM unavailable)");
-    }
-}
 
 // Check network status
 window.addEventListener("load", () => {
@@ -2861,8 +2688,6 @@ window.addEventListener("load", () => {
         console.warn("Offline mode - limited functionality");
     } else {
         setNetworkStatusVisibility(false);
-        // Try to upgrade demo routes with real OSRM data in the background
-        tryRefreshDemoRoutes();
     }
 });
 
@@ -2872,14 +2697,12 @@ window.addEventListener("offline", () => {
 
 window.addEventListener("online", () => {
     setNetworkStatusVisibility(false);
-    // Try refreshing demo routes when coming back online
-    tryRefreshDemoRoutes();
 });
 
 // ===== BOLT-STYLE SHEET HELPERS =====
 
 // ===== FIX 6: SHEET STATE MACHINE =====
-// STATE 1 — inputs + demo chips + find button
+// STATE 1 — inputs + route presets + find button
 // STATE 2 — route comparison cards
 // STATE 3 — selected route details + start navigation
 

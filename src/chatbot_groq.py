@@ -298,10 +298,10 @@ def _needs_clarification(user_message):
 
 
 # ---------------------------------------------------------------------------
-# Pre-cached responses for common demo questions
+# Fast cached responses for common questions
 # These fire before any API call, guaranteeing instant reliable answers.
 # ---------------------------------------------------------------------------
-_DEMO_CACHE = {
+_FAST_RESPONSE_CACHE = {
     # cause questions
     "most dangerous zone":       "The most dangerous zone is **Lat Krabang / Motorway (Eastern)** with 156 accidents — 17× the city average. Speeding accounts for 78.6% of incidents there. Worth avoiding during rush hour (5–7 PM). Stay safe.",
     "safest time to drive":      "**Peak hour: 10:00-11:00.** That is the busiest single hour in the dataset. The lowest hour is **3:00-4:00**, but for normal trips the practical move is to avoid the main spikes around **7-10 AM** and **4-8 PM**.",
@@ -329,12 +329,12 @@ _TIME_SENSITIVE_CACHE_HINTS = (
     "this evening",
 )
 
-def _check_demo_cache(user_message):
-    """Return a cached response if the message matches a demo keyword."""
+def _check_fast_response_cache(user_message):
+    """Return a cached response if the message matches a known keyword."""
     msg = user_message.lower()
     if any(hint in msg for hint in _TIME_SENSITIVE_CACHE_HINTS):
         return None
-    for keyword, response in _DEMO_CACHE.items():
+    for keyword, response in _FAST_RESPONSE_CACHE.items():
         if keyword in msg:
             return {"type": "ai", "message": response, "source": "cached"}
     return None
@@ -342,10 +342,10 @@ def _check_demo_cache(user_message):
 
 def get_groq_response(user_message, chatbot_data, conversation_history=None):
     """
-    Get AI response from Groq with pre-cached fallback and timeout handling.
+    Get AI response from Groq with cached fallback and timeout handling.
 
     Priority:
-      1. Pre-cached demo responses (instant, no API needed)
+      1. Cached deterministic responses (instant, no API needed)
       2. Groq LLM call (10s timeout)
       3. Friendly fallback if API unavailable or times out
     """
@@ -367,8 +367,8 @@ def get_groq_response(user_message, chatbot_data, conversation_history=None):
             "source": "scripted",
         }
 
-    # 2. Check pre-cached responses first
-    cached = _check_demo_cache(user_message)
+    # 2. Check cached responses first
+    cached = _check_fast_response_cache(user_message)
     if cached:
         return cached
 

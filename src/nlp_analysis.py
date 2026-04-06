@@ -244,7 +244,7 @@ class NLPAnalyzer:
             len(self._ml_features),
         )
 
-    def get_text_feature_pipeline_demo(self):
+    def get_text_feature_pipeline_preview(self):
         """Show 3-5 sample records flowing through the NLP -> XGBoost pipeline.
 
         Now includes ML classifier prediction alongside the dictionary mapping.
@@ -679,7 +679,7 @@ class NLPAnalyzer:
         LOGGER.info("Generating NLP cache...")
 
         cache = {
-            "pipeline_demo": self.get_text_feature_pipeline_demo(),
+            "pipeline_preview": self.get_text_feature_pipeline_preview(),
             "cause_analysis": self.get_cause_frequency_analysis(),
             "type_analysis": self.get_accident_type_analysis(),
             "feature_importance": self.get_nlp_feature_importance_summary(),

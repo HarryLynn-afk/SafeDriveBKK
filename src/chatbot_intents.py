@@ -94,8 +94,8 @@ def _extract_route_reference(user_message):
 # ---------------------------------------------------------------------------
 
 INTENTS = {
-    # ── High-priority judge questions (must resolve before Groq) ───────
-    "judge_dangerous_zones": {
+    # ── High-priority direct questions (must resolve before Groq) ───────
+    "top_danger_corridors": {
         "patterns": [
             re.compile(r"which\s+(?:zones?|areas?|places?|roads?|corridors?)\s+(?:are\s+)?most\s+dangerous", re.I),
             re.compile(r"what\s+are\s+the\s+most\s+dangerous\s+(?:zones?|areas?|places?|roads?|corridors?)", re.I),
@@ -104,9 +104,9 @@ INTENTS = {
             re.compile(r"ถนนเส้นไหน.*(?:อันตราย|เสี่ยง).*(?:ที่สุด|สุด)?", re.I),
             re.compile(r"(?:พื้นที่|ย่าน|โซน).*(?:อันตราย|เสี่ยง).*(?:ที่สุด|สุด)", re.I),
         ],
-        "handler": "handle_judge_dangerous_zones",
+        "handler": "handle_top_danger_corridors",
     },
-    "judge_peak_time": {
+    "peak_risk_time": {
         "patterns": [
             re.compile(r"what\s+time.*accidents?.*(?:most\s+common|most|peak|highest)", re.I),
             re.compile(r"when\s+is\s+it\s+most\s+dangerous", re.I),
@@ -114,9 +114,9 @@ INTENTS = {
             re.compile(r"(?:ช่วงเวลา|เวลา).*(?:ไหน|ใด).*(?:อันตราย|เสี่ยง).*(?:ที่สุด|สุด)", re.I),
             re.compile(r"อุบัติเหตุ.*(?:เวลา|ช่วงเวลา).*(?:ไหน|ใด).*(?:เยอะ|มาก).*(?:ที่สุด|สุด)", re.I),
         ],
-        "handler": "handle_judge_peak_time",
+        "handler": "handle_peak_risk_time",
     },
-    "judge_peak_day": {
+    "peak_risk_day": {
         "patterns": [
             re.compile(r"what\s+day.*(?:most\s+dangerous|most\s+accidents?|highest)", re.I),
             re.compile(r"which\s+day\s+has\s+most\s+accidents?", re.I),
@@ -124,9 +124,9 @@ INTENTS = {
             re.compile(r"วัน(?:ไหน|ใด).*(?:อันตราย|เสี่ยง).*(?:ที่สุด|สุด)", re.I),
             re.compile(r"วัน(?:ไหน|ใด).*อุบัติเหตุ.*(?:เยอะ|มาก).*(?:ที่สุด|สุด)", re.I),
         ],
-        "handler": "handle_judge_peak_day",
+        "handler": "handle_peak_risk_day",
     },
-    "judge_model_accuracy": {
+    "model_reliability": {
         "patterns": [
             re.compile(r"how\s+(?:accurate|reliable).*(?:model|safedrive|system|app)", re.I),
             re.compile(r"how\s+reliable\s+is\s+safedrive", re.I),
@@ -135,7 +135,7 @@ INTENTS = {
             re.compile(r"โมเดล.*(?:แม่นยำ|น่าเชื่อถือ).*(?:แค่ไหน|ขนาดไหน)", re.I),
             re.compile(r"(?:ระบบ|แอป|safedrive).*(?:แม่นยำ|น่าเชื่อถือ).*(?:แค่ไหน|ขนาดไหน)", re.I),
         ],
-        "handler": "handle_judge_model_accuracy",
+        "handler": "handle_model_reliability",
     },
 
     # ── Location-based (8) ─────────────────────────────────────────────
@@ -398,7 +398,7 @@ def get_scripted_response(intent, user_message=""):
 # Response handlers  (20 handlers, one per intent)
 # ---------------------------------------------------------------------------
 
-def _judge_zone_anchors():
+def _top_zone_anchors():
     data = load_chatbot_data()
     east_zone = data["zones"].get("G014_041", {})
     return {
@@ -417,8 +417,8 @@ def _judge_zone_anchors():
     }
 
 
-def handle_judge_dangerous_zones(user_message=""):
-    anchors = _judge_zone_anchors()
+def handle_top_danger_corridors(user_message=""):
+    anchors = _top_zone_anchors()
     west = anchors["west"]
     east = anchors["east"]
     is_thai = any("\u0e00" <= char <= "\u0e7f" for char in user_message)
@@ -427,13 +427,13 @@ def handle_judge_dangerous_zones(user_message=""):
         message = (
             f"จุดเสี่ยงหลักในข้อมูลนี้มี 2 แนวที่ควรพูดถึงก่อนคือ **ถนนบรมราชชนนี แถวทวีวัฒนา** "
             f"ซึ่งเป็นฝั่งตะวันตกและมี **{west['accidents']} อุบัติเหตุ** ในหนึ่งกริดโซน กับ **ลาดกระบัง / มอเตอร์เวย์ 7** "
-            f"ซึ่งเป็นแนวเสี่ยงสูงฝั่งตะวันออก.\n\nถ้าต้องตอบกรรมการแบบสั้นที่สุด ให้ยึดสองแนวนี้เป็นคำตอบหลักของกรุงเทพฯ."
+            f"ซึ่งเป็นแนวเสี่ยงสูงฝั่งตะวันออก.\n\nถ้าต้องสรุปแบบสั้นที่สุด ให้ยึดสองแนวนี้เป็นคำตอบหลักของกรุงเทพฯ."
         )
     else:
         message = (
             f"The clearest high-risk anchors are the **western corridor at {west['road']}, {west['district']}** with "
             f"**{west['accidents']} accidents** in one grid zone, and the **eastern corridor around {east['district']} / {east['road']}**.\n\n"
-            "If you need the shortest judge-safe answer, lead with those two corridors."
+            "If you want the shortest summary, lead with those two corridors."
         )
 
     return {
@@ -443,11 +443,11 @@ def handle_judge_dangerous_zones(user_message=""):
             {"corridor": west["label"], "road": west["road"], "district": west["district"], "accidents": west["accidents"]},
             {"corridor": east["label"], "road": east["road"], "district": east["district"], "accidents": east["accidents"]},
         ],
-        "followup": "Want the top crash time as well?",
+        "followup": "Want the peak crash time as well?",
     }
 
 
-def handle_judge_peak_time(user_message=""):
+def handle_peak_risk_time(user_message=""):
     data = load_chatbot_data()
     tp = data["time_patterns"]
     peak_hour = tp["most_dangerous_hour"]
@@ -473,7 +473,7 @@ def handle_judge_peak_time(user_message=""):
     }
 
 
-def handle_judge_peak_day(user_message=""):
+def handle_peak_risk_day(user_message=""):
     data = load_chatbot_data()
     tp = data["time_patterns"]
     peak_day = tp["most_dangerous_day"]
@@ -483,12 +483,12 @@ def handle_judge_peak_day(user_message=""):
     if is_thai:
         message = (
             f"วันที่อุบัติเหตุสูงที่สุดคือ **วันเสาร์** ที่ **{peak_count} ครั้ง**.\n\n"
-            "ถ้าต้องตอบแบบสั้นและชัดสำหรับกรรมการ ให้ตอบว่า **วันเสาร์** คือวันเสี่ยงสูงสุดในข้อมูลนี้."
+            "ถ้าต้องสรุปแบบสั้นและชัด ให้ตอบว่า **วันเสาร์** คือวันเสี่ยงสูงสุดในข้อมูลนี้."
         )
     else:
         message = (
             f"**{peak_day}** is the most dangerous day in the dataset with **{peak_count} accidents**.\n\n"
-            "If you need a clean judge-facing takeaway, Saturday is the day to call out first."
+            "If you need a clean takeaway, Saturday is the day to call out first."
         )
 
     return {
@@ -499,7 +499,7 @@ def handle_judge_peak_day(user_message=""):
     }
 
 
-def handle_judge_model_accuracy(user_message=""):
+def handle_model_reliability(user_message=""):
     data = load_chatbot_data()
     stats = data["stats"]
     accuracy = stats["model_accuracy"]
@@ -510,13 +510,13 @@ def handle_judge_model_accuracy(user_message=""):
         message = (
             f"ในการทดสอบแบบ **Jan-Sep 2024 train / Oct-Dec 2024 holdout** ระบบจับครอบคลุมอุบัติเหตุที่เกิดภายหลังได้ **{accuracy}%** "
             f"และให้ **lift {lift}x** เทียบกับการสุ่มหาโซนเสี่ยง.\n\n"
-            "สรุปแบบตอบกรรมการคือโมเดลมีสัญญาณเชิงเวลาและทำได้ดีกว่าการเลือกโซนแบบสุ่มอย่างชัดเจน."
+            "สรุปคือโมเดลมีสัญญาณเชิงเวลาและทำได้ดีกว่าการเลือกโซนแบบสุ่มอย่างชัดเจน."
         )
     else:
         message = (
             f"On a **Jan-Sep 2024 train / Oct-Dec 2024 holdout**, SafeDrive BKK captured **{accuracy}%** of later mapped crashes inside flagged high-risk grids "
             f"with **{lift}x lift** over random danger-zone selection.\n\n"
-            "The judge-safe summary is that the model shows temporal signal and performs materially better than random zone selection."
+            "The short version is that the model shows temporal signal and performs materially better than random zone selection."
         )
 
     return {
@@ -1214,10 +1214,10 @@ def handle_ml_cause_response(cause_key: str, confidence: float, user_message: st
 # ---------------------------------------------------------------------------
 
 _HANDLERS = {
-    "handle_judge_dangerous_zones": handle_judge_dangerous_zones,
-    "handle_judge_peak_time": handle_judge_peak_time,
-    "handle_judge_peak_day": handle_judge_peak_day,
-    "handle_judge_model_accuracy": handle_judge_model_accuracy,
+    "handle_top_danger_corridors": handle_top_danger_corridors,
+    "handle_peak_risk_time": handle_peak_risk_time,
+    "handle_peak_risk_day": handle_peak_risk_day,
+    "handle_model_reliability": handle_model_reliability,
     "handle_speeding_zones": handle_speeding_zones,
     "handle_drunk_zones": handle_drunk_zones,
     "handle_dangerous_zones": handle_dangerous_zones,
@@ -1242,7 +1242,7 @@ _HANDLERS = {
 
 
 # ---------------------------------------------------------------------------
-# Quick test / demo
+# Quick test
 # ---------------------------------------------------------------------------
 
 if __name__ == "__main__":

@@ -88,7 +88,7 @@ main { background: transparent !important; position: relative; z-index: auto; }
 <div id="planner-sheet" class="planner-sheet collapsed">
     <div class="sheet-handle-bar" id="sheet-handle" role="button" aria-label="Expand or collapse panel"></div>
 
-    <!-- ── Fix 6 STATE 1: inputs + demo chips + find button ── -->
+    <!-- ── STATE 1: inputs + route presets + find button ── -->
     <div id="sheet-section-inputs">
 
     <!-- ── Step 4: Dark input fields with vertical connector ── -->
@@ -139,23 +139,23 @@ main { background: transparent !important; position: relative; z-index: auto; }
             <div id="suggestions-dropdown" class="suggestions-dropdown" style="display:none;"></div>
         </div>
     </div>
-    <button type="button" id="demo-routes-toggle" class="demo-routes-toggle">View Demo Routes</button>
+    <button type="button" id="route-presets-toggle" class="route-presets-toggle">View Route Presets</button>
 
-    <!-- Demo routes -->
-    <div class="quick-destinations" id="demo-routes-section">
+    <!-- Route presets -->
+    <div class="quick-destinations" id="route-presets-section">
         <div class="quick-chips">
-            <div class="demo-routes-grid">
-                <button class="quick-chip quick-chip-danger" onclick="selectDemoRoute('Dusit', 13.7831, 100.5103, 'Lat Krabang', 13.7250, 100.7490)">
-                    <span>Risk Gauntlet</span>
+            <div class="route-presets-grid">
+                <button class="quick-chip quick-chip-danger" onclick="selectRoutePreset('Dusit', 13.7831, 100.5103, 'Lat Krabang', 13.7250, 100.7490)">
+                    <span>Central to Airport</span>
                 </button>
-                <button class="quick-chip quick-chip-warning" onclick="selectDemoRoute('Chatuchak', 13.8000, 100.5500, 'Taling Chan', 13.7800, 100.3500)">
-                    <span>Risk Commute</span>
+                <button class="quick-chip quick-chip-warning" onclick="selectRoutePreset('Chatuchak', 13.8000, 100.5500, 'Taling Chan', 13.7800, 100.3500)">
+                    <span>Northwest Crosstown</span>
                 </button>
-                <button class="quick-chip quick-chip-caution" onclick="selectDemoRoute('Watthana', 13.7380, 100.5600, 'Lat Krabang', 13.7250, 100.7490)">
-                    <span>Sukhumvit Split</span>
+                <button class="quick-chip quick-chip-caution" onclick="selectRoutePreset('Watthana', 13.7380, 100.5600, 'Lat Krabang', 13.7250, 100.7490)">
+                    <span>Sukhumvit to Airport</span>
                 </button>
-                <button class="quick-chip quick-chip-primary" onclick="selectDemoRoute('Chatuchak', 13.8038, 100.5503, 'Lat Krabang', 13.7250, 100.7490)">
-                    <span>North Split</span>
+                <button class="quick-chip quick-chip-primary" onclick="selectRoutePreset('Chatuchak', 13.8038, 100.5503, 'Lat Krabang', 13.7250, 100.7490)">
+                    <span>North to East</span>
                 </button>
             </div>
         </div>
@@ -174,7 +174,7 @@ main { background: transparent !important; position: relative; z-index: auto; }
             <span style="font-size:18px; flex-shrink:0;">⚠️</span>
             <div style="flex:1;">
                 <p id="route-error-message" style="margin:0 0 2px; font-weight:600; color:#fde68a; font-size:13px;"></p>
-                <p style="margin:0; font-size:12px; color:#fcd34d;">Try a demo route above or check your connection.</p>
+                <p style="margin:0; font-size:12px; color:#fcd34d;">Try one of the route presets above or check your connection.</p>
             </div>
             <button onclick="hideElement('route-error')" style="background:none;border:none;font-size:16px;cursor:pointer;color:#fcd34d;padding:0;">&times;</button>
         </div>

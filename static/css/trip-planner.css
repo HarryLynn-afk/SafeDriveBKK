@@ -176,76 +176,10 @@
     white-space: nowrap;
 }
 
-.danger-demo-chip {
-    background: linear-gradient(135deg, #fff3cd 0%, #ffeaa7 100%);
-    border: 2px solid var(--warning-yellow);
-    font-weight: 600;
-}
-
-.perfect-demo-chip {
-    background: linear-gradient(135deg, #ff7675 0%, #d63031 100%);
-    border: 2px solid #d63031;
-    font-weight: 700;
-    color: white;
-    box-shadow: 0 2px 8px rgba(214, 48, 49, 0.3);
-}
-
 .quick-chip:hover {
     background: var(--primary-blue);
     color: white;
     border-color: var(--primary-blue);
-    transform: translateY(-2px);
-}
-
-.danger-demo-chip:hover {
-    background: linear-gradient(135deg, var(--warning-yellow) 0%, #e0a800 100%);
-    color: #000;
-    border-color: #e0a800;
-    transform: translateY(-2px);
-    box-shadow: 0 4px 12px rgba(255, 193, 7, 0.4);
-}
-
-.perfect-demo-chip:hover {
-    background: linear-gradient(135deg, #d63031 0%, #b71c1c 100%);
-    color: white;
-    border-color: #b71c1c;
-    transform: translateY(-2px) scale(1.02);
-    box-shadow: 0 4px 16px rgba(214, 48, 49, 0.5);
-}
-
-.high-demo-chip {
-    background: linear-gradient(135deg, #ff7675 0%, #d63031 100%);
-    border: 2px solid #d63031;
-    color: white;
-    font-weight: 700;
-}
-
-.high-demo-chip:hover {
-    background: linear-gradient(135deg, #d63031 0%, #b71c1c 100%);
-    transform: translateY(-2px) scale(1.02);
-}
-
-.medium-demo-chip {
-    background: linear-gradient(135deg, #ffeaa7 0%, #fdcb6e 100%);
-    border: 2px solid #e17055;
-    font-weight: 600;
-}
-
-.medium-demo-chip:hover {
-    background: linear-gradient(135deg, #fdcb6e 0%, #e17055 100%);
-    color: white;
-    transform: translateY(-2px);
-}
-
-.low-demo-chip {
-    background: linear-gradient(135deg, #a8e6cf 0%, #74c69d 100%);
-    border: 2px solid #52b788;
-    font-weight: 600;
-}
-
-.low-demo-chip:hover {
-    background: linear-gradient(135deg, #74c69d 0%, #52b788 100%);
-    color: white;
     transform: translateY(-2px);
 }
 
@@ -1191,24 +1125,6 @@
         font-size: 20px;
         padding: 20px;
     }
-}
-
-/* ===== DEMO MODE (for presentation) ===== */
-body.demo-mode .trip-planner-card {
-    transform: scale(1.1);
-    box-shadow: 0 12px 40px rgba(0,0,0,0.2);
-}
-
-body.demo-mode .trip-header h2 {
-    font-size: 34px;
-}
-
-body.demo-mode .location-input {
-    font-size: 18px;
-}
-
-body.demo-mode .start-nav-button {
-    font-size: 22px;
 }
 
 /* ===== LOADING STATES ===== */
@@ -2593,7 +2509,7 @@ html[data-theme="light"] .planner-bg-map .gm-style .gm-fullscreen-control:hover 
     background: var(--planner-soft-success-bg-strong);
 }
 
-/* ── Demo chips — dark ── */
+/* ── Route preset chips — dark ── */
 .planner-sheet .quick-destinations {
     margin: 0 0 10px;
     padding: 12px 12px 10px;
@@ -2604,13 +2520,13 @@ html[data-theme="light"] .planner-bg-map .gm-style .gm-fullscreen-control:hover 
 }
 .planner-sheet .quick-destinations.is-hidden { display: none; }
 .planner-sheet .quick-chips { display: block; }
-.demo-routes-grid {
+.route-presets-grid {
     display: grid;
     grid-template-columns: repeat(2, minmax(0, 1fr));
     gap: 6px;
     transition: all 0.3s ease;
 }
-.demo-routes-grid.is-hidden {
+.route-presets-grid.is-hidden {
     opacity: 0;
     transform: translateY(-6px);
     pointer-events: none;
@@ -2618,7 +2534,7 @@ html[data-theme="light"] .planner-bg-map .gm-style .gm-fullscreen-control:hover 
     overflow: hidden;
     margin: 0;
 }
-.demo-routes-grid .quick-chip {
+.route-presets-grid .quick-chip {
     min-height: 34px;
     justify-content: center;
     gap: 0;
@@ -2646,7 +2562,7 @@ html[data-theme="light"] .planner-bg-map .gm-style .gm-fullscreen-control:hover 
     white-space: nowrap;
     color: var(--planner-chip-text);
 }
-.demo-routes-grid .quick-chip span {
+.route-presets-grid .quick-chip span {
     overflow: hidden;
     text-overflow: ellipsis;
 }
@@ -2682,7 +2598,7 @@ html[data-theme="light"] .planner-bg-map .gm-style .gm-fullscreen-control:hover 
     color: #1d4ed8;
 }
 
-.planner-sheet .demo-routes-toggle {
+.planner-sheet .route-presets-toggle {
     display: none;
     border: none;
     background: transparent;
@@ -2697,12 +2613,12 @@ html[data-theme="light"] .planner-bg-map .gm-style .gm-fullscreen-control:hover 
     transition: all 0.3s ease;
 }
 
-.planner-sheet .demo-routes-toggle:hover {
+.planner-sheet .route-presets-toggle:hover {
     color: var(--planner-text);
     text-decoration: underline;
 }
 
-.planner-sheet .demo-routes-toggle.is-visible {
+.planner-sheet .route-presets-toggle.is-visible {
     display: inline-flex;
 }
 
@@ -2748,14 +2664,14 @@ html[data-theme="light"] .planner-bg-map .gm-style .gm-fullscreen-control:hover 
     border: 1.5px solid var(--planner-border);
 }
 
-.planner-sheet.collapsed #demo-routes-section,
-.planner-sheet.collapsed .demo-routes-toggle,
+.planner-sheet.collapsed #route-presets-section,
+.planner-sheet.collapsed .route-presets-toggle,
 .planner-sheet.collapsed .sheet-primary-action {
     display: none;
 }
 
 .quick-chip,
-.demo-routes-toggle,
+.route-presets-toggle,
 .sheet-back-btn,
 .route-shortcut-chip,
 .route-list-row,

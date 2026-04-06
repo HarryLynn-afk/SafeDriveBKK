@@ -1,61 +1,76 @@
-# SafeDrive BKK: AI-Powered Road Safety Prediction
+# SafeDrive BKK
 
-Predicts high-risk road zones in Bangkok using NLP and Data Visualization on real Thai government accident data.
+SafeDrive BKK is a portfolio project that turns Bangkok road-accident data into a practical road-safety product. It combines machine learning, Thai-language NLP, and route visualization to help users explore high-risk zones, compare route options, and understand when and why crashes are more likely to happen.
 
-## Features
+## What It Does
 
-1. **ML Risk Prediction Map** - XGBoost model trained on 23,952 accident records, 44 engineered features
-2. **Interactive Trip Planner** - Compare fast vs. safe routes with segment-level risk scores
-3. **Safety Assistant Chatbot** - NLP-powered Q&A about Bangkok road safety
-4. **Analytics Dashboard** - Accident patterns, temporal trends, and spatial insights
-5. **Danger Calendar** - Time-based risk patterns highlighting holidays and peak hours
+- Predicts zone-level road risk across Bangkok with an XGBoost model
+- Compares faster and safer route options in the trip planner
+- Answers road-safety questions through a hybrid scripted + LLM assistant
+- Surfaces temporal and spatial crash patterns in an analytics dashboard
 
-## Tech Stack
+## Why This Project Is Strong Portfolio Work
 
-- **Data**: 23,952 accident records with GPS coordinates (Thai Ministry of Transport, 2024)
-- **ML**: XGBoost gradient boosting (83.8% accuracy, 17.5x lift, 39/39 zone detection)
-- **NLP**: PythaiNLP for Thai text tokenization + Groq AI chatbot
-- **Backend**: Flask REST API
-- **Visualization**: Folium interactive maps, Chart.js dashboards
-- **Language**: Python 3.10+
+- It is built around a real public-safety use case instead of a toy dataset
+- The ML model is integrated into a working web application, not left in notebooks
+- Thai-language NLP is part of the product experience, not just a side experiment
+- The system includes runtime fallbacks for routing and assistant behavior when external services are unavailable
 
-## Installation
+## Stack
+
+- Python, Flask, pandas, NumPy
+- XGBoost for zone-level risk scoring
+- Thai NLP classification for accident-cause extraction
+- HTML, CSS, JavaScript, Chart.js, Folium
+- Optional Groq API integration for open-ended assistant responses
+- Optional Google Maps keys for richer routing and travel-time behavior
+
+## Dataset
+
+- Source: Thai Ministry of Transport
+- Year used in this build: 2024
+- Nationwide source records: 23,952
+- Bangkok records analyzed in the app: 2,669
+- Output zones monitored: 276
+
+Data source:
+https://datagov.mot.go.th/en/dataset/roadaccident
+
+## Local Run
+
+1. Create and activate a Python environment.
+2. Install dependencies:
 
 ```bash
 pip install -r requirements.txt
-python src/app.py
 ```
 
-## Data Source
+3. Create an `.env` file if you want optional API integrations:
 
-**Official Source:** Thai Ministry of Transport
-**Year:** 2024 (most recent complete year)
-**Total Records:** 23,952 accidents
-
-**Bangkok Analysis:**
-- Accidents analyzed: 2,669
-- High-risk zones: 126
-- Medium-risk zones: 85
-- Low-risk zones: 65
-- GPS accuracy: 97.6%
-
-https://datagov.mot.go.th/en/dataset/roadaccident
-
-## Project Structure
-
+```bash
+cp .env.example .env
 ```
-hackathon/
-├── data/
-│   ├── raw/          # Original CSV files
-│   └── processed/    # Cleaned data
-├── models/           # Trained XGBoost + Random Forest models
+
+`GROQ_API_KEY` is optional. Without it, the assistant falls back to deterministic responses. Google Maps keys are also optional; without them, the app uses OSRM and estimated travel times.
+
+4. Start the app:
+
+```bash
+python3 app.py
+```
+
+5. Open `http://localhost:5000`.
+
+## Project Layout
+
+```text
+.
+├── app.py
+├── data/processed/
+├── models/
 ├── src/
-│   ├── app.py        # Flask web application
-│   ├── ml_model.py   # Risk prediction model
-│   ├── nlp_analysis.py  # Thai NLP pipeline
-│   └── ...
-├── static/           # CSS, JS, maps
-├── templates/        # HTML templates
+├── static/
+├── templates/
 ├── requirements.txt
 └── README.md
 ```

@@ -392,29 +392,29 @@ else:
 
 
 # ---------------------------------------------------------------------------
-# Cached demo routes — loaded once from static/demo_routes.json so that when
-# OSRM is unreachable we can still return real road-following waypoints.
+# Cached route presets — loaded once from static/route_presets.json so that when
+# OSRM is unreachable we can still return road-following fallback waypoints.
 # ---------------------------------------------------------------------------
-DEMO_ROUTES_PATH = BASE_DIR / "static" / "demo_routes.json"
-_demo_routes_cache = None
+ROUTE_PRESETS_PATH = BASE_DIR / "static" / "route_presets.json"
+_route_presets_cache = None
 
 
-def _load_demo_routes():
-    global _demo_routes_cache
-    if _demo_routes_cache is not None:
-        return _demo_routes_cache
+def _load_route_presets():
+    global _route_presets_cache
+    if _route_presets_cache is not None:
+        return _route_presets_cache
     try:
-        with open(DEMO_ROUTES_PATH) as fh:
-            _demo_routes_cache = json.load(fh)
+        with open(ROUTE_PRESETS_PATH) as fh:
+            _route_presets_cache = json.load(fh)
     except Exception:
-        _demo_routes_cache = {}
-    return _demo_routes_cache
+        _route_presets_cache = {}
+    return _route_presets_cache
 
 
 def _find_cached_route(start_lat, start_lon, end_lat, end_lon, threshold_km=2.0):
-    """Return cached demo-route waypoints if start/end are close enough."""
-    demo_routes = _load_demo_routes()
-    for _name, route in demo_routes.items():
+    """Return cached route-preset waypoints if start/end are close enough."""
+    route_presets = _load_route_presets()
+    for _name, route in route_presets.items():
         r_start = route.get("start", {})
         r_end = route.get("end", {})
         if not r_start or not r_end:
@@ -776,7 +776,7 @@ def get_osrm_alternatives(start_lat, start_lon, end_lat, end_lon, num_alternativ
     except Exception:
         pass
 
-    # Fallback: return cached demo route as single "alternative"
+    # Fallback: return cached preset route as single "alternative"
     cached = _find_cached_route(start_lat, start_lon, end_lat, end_lon)
     if cached:
         return [cached]
@@ -807,7 +807,7 @@ def find_safest_midpoint(start_lat, start_lon, end_lat, end_lon, grid_df, num_sa
 def generate_fast_route(start_lat, start_lon, end_lat, end_lon):
     """Generate fast route using OSRM (follows real roads).
 
-    Fallback order: OSRM live → cached demo route → dense interpolation.
+    Fallback order: OSRM live → cached preset route → dense interpolation.
     """
     # 1) Try live OSRM routing
     osrm_route = get_osrm_route(start_lat, start_lon, end_lat, end_lon)
@@ -818,7 +818,7 @@ def generate_fast_route(start_lat, start_lon, end_lat, end_lon):
             sampled.append(waypoints[-1])
         return sampled
 
-    # 2) Try cached demo-route (real OSRM geometry saved to disk)
+    # 2) Try cached preset route (real OSRM geometry saved to disk)
     cached = _find_cached_route(start_lat, start_lon, end_lat, end_lon)
     if cached:
         waypoints = cached["waypoints"]
@@ -1660,7 +1660,7 @@ def analyze_route():
                     route_duration_min = int((route_distance_km / 40) * 60) if route_distance_km > 0 else 0
             route_duration_min = max(0, route_duration_min)
         else:
-            # Try OSRM → cached demo route → dense interpolation
+            # Try OSRM → cached preset route → dense interpolation
             gmaps_data = get_google_maps_travel_time(start_lat, start_lon, end_lat, end_lon)
             osrm_route = get_osrm_route(start_lat, start_lon, end_lat, end_lon)
 
@@ -2010,63 +2010,6 @@ def compare_predictions():
     except Exception as exc:
         return jsonify({"error": str(exc)}), 400
 
-
-DEMO_ROUTE_DEFS = {
-    "ratchada": {
-        "name": "Ratchada (High Risk)",
-        "start": {"lat": 13.7467, "lon": 100.5348},
-        "end": {"lat": 13.73, "lon": 100.72},
-    },
-    "din_daeng": {
-        "name": "Din Daeng (High Risk)",
-        "start": {"lat": 13.7467, "lon": 100.5348},
-        "end": {"lat": 13.73, "lon": 100.74},
-    },
-    "asok": {
-        "name": "Asok (High Risk)",
-        "start": {"lat": 13.7467, "lon": 100.5348},
-        "end": {"lat": 13.74, "lon": 100.56},
-    },
-    "huai_khwang": {
-        "name": "Huai Khwang (High Risk)",
-        "start": {"lat": 13.7467, "lon": 100.5348},
-        "end": {"lat": 13.76, "lon": 100.75},
-    },
-}
-
-
-def _interpolate_waypoints(waypoints, target_count):
-    """Interpolate waypoints to reach a target density."""
-    if len(waypoints) >= target_count:
-        return waypoints
-
-    cum = [0.0]
-    for i in range(1, len(waypoints)):
-        cum.append(
-            cum[-1]
-            + _haversine_km(waypoints[i - 1][0], waypoints[i - 1][1], waypoints[i][0], waypoints[i][1])
-        )
-    total = cum[-1]
-    if total == 0:
-        return waypoints
-
-    result = []
-    step = total / (target_count - 1)
-    for i in range(target_count):
-        target_dist = i * step
-        for j in range(1, len(cum)):
-            if cum[j] >= target_dist:
-                seg_len = cum[j] - cum[j - 1]
-                frac = 0 if seg_len == 0 else (target_dist - cum[j - 1]) / seg_len
-                lat = waypoints[j - 1][0] + frac * (waypoints[j][0] - waypoints[j - 1][0])
-                lon = waypoints[j - 1][1] + frac * (waypoints[j][1] - waypoints[j - 1][1])
-                result.append([round(lat, 6), round(lon, 6)])
-                break
-        else:
-            result.append(list(waypoints[-1]))
-    return result
-
-
 def _route_key(waypoints):
     """Stable geometry key so identical routes can be deduplicated."""
     normalized = [[round(lat, 6), round(lon, 6)] for lat, lon in waypoints]
@@ -2175,61 +2118,8 @@ def _build_display_routes(scored_routes, route_fast, route_safe, route_recommend
     return display_routes
 
 
-@app.route("/api/refresh-demo-routes", methods=["POST"])
-def refresh_demo_routes():
-    """Fetch fresh OSRM full-geometry routes and update demo_routes.json."""
-    import json as _json
-
-    demo_routes_path = Path(app.static_folder) / "demo_routes.json"
-    result = {}
-    errors = []
-
-    for key, route_def in DEMO_ROUTE_DEFS.items():
-        s = route_def["start"]
-        e = route_def["end"]
-        osrm = get_osrm_route(s["lat"], s["lon"], e["lat"], e["lon"])
-
-        if osrm:
-            raw_count = len(osrm["waypoints"])
-            min_points = max(200, int(osrm["distance_km"] * 25))
-            target = max(min_points, raw_count)
-
-            if raw_count < target:
-                dense = _interpolate_waypoints(osrm["waypoints"], target)
-            else:
-                dense = osrm["waypoints"]
-
-            result[key] = {
-                "name": route_def["name"],
-                "start": route_def["start"],
-                "end": route_def["end"],
-                "waypoints": dense,
-                "distance": osrm["distance_km"],
-                "duration": osrm["duration_min"],
-                "osrm_source": True,
-                "osrm_raw_points": raw_count,
-            }
-        else:
-            errors.append(key)
-
-    if not result:
-        return jsonify({"error": "OSRM unavailable for all routes", "failed": errors}), 503
-
-    # Merge with existing (keep old data for routes that failed)
-    try:
-        existing = _json.loads(demo_routes_path.read_text())
-    except Exception:
-        existing = {}
-
-    existing.update(result)
-
-    demo_routes_path.write_text(_json.dumps(existing))
-    summary = {k: {"waypoints": len(v["waypoints"]), "distance": v["distance"]} for k, v in result.items()}
-    return jsonify({"success": True, "updated": summary, "failed": errors})
-
-
 # ---------------------------------------------------------------------------
-# NLP Analysis (Track 1) — serves from cache
+# NLP Analysis — serves from cache
 # ---------------------------------------------------------------------------
 NLP_CACHE_PATH = BASE_DIR / "static" / "nlp_cache.json"
 
@@ -2251,12 +2141,12 @@ def nlp():
     return render_template("nlp.html", assistant_stats=assistant_stats)
 
 
-@app.route("/api/nlp/pipeline-demo")
-def nlp_pipeline_demo():
-    """Pipeline examples: Thai text → tokenization → XGBoost feature."""
+@app.route("/api/nlp/pipeline-preview")
+def nlp_pipeline_preview():
+    """Pipeline preview: Thai text -> tokenization -> model feature."""
     try:
         cache = _load_nlp_cache()
-        return jsonify(cache.get("pipeline_demo", {}))
+        return jsonify(cache.get("pipeline_preview", {}))
     except Exception as exc:
         return jsonify({"error": str(exc)}), 500
 
@@ -2437,8 +2327,7 @@ if __name__ == "__main__":
     print("  POST /api/analyze-route        Analyse a route")
     print("  POST /api/compare-routes       Compare fast/safe")
     print("  POST /api/compare-predictions  ML vs spatial")
-    print("  POST /api/refresh-demo-routes  Refresh demos")
-    print("  GET  /nlp                      NLP analysis (Track 1)")
+    print("  GET  /nlp                      Safety assistant")
     print("  GET  /api/nlp/*                NLP endpoints")
     print("  POST /api/chatbot              Hybrid chatbot")
     print("  GET  /api/chatbot/suggestions  Suggested questions")
