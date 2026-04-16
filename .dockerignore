@@ -1,0 +1,45 @@
+# Python
+__pycache__/
+*.py[cod]
+*.pyo
+*.pyd
+*.egg-info/
+dist/
+build/
+.eggs/
+
+# Virtual environment
+venv/
+.venv/
+env/
+
+# Tests
+tests/
+pytest.ini
+pyproject.toml
+
+# Environment / secrets
+.env
+.env.*
+*.env
+
+# Version control
+.git/
+.gitignore
+
+# Editor / OS
+.vscode/
+.idea/
+*.DS_Store
+Thumbs.db
+
+# Logs
+*.log
+logs/
+
+# Docker itself
+Dockerfile
+.dockerignore
+
+# CI
+.github/
