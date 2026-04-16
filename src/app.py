@@ -10,12 +10,19 @@ The WSGI entry point (root app.py) and the dev server both call create_app().
 """
 
 import json
+import logging
 import os
 
-from flask import Flask
+from flask import Flask, jsonify, request
 
-from .config import BASE_DIR, GOOGLE_MAPS_SERVER_KEY
+from .config import BASE_DIR, GOOGLE_MAPS_SERVER_KEY, SECRET_KEY
 from . import extensions
+
+logging.basicConfig(
+    level=logging.INFO,
+    format="%(asctime)s [%(levelname)s] %(name)s: %(message)s",
+)
+logger = logging.getLogger(__name__)
 
 
 def create_app() -> Flask:
@@ -25,6 +32,12 @@ def create_app() -> Flask:
         static_folder=str(BASE_DIR / "static"),
     )
 
+    # ── Security configuration ──────────────────────────────────────────────
+    app.config["SECRET_KEY"] = SECRET_KEY
+    # Reject request bodies larger than 2 MB to prevent memory-exhaustion attacks.
+    app.config["MAX_CONTENT_LENGTH"] = 2 * 1024 * 1024  # 2 MB
+
+    _register_request_hooks(app)
     _init_ml()
     _init_gmaps()
     _init_chatbot()
@@ -45,6 +58,48 @@ def create_app() -> Flask:
 
 
 # ---------------------------------------------------------------------------
+# Request / response hooks
+# ---------------------------------------------------------------------------
+
+def _register_request_hooks(app: Flask) -> None:
+
+    @app.before_request
+    def enforce_json_content_type():
+        """Reject non-JSON POST bodies.
+
+        Browsers cannot send Content-Type: application/json via plain HTML
+        forms, so this provides lightweight CSRF mitigation for all JSON
+        API endpoints without requiring a token.
+        """
+        if (
+            request.method == "POST"
+            and request.content_length
+            and request.content_length > 0
+            and not request.is_json
+        ):
+            return jsonify({"error": "Content-Type must be application/json"}), 415
+
+    @app.after_request
+    def set_security_headers(response):
+        """Attach security headers to every response."""
+        response.headers["X-Content-Type-Options"] = "nosniff"
+        response.headers["X-Frame-Options"] = "DENY"
+        response.headers["Referrer-Policy"] = "strict-origin-when-cross-origin"
+        # Strict-Transport-Security: only sent over HTTPS (Render/Gunicorn enforces this)
+        response.headers["Strict-Transport-Security"] = "max-age=31536000; includeSubDomains"
+        # CSP: allow Maps JS, Chart.js CDN, and our own assets; block everything else.
+        response.headers["Content-Security-Policy"] = (
+            "default-src 'self'; "
+            "script-src 'self' 'unsafe-inline' cdn.jsdelivr.net maps.googleapis.com; "
+            "style-src 'self' 'unsafe-inline' fonts.googleapis.com cdn.jsdelivr.net; "
+            "font-src fonts.gstatic.com cdn.jsdelivr.net; "
+            "img-src 'self' data: https:; "
+            "connect-src 'self' router.project-osrm.org *.googleapis.com"
+        )
+        return response
+
+
+# ---------------------------------------------------------------------------
 # Startup initialisation helpers
 # ---------------------------------------------------------------------------
 
@@ -55,26 +110,26 @@ def _init_ml() -> None:
         extensions.ml_predictor = predictor
         extensions.USE_ML = predictor._model is not None
         if extensions.USE_ML:
-            print("ML predictor: XGBoost loaded (83.8% holdout crash capture, 17.5x lift)")
+            logger.info("ML predictor: XGBoost loaded (83.8% holdout crash capture, 17.5x lift)")
         else:
-            print("ML predictor: model file missing, spatial fallback active")
-    except Exception as exc:
-        print(f"ML predictor: failed to load ({exc}), spatial fallback active")
+            logger.warning("ML predictor: model file missing, spatial fallback active")
+    except Exception:
+        logger.exception("ML predictor: failed to load, spatial fallback active")
         extensions.ml_predictor = None
         extensions.USE_ML = False
 
 
 def _init_gmaps() -> None:
     if not GOOGLE_MAPS_SERVER_KEY:
-        print("Google Maps: No server API key found. Using OSRM/estimated travel times.")
+        logger.info("Google Maps: No server API key — using OSRM/estimated travel times.")
         return
     try:
         import googlemaps
         extensions.gmaps_client = googlemaps.Client(key=GOOGLE_MAPS_SERVER_KEY)
         key_source = "GOOGLE_MAPS_SERVER_KEY" if os.getenv("GOOGLE_MAPS_SERVER_KEY") else "legacy GOOGLE_MAPS_API_KEY"
-        print(f"Google Maps: loaded via {key_source} (traffic-aware travel times enabled)")
-    except Exception as exc:
-        print(f"Google Maps: failed to initialise client ({exc})")
+        logger.info("Google Maps: loaded via %s (traffic-aware routing enabled)", key_source)
+    except Exception:
+        logger.exception("Google Maps: failed to initialise client")
         extensions.gmaps_client = None
 
 
@@ -83,10 +138,10 @@ def _init_chatbot() -> None:
     try:
         with open(chatbot_data_path, encoding="utf-8") as fh:
             extensions.CHATBOT_DATA = json.load(fh)
-        print(f"Chatbot data loaded: {chatbot_data_path}")
+        logger.info("Chatbot data loaded from %s", chatbot_data_path)
     except FileNotFoundError:
         extensions.CHATBOT_DATA = {}
-        print(f"Warning: chatbot data not found at {chatbot_data_path}")
+        logger.warning("Chatbot data not found at %s", chatbot_data_path)
 
 
 # ---------------------------------------------------------------------------

@@ -4,6 +4,7 @@ Import from here instead of scattering os.getenv / Path(...) calls across module
 """
 
 import os
+import secrets
 from pathlib import Path
 
 from dotenv import load_dotenv
@@ -12,6 +13,14 @@ BASE_DIR = Path(__file__).resolve().parent.parent
 DATA_DIR = BASE_DIR / "data" / "processed"
 
 load_dotenv(BASE_DIR / ".env")
+
+# ---------------------------------------------------------------------------
+# Flask security
+# ---------------------------------------------------------------------------
+# SECRET_KEY signs session cookies and CSRF tokens.
+# Always set this to a strong random value via the SECRET_KEY env var in
+# production — never rely on the fallback below outside local dev.
+SECRET_KEY: str = os.getenv("SECRET_KEY") or secrets.token_hex(32)
 
 # ---------------------------------------------------------------------------
 # API keys

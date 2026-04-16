@@ -6,6 +6,8 @@ Routes:
     GET  /api/chatbot/suggestions
 """
 
+import logging
+
 from flask import Blueprint, jsonify, request
 
 from .. import extensions
@@ -22,11 +24,15 @@ from ..chatbot_utils import (
     normalize_chat_history,
     sanitize_chatbot_payload,
 )
+from ..utils.rate_limit import rate_limit
+
+logger = logging.getLogger(__name__)
 
 chatbot_bp = Blueprint("chatbot", __name__, url_prefix="/api/chatbot")
 
 
 @chatbot_bp.route("", methods=["POST"])
+@rate_limit(max_calls=20, window_seconds=3600)
 def chatbot():
     """Hybrid chatbot: scripted patterns → ML cause detection → Groq LLM."""
     try:
@@ -65,11 +71,11 @@ def chatbot():
 
         return jsonify({"success": True, "response": sanitize_chatbot_payload(response)})
 
-    except Exception as exc:
+    except Exception:
+        logger.exception("Unhandled error in /api/chatbot")
         return jsonify({
             "success": False,
-            "error": str(exc),
-            "fallback": "I encountered an error. Please try asking your question differently or use one of the suggested questions.",
+            "error": "An error occurred. Please try asking your question differently.",
         }), 500
 
 

@@ -415,6 +415,25 @@ main { background: transparent !important; position: relative; z-index: auto; }
 {% endblock %}
 
 {% block extra_js %}
+<!--
+  SECURITY NOTE — Google Maps Browser API Key
+  ============================================
+  The key below is intentionally exposed to the client (this is required for
+  the Maps JavaScript API to work in the browser). To prevent abuse you MUST
+  restrict it in Google Cloud Console:
+
+  1. Go to: https://console.cloud.google.com/apis/credentials
+  2. Select this API key → "Application restrictions"
+  3. Choose "HTTP referrers (websites)" and add your domain(s), e.g.:
+       https://yourapp.onrender.com/*
+       http://localhost:5000/*   (dev only)
+  4. Under "API restrictions" → "Restrict key" → select only:
+       - Maps JavaScript API
+       - Places API
+       - Geocoding API
+
+  An unrestricted key can be used by anyone who views your page source.
+-->
 {% if google_maps_api_key %}
 <script>window.__GMAPS_KEY__ = "{{ google_maps_api_key }}";</script>
 {% endif %}

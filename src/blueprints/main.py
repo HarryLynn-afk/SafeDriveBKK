@@ -2,9 +2,13 @@
 Page-level routes: home, trip planner, analytics, about, NLP, risk map.
 """
 
+import logging
+
 from flask import Blueprint, jsonify, render_template, send_file
 
 from ..config import GOOGLE_MAPS_BROWSER_KEY, RISK_HEATMAP_HTML_PATH, RISK_MAP_HTML_PATH
+
+logger = logging.getLogger(__name__)
 from ..extensions import CHATBOT_DATA
 from ..utils.data import calculate_temporal_stats, load_bangkok_accidents, load_grid_stats
 
@@ -38,6 +42,7 @@ def home():
             map_available=RISK_HEATMAP_HTML_PATH.exists(),
         )
     except Exception as exc:
+        logger.exception("Error loading home page data")
         return render_template(
             "index.html",
             total_accidents=0,
@@ -49,7 +54,7 @@ def home():
             peak_card="Peak: N/A",
             dangerous_day_card="N/A Most Dangerous",
             map_available=False,
-            error_message=str(exc),
+            error_message="Data temporarily unavailable.",
         ), 500
 
 
@@ -76,9 +81,6 @@ def nlp():
 
 @main_bp.route("/risk-map")
 def risk_map():
-    try:
-        if not RISK_MAP_HTML_PATH.exists():
-            raise FileNotFoundError(f"Risk map not found: {RISK_MAP_HTML_PATH}")
-        return send_file(RISK_MAP_HTML_PATH)
-    except Exception as exc:
-        return jsonify({"error": str(exc)}), 404
+    if not RISK_MAP_HTML_PATH.exists():
+        return jsonify({"error": "Risk map is not available."}), 404
+    return send_file(RISK_MAP_HTML_PATH)

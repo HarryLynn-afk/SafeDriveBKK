@@ -10,8 +10,10 @@ Routes:
     POST /api/compare-predictions
 """
 
-import requests as http_requests
+import logging
+
 import pandas as pd
+import requests as http_requests
 from flask import Blueprint, jsonify, request
 
 from .. import extensions
@@ -19,6 +21,10 @@ from ..config import GOOGLE_MAPS_SERVER_KEY
 from ..utils.data import calculate_temporal_stats, load_bangkok_accidents, load_grid_stats
 from ..utils.display import build_zone_display_name
 from ..utils.geo import assign_bangkok_area, latlon_to_grid_id, nearest_district
+from ..utils.rate_limit import rate_limit
+from ..utils.validators import validate_coordinates
+
+logger = logging.getLogger(__name__)
 
 api_bp = Blueprint("api", __name__, url_prefix="/api")
 
@@ -30,16 +36,18 @@ def risk_zones():
         df = df[df["total_accidents"] > 0].copy()
         df = df.where(pd.notna(df), None)
         return jsonify({"count": int(len(df)), "risk_zones": df.to_dict(orient="records")})
-    except Exception as exc:
-        return jsonify({"error": str(exc)}), 500
+    except Exception:
+        logger.exception("Error in /api/risk-zones")
+        return jsonify({"error": "Failed to load risk zones."}), 500
 
 
 @api_bp.route("/temporal-stats")
 def temporal_stats():
     try:
         return jsonify(calculate_temporal_stats(load_bangkok_accidents()))
-    except Exception as exc:
-        return jsonify({"error": str(exc)}), 500
+    except Exception:
+        logger.exception("Error in /api/temporal-stats")
+        return jsonify({"error": "Failed to load temporal statistics."}), 500
 
 
 @api_bp.route("/analytics-data")
@@ -164,8 +172,9 @@ def analytics_data():
                 "high_risk_accident_share_exact": ((high_risk_accidents / total_mapped) * 100) if total_mapped else 0.0,
             },
         })
-    except Exception as exc:
-        return jsonify({"error": str(exc)}), 500
+    except Exception:
+        logger.exception("Error in /api/analytics-data")
+        return jsonify({"error": "Failed to load analytics data."}), 500
 
 
 @api_bp.route("/model-info")
@@ -204,9 +213,14 @@ def model_info():
 
 
 @api_bp.route("/geolocate", methods=["POST"])
+@rate_limit(max_calls=10, window_seconds=3600)
 def geolocate():
+    """Server-side IP geolocation via Google Geolocation API.
+
+    Rate-limited to 10 requests/hour per IP to protect API quota.
+    """
     if not GOOGLE_MAPS_SERVER_KEY:
-        return jsonify(success=False, error="No API key configured"), 500
+        return jsonify(success=False, error="Geolocation is not configured on this server."), 500
     try:
         resp = http_requests.post(
             f"https://www.googleapis.com/geolocation/v1/geolocate?key={GOOGLE_MAPS_SERVER_KEY}",
@@ -214,38 +228,55 @@ def geolocate():
             timeout=5,
         )
         data = resp.json()
-        if "location" in data:
-            return jsonify(
-                success=True,
-                lat=data["location"]["lat"],
-                lon=data["location"]["lng"],
-                accuracy=data.get("accuracy", 0),
-            )
-        return jsonify(success=False, error=data.get("error", {}).get("message", "Unknown")), 400
-    except Exception as exc:
-        return jsonify(success=False, error=str(exc)), 500
+        if "location" not in data:
+            return jsonify(success=False, error="Could not determine location."), 400
+
+        # Validate that Google returned sensible coordinate values before
+        # passing them back to the client.
+        try:
+            lat = float(data["location"]["lat"])
+            lon = float(data["location"]["lng"])
+            validate_coordinates(lat, lon)
+        except (KeyError, TypeError, ValueError):
+            logger.warning("Google Geolocation returned invalid coordinates: %s", data.get("location"))
+            return jsonify(success=False, error="Could not determine location."), 400
+
+        return jsonify(success=True, lat=lat, lon=lon, accuracy=data.get("accuracy", 0))
+
+    except Exception:
+        logger.exception("Error in /api/geolocate")
+        return jsonify(success=False, error="Geolocation request failed."), 500
 
 
 @api_bp.route("/compare-predictions", methods=["POST"])
 def compare_predictions():
     try:
         data = request.get_json(silent=True) or {}
-        lat = float(data["lat"])
-        lon = float(data["lon"])
+        try:
+            lat = float(data["lat"])
+            lon = float(data["lon"])
+            validate_coordinates(lat, lon)
+        except (KeyError, TypeError, ValueError) as exc:
+            return jsonify({"error": f"Invalid coordinates: {exc}"}), 400
 
-        result: dict = {"location": {"lat": lat, "lon": lon}, "ml_prediction": None, "spatial_prediction": None, "difference": None}
+        result: dict = {
+            "location": {"lat": lat, "lon": lon},
+            "ml_prediction": None,
+            "spatial_prediction": None,
+            "difference": None,
+        }
 
         if extensions.USE_ML and extensions.ml_predictor:
             try:
                 result["ml_prediction"] = extensions.ml_predictor.predict_risk(lat, lon)
-            except Exception as exc:
-                result["ml_error"] = str(exc)
+            except Exception:
+                logger.exception("ML prediction failed in /api/compare-predictions")
 
         if extensions.ml_predictor:
             try:
                 result["spatial_prediction"] = extensions.ml_predictor.fallback_to_spatial(lat, lon)
-            except Exception as exc:
-                result["spatial_error"] = str(exc)
+            except Exception:
+                logger.exception("Spatial prediction failed in /api/compare-predictions")
 
         if result["ml_prediction"] and result["spatial_prediction"]:
             ml_score = result["ml_prediction"]["risk_score"]
@@ -256,5 +287,6 @@ def compare_predictions():
             }
 
         return jsonify(result)
-    except Exception as exc:
-        return jsonify({"error": str(exc)}), 400
+    except Exception:
+        logger.exception("Unhandled error in /api/compare-predictions")
+        return jsonify({"error": "An error occurred while comparing predictions."}), 500

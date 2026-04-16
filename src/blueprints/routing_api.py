@@ -6,6 +6,8 @@ Routes:
     POST /api/compare-routes
 """
 
+import logging
+
 from flask import Blueprint, jsonify, request
 
 from .. import extensions
@@ -31,6 +33,10 @@ from ..routing import (
     get_osrm_route,
 )
 from ..utils.data import load_grid_stats
+from ..utils.rate_limit import rate_limit
+from ..utils.validators import validate_coordinates
+
+logger = logging.getLogger(__name__)
 
 routing_api_bp = Blueprint("routing_api", __name__, url_prefix="/api")
 
@@ -40,20 +46,23 @@ routing_api_bp = Blueprint("routing_api", __name__, url_prefix="/api")
 # ---------------------------------------------------------------------------
 
 def _parse_coordinates(payload: dict) -> tuple[float, float, float, float]:
-    """Extract and validate start/end coordinates from a request payload."""
+    """Extract, type-cast, and range-validate start/end coordinates."""
     required = {"start_lat", "start_lon", "end_lat", "end_lon"}
     missing = required - set(payload.keys())
     if missing:
         raise ValueError(f"Missing fields: {sorted(missing)}")
     try:
-        return (
-            float(payload["start_lat"]),
-            float(payload["start_lon"]),
-            float(payload["end_lat"]),
-            float(payload["end_lon"]),
-        )
+        start_lat = float(payload["start_lat"])
+        start_lon = float(payload["start_lon"])
+        end_lat   = float(payload["end_lat"])
+        end_lon   = float(payload["end_lon"])
     except (TypeError, ValueError):
         raise ValueError("All coordinates must be valid numbers")
+
+    validate_coordinates(start_lat, start_lon)
+    validate_coordinates(end_lat, end_lon)
+
+    return start_lat, start_lon, end_lat, end_lon
 
 
 # ---------------------------------------------------------------------------
@@ -61,6 +70,7 @@ def _parse_coordinates(payload: dict) -> tuple[float, float, float, float]:
 # ---------------------------------------------------------------------------
 
 @routing_api_bp.route("/analyze-route", methods=["POST"])
+@rate_limit(max_calls=60, window_seconds=3600)
 def analyze_route():
     try:
         data = request.get_json(silent=True) or {}
@@ -130,9 +140,9 @@ def analyze_route():
         overall_risk = ml_risk if ml_risk is not None else calculate_route_risk_density_aware(sampled, grid_df)
         prediction_method = "xgboost" if ml_risk else "spatial"
 
-        high = sum(1 for s in segments if s["risk_level"] == "high")
+        high   = sum(1 for s in segments if s["risk_level"] == "high")
         medium = sum(1 for s in segments if s["risk_level"] == "medium")
-        low = sum(1 for s in segments if s["risk_level"] == "low")
+        low    = sum(1 for s in segments if s["risk_level"] == "low")
 
         return jsonify({
             "success": True,
@@ -155,12 +165,16 @@ def analyze_route():
                 "low_risk_segments": low,
                 "total_alerts": len(alerts),
                 "prediction_method": prediction_method,
-                "model_accuracy": "83.8% holdout crash capture" if prediction_method == "xgboost" else "83.8% spatial baseline capture",
+                "model_accuracy": (
+                    "83.8% holdout crash capture" if prediction_method == "xgboost"
+                    else "83.8% spatial baseline capture"
+                ),
                 "traffic_source": traffic_source,
             },
         })
-    except Exception as exc:
-        return jsonify({"error": str(exc)}), 500
+    except Exception:
+        logger.exception("Unhandled error in /api/analyze-route")
+        return jsonify({"error": "An error occurred while analysing the route."}), 500
 
 
 # ---------------------------------------------------------------------------
@@ -168,6 +182,7 @@ def analyze_route():
 # ---------------------------------------------------------------------------
 
 @routing_api_bp.route("/compare-routes", methods=["POST"])
+@rate_limit(max_calls=30, window_seconds=3600)
 def compare_routes():
     try:
         payload = request.get_json(silent=True) or {}
@@ -235,14 +250,14 @@ def compare_routes():
 
         apply_topsis(scored_routes)
 
-        route_fast = min(scored_routes, key=lambda r: r["time_min"])
-        route_safe = min(scored_routes, key=lambda r: r["risk_score"])
+        route_fast        = min(scored_routes, key=lambda r: r["time_min"])
+        route_safe        = min(scored_routes, key=lambda r: r["risk_score"])
         route_recommended = max(scored_routes, key=lambda r: r.get("topsis_score", 0.0))
 
         # ── Step 3: Annotate metadata ──
         prediction_method = "xgboost" if (extensions.USE_ML and extensions.ml_predictor) else "spatial"
         for r in scored_routes:
-            matched = r.get("matched_grids", 0)
+            matched   = r.get("matched_grids", 0)
             evaluated = max(1, r.get("evaluated_waypoints", 1))
             r["confidence"] = round(min(0.99, 0.75 + (matched / evaluated) * 0.24), 2)
             r["prediction_method"] = prediction_method
@@ -298,12 +313,19 @@ def compare_routes():
             "debug": {
                 "fast_waypoints_sample": route_fast["waypoints"][:3],
                 "safe_waypoints_sample": route_safe["waypoints"][:3],
-                "fast_risk_details": f"Calculated from {route_fast.get('matched_grids', 0)} matched grids across {route_fast.get('evaluated_waypoints', 0)} waypoints",
-                "safe_risk_details": f"Calculated from {route_safe.get('matched_grids', 0)} matched grids across {route_safe.get('evaluated_waypoints', 0)} waypoints",
+                "fast_risk_details": (
+                    f"Calculated from {route_fast.get('matched_grids', 0)} matched grids "
+                    f"across {route_fast.get('evaluated_waypoints', 0)} waypoints"
+                ),
+                "safe_risk_details": (
+                    f"Calculated from {route_safe.get('matched_grids', 0)} matched grids "
+                    f"across {route_safe.get('evaluated_waypoints', 0)} waypoints"
+                ),
                 "fast_summary": route_fast.get("summary", ""),
                 "safe_summary": route_safe.get("summary", ""),
                 "google_maps_alternatives": alternatives_analyzed,
             },
         })
-    except Exception as exc:
-        return jsonify({"error": str(exc)}), 500
+    except Exception:
+        logger.exception("Unhandled error in /api/compare-routes")
+        return jsonify({"error": "An error occurred while comparing routes."}), 500
