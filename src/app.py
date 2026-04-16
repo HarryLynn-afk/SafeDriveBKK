@@ -17,11 +17,9 @@ from flask import Flask, jsonify, request
 
 from .config import BASE_DIR, GOOGLE_MAPS_SERVER_KEY, SECRET_KEY
 from . import extensions
+from .logging_config import setup_logging
 
-logging.basicConfig(
-    level=logging.INFO,
-    format="%(asctime)s [%(levelname)s] %(name)s: %(message)s",
-)
+setup_logging()
 logger = logging.getLogger(__name__)
 
 

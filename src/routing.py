@@ -13,6 +13,7 @@ client so there is a single shared instance per process.
 from __future__ import annotations
 
 import json
+import logging
 import math
 from concurrent.futures import ThreadPoolExecutor
 
@@ -30,6 +31,8 @@ from .config import (
 )
 from .utils.geo import find_grid_for_point, haversine_km
 
+logger = logging.getLogger(__name__)
+
 # ---------------------------------------------------------------------------
 # Route-preset cache (loaded once from static/route_presets.json)
 # ---------------------------------------------------------------------------
@@ -43,7 +46,11 @@ def _load_route_presets() -> dict:
     try:
         with open(ROUTE_PRESETS_PATH) as fh:
             _route_presets_cache = json.load(fh)
+    except FileNotFoundError:
+        logger.warning("Route presets file not found at %s — cached routes disabled", ROUTE_PRESETS_PATH)
+        _route_presets_cache = {}
     except Exception:
+        logger.exception("Failed to load route presets from %s", ROUTE_PRESETS_PATH)
         _route_presets_cache = {}
     return _route_presets_cache
 
@@ -139,8 +146,8 @@ def get_google_maps_travel_time(
             "distance_km": round(leg["distance"]["value"] / 1000, 2),
             "has_traffic": has_traffic,
         }
-    except Exception as exc:
-        print(f"Google Maps travel-time error: {exc}")
+    except Exception:
+        logger.warning("Google Maps travel-time request failed", exc_info=True)
         return None
 
 
@@ -184,8 +191,8 @@ def get_google_maps_routes(
                 "summary": route.get("summary", ""),
             })
         return routes
-    except Exception as exc:
-        print(f"Google Maps routes error: {exc}")
+    except Exception:
+        logger.warning("Google Maps routes request failed", exc_info=True)
         return []
 
 

@@ -257,7 +257,8 @@ def compare_predictions():
             lon = float(data["lon"])
             validate_coordinates(lat, lon)
         except (KeyError, TypeError, ValueError) as exc:
-            return jsonify({"error": f"Invalid coordinates: {exc}"}), 400
+            logger.debug("Invalid coordinates in /api/compare-predictions: %s", exc)
+            return jsonify({"error": "Invalid or missing coordinates."}), 400
 
         result: dict = {
             "location": {"lat": lat, "lon": lon},

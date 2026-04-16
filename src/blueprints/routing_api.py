@@ -77,7 +77,8 @@ def analyze_route():
         try:
             start_lat, start_lon, end_lat, end_lon = _parse_coordinates(data)
         except ValueError as exc:
-            return jsonify({"error": str(exc)}), 400
+            logger.debug("Invalid coordinates in /api/analyze-route: %s", exc)
+            return jsonify({"error": "Invalid or missing coordinates."}), 400
 
         # ── Parse optional pre-computed waypoints from the client ──
         parsed_waypoints: list[list[float]] = []
@@ -189,7 +190,8 @@ def compare_routes():
         try:
             start_lat, start_lon, end_lat, end_lon = _parse_coordinates(payload)
         except ValueError as exc:
-            return jsonify({"error": str(exc)}), 400
+            logger.debug("Invalid coordinates in /api/compare-routes: %s", exc)
+            return jsonify({"error": "Invalid or missing coordinates."}), 400
 
         if start_lat == end_lat and start_lon == end_lon:
             return jsonify({"error": "Start and end locations must be different"}), 400
