@@ -541,8 +541,10 @@ async function calculateRoute(startLat, startLon, endLat, endLon, destName) {
         // ── Step 1: real network call (duration is genuine) ──────────────
         const data = await runAnalysisStep(
             1,
-            "Requesting route alternatives from OSRM...",
+            "Requesting route alternatives from OSRM (may take up to 30s)...",
             async () => {
+                const timeoutSignal = AbortSignal.timeout(40000);
+                const combinedController = activeRouteAnalysisController;
                 const response = await fetch("/api/compare-routes", {
                     method: "POST",
                     headers: { "Content-Type": "application/json" },
@@ -553,7 +555,9 @@ async function calculateRoute(startLat, startLon, endLat, endLon, destName) {
                         end_lon: endLon,
                         destination_name: destName
                     }),
-                    signal: activeRouteAnalysisController.signal,
+                    signal: AbortSignal.any
+                        ? AbortSignal.any([combinedController.signal, timeoutSignal])
+                        : combinedController.signal,
                 });
 
                 if (!response.ok) throw new Error("Route comparison failed");

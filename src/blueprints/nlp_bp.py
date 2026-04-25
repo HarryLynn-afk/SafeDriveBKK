@@ -53,7 +53,7 @@ def cause_analysis():
 @nlp_bp.route("/recommendations")
 def recommendations():
     try:
-        return jsonify(_load_nlp_cache().get("recommendations", []))
+        return jsonify({"recommendations": _load_nlp_cache().get("recommendations", [])})
     except Exception:
         logger.exception("Error in /api/nlp/recommendations")
         return jsonify({"error": "Failed to load recommendations."}), 500
