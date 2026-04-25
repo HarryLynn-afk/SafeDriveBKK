@@ -14,6 +14,7 @@ from pathlib import Path
 import joblib
 import numpy as np
 import pandas as pd
+import xgboost as xgb
 
 LOGGER = logging.getLogger(__name__)
 
@@ -57,12 +58,25 @@ class RiskPredictor:
         # Grid stats for spatial fallback
         self._grid_stats = self._load_grid_stats()
 
-        # Try loading model; fall back to spatial-only if unavailable
+        # Try loading model; fall back to spatial-only if unavailable.
+        # Prefer the native .ubj format (no pickle warning); fall back to
+        # legacy .pkl for backward compatibility.
         self._model = None
-        if model_path.exists():
+        self._model_is_booster = False
+        ubj_path = model_path.with_suffix(".ubj")
+        if ubj_path.exists():
+            try:
+                booster = xgb.Booster()
+                booster.load_model(str(ubj_path))
+                self._model = booster
+                self._model_is_booster = True
+                LOGGER.info("Loaded XGBoost model from %s", ubj_path)
+            except Exception:
+                LOGGER.exception("Failed to load model from %s", ubj_path)
+        elif model_path.exists():
             try:
                 self._model = joblib.load(model_path)
-                LOGGER.info("Loaded XGBoost model from %s", model_path)
+                LOGGER.info("Loaded XGBoost model from %s (legacy pkl)", model_path)
             except Exception:
                 LOGGER.exception("Failed to load model from %s", model_path)
         else:
@@ -145,6 +159,13 @@ class RiskPredictor:
 
         return pd.DataFrame([values], columns=self._feature_names)
 
+    def _predict_proba(self, df: pd.DataFrame) -> np.ndarray:
+        """Return probability of the positive class for each row in *df*."""
+        if self._model_is_booster:
+            dmat = xgb.DMatrix(df)
+            return self._model.predict(dmat)  # Booster.predict returns proba directly
+        return self._model.predict_proba(df)[:, 1]
+
     @staticmethod
     def _probability_to_risk_score(prob):
         """Map model probability (0-1) to a 0-100 risk score."""
@@ -184,7 +205,7 @@ class RiskPredictor:
             features_df = self._extract_features(grid_id)
             if features_df is not None:
                 try:
-                    prob = float(self._model.predict_proba(features_df)[0, 1])
+                    prob = float(self._predict_proba(features_df)[0])
                     score = self._probability_to_risk_score(prob)
                     return {
                         "risk_score": score,
@@ -243,7 +264,7 @@ class RiskPredictor:
         if feature_rows and self._model is not None:
             try:
                 batch_df = pd.DataFrame(feature_rows, columns=self._feature_names)
-                probas = self._model.predict_proba(batch_df)[:, 1]
+                probas = self._predict_proba(batch_df)
                 for j, idx in enumerate(indices_ml):
                     prob = float(probas[j])
                     score = self._probability_to_risk_score(prob)
@@ -266,6 +287,11 @@ class RiskPredictor:
         """Return top-N feature importances from the loaded model."""
         if self._model is None:
             return {}
+        if self._model_is_booster:
+            scores = self._model.get_score(importance_type="gain")
+            pairs = sorted(scores.items(), key=lambda x: x[1], reverse=True)
+            total = sum(v for _, v in pairs) or 1
+            return {name: round(val / total, 5) for name, val in pairs[:top_n]}
         importances = self._model.feature_importances_
         pairs = sorted(
             zip(self._feature_names, importances),
