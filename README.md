@@ -141,6 +141,30 @@ pytest --tb=short -q
 
 ---
 
+## Engineering Trade-offs
+
+Every design decision in this project involved a deliberate trade-off. These are documented here to be honest about what was chosen, what was left out, and why.
+
+**In-memory rate limiting instead of Redis**
+The rate limiter uses a thread-safe in-memory counter rather than Redis or Flask-Limiter. This works correctly for a single-process deployment (which covers this project), but would not be shared across multiple gunicorn workers or horizontal replicas. The trade-off was avoiding an external infrastructure dependency (Redis) for a portfolio project, with the understanding that a production multi-instance deployment would require a distributed store.
+
+**Grid-based spatial model instead of graph-based routing risk**
+Risk is scored per 500m grid cell rather than per road segment. This means two routes through the same cell receive the same risk score regardless of which specific road they use. A road-network graph (OSM + PostGIS) would be more accurate but would require significant infrastructure and data engineering beyond the scope of this project.
+
+**OSRM public instance instead of self-hosted**
+Routing calls go to the public OSRM demo server (`router.project-osrm.org`). This is rate-limited and not suitable for production traffic. A production deployment would self-host OSRM or use a paid routing API. The fallback chain (live OSRM → cached preset → dense interpolation) was built specifically to handle public instance unavailability.
+
+**TF-IDF + Logistic Regression instead of a Thai language model**
+The NLP classifier uses TF-IDF features and Logistic Regression rather than a fine-tuned Thai BERT model (e.g., WangchanBERTa). The simpler model trains in seconds, runs without a GPU, and achieves adequate accuracy on the accident-cause classification task. A transformer model would improve accuracy on ambiguous cases but would add significant serving complexity and memory requirements.
+
+**No persistent database**
+Accident data is loaded from pre-processed CSV files at startup and held in memory. There is no database write path — the app is read-only at runtime. This was intentional: the dataset is static (2024 snapshot), so a database would add operational complexity without meaningful benefit. A live-updating system would require a write pipeline and a proper database.
+
+**XGBoost pickle serialisation**
+The model is serialised as a Python pickle (`.pkl`) rather than XGBoost's native `.ubj` format. Pickle files are Python-version-sensitive and carry a minor security risk if loaded from untrusted sources. The trade-off was development speed; migrating to `Booster.save_model()` / `load_model()` is a known follow-up task.
+
+---
+
 ## Project Layout
 
 ```
