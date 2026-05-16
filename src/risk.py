@@ -180,6 +180,24 @@ def calculate_distance_from_waypoints(waypoints: list[list[float]]) -> float:
 
 
 # ---------------------------------------------------------------------------
+# Unified route scorer (ML with automatic spatial fallback)
+# ---------------------------------------------------------------------------
+
+def score_route(waypoints: list[list[float]], grid_df: pd.DataFrame) -> dict:
+    """Score a route using XGBoost when available, spatial fallback otherwise.
+
+    Always returns a complete risk dict with prediction_method set.
+    Callers never need to know which path ran.
+    """
+    ml_risk = calculate_route_risk_ml(waypoints)
+    if ml_risk is not None:
+        return ml_risk
+    result = calculate_route_risk_density_aware(waypoints, grid_df)
+    result["prediction_method"] = "spatial"
+    return result
+
+
+# ---------------------------------------------------------------------------
 # Segment analysis & alerts
 # ---------------------------------------------------------------------------
 

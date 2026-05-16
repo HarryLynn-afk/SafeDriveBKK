@@ -9,6 +9,8 @@ and route role annotation.
 import pandas as pd
 import pytest
 
+from unittest.mock import MagicMock, patch
+
 from src.risk import (
     analyze_route_segments,
     annotate_route_roles,
@@ -19,6 +21,7 @@ from src.risk import (
     dedupe_scored_routes,
     evaluate_route,
     generate_alerts_from_segments,
+    score_route,
 )
 
 
@@ -34,6 +37,67 @@ def _make_route(route_id: str, time_min: int, risk_score: int) -> dict:
         "risk_score": risk_score,
         "distance_km": 5.0,
     }
+
+
+# ---------------------------------------------------------------------------
+# score_route — unified ML/spatial scorer
+# ---------------------------------------------------------------------------
+
+_SCORE_ROUTE_KEYS = {
+    "risk_score", "risk_level", "high_risk_km",
+    "matched_grids", "evaluated_waypoints", "prediction_method",
+}
+
+_SIMPLE_WPS = [[13.692, 100.442], [13.695, 100.445], [13.698, 100.448]]
+
+
+class TestScoreRoute:
+    def test_returns_all_required_keys_spatial(self, sample_grid_df):
+        with patch("src.risk.extensions") as mock_ext:
+            mock_ext.USE_ML = False
+            mock_ext.ml_predictor = None
+            result = score_route(_SIMPLE_WPS, sample_grid_df)
+        assert _SCORE_ROUTE_KEYS.issubset(result.keys())
+
+    def test_prediction_method_is_spatial_when_ml_disabled(self, sample_grid_df):
+        with patch("src.risk.extensions") as mock_ext:
+            mock_ext.USE_ML = False
+            mock_ext.ml_predictor = None
+            result = score_route(_SIMPLE_WPS, sample_grid_df)
+        assert result["prediction_method"] == "spatial"
+
+    def test_prediction_method_is_xgboost_when_ml_enabled(self, sample_grid_df):
+        mock_predictor = MagicMock()
+        mock_predictor.predict_batch.return_value = [
+            {"risk_score": 55, "risk_level": "medium", "confidence": 0.7, "method": "xgboost"}
+            for _ in _SIMPLE_WPS
+        ]
+        with patch("src.risk.extensions") as mock_ext:
+            mock_ext.USE_ML = True
+            mock_ext.ml_predictor = mock_predictor
+            result = score_route(_SIMPLE_WPS, sample_grid_df)
+        assert result["prediction_method"] == "xgboost"
+
+    def test_risk_score_always_in_range(self, sample_grid_df):
+        with patch("src.risk.extensions") as mock_ext:
+            mock_ext.USE_ML = False
+            mock_ext.ml_predictor = None
+            result = score_route(_SIMPLE_WPS, sample_grid_df)
+        assert 0 <= result["risk_score"] <= 100
+
+    def test_never_returns_none(self, sample_grid_df):
+        with patch("src.risk.extensions") as mock_ext:
+            mock_ext.USE_ML = False
+            mock_ext.ml_predictor = None
+            result = score_route(_SIMPLE_WPS, sample_grid_df)
+        assert result is not None
+
+    def test_risk_level_is_valid_string(self, sample_grid_df):
+        with patch("src.risk.extensions") as mock_ext:
+            mock_ext.USE_ML = False
+            mock_ext.ml_predictor = None
+            result = score_route(_SIMPLE_WPS, sample_grid_df)
+        assert result["risk_level"] in ("low", "medium", "high")
 
 
 # ---------------------------------------------------------------------------

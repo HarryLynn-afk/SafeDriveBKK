@@ -16,6 +16,7 @@ import json
 import logging
 import math
 from concurrent.futures import ThreadPoolExecutor
+from dataclasses import dataclass
 
 import requests
 from googlemaps.convert import decode_polyline
@@ -32,6 +33,18 @@ from .config import (
 from .utils.geo import find_grid_for_point, haversine_km
 
 logger = logging.getLogger(__name__)
+
+# ---------------------------------------------------------------------------
+# ResolvedRoute — the single return type of resolve_route()
+# ---------------------------------------------------------------------------
+
+@dataclass
+class ResolvedRoute:
+    waypoints: list[list[float]]
+    distance_km: float
+    duration_min: int
+    traffic_source: str  # "google_maps_traffic" | "google_maps" | "osrm" | "cached_osrm" | "estimated"
+
 
 # ---------------------------------------------------------------------------
 # Route-preset cache (loaded once from static/route_presets.json)
@@ -283,6 +296,86 @@ def get_osrm_alternatives(
 
     cached = find_cached_route(start_lat, start_lon, end_lat, end_lon)
     return [cached] if cached else []
+
+
+# ---------------------------------------------------------------------------
+# Unified route resolver (geometry + timing, full fallback chain)
+# ---------------------------------------------------------------------------
+
+def resolve_route(
+    start_lat: float,
+    start_lon: float,
+    end_lat: float,
+    end_lon: float,
+    client_waypoints: list[list[float]] | None = None,
+) -> ResolvedRoute:
+    """Resolve a route geometry and travel time using the full fallback chain.
+
+    Priority:
+      1. Client-supplied waypoints (geometry only; timing still fetched from GMaps/estimate)
+      2. Live OSRM (geometry + timing)
+      3. Cached route preset (geometry + estimated timing)
+      4. Dense interpolation (geometry + estimated timing)
+
+    Google Maps timing is layered on top whenever the client is available,
+    regardless of which geometry source was used.
+
+    Always returns a ResolvedRoute — never raises.
+    """
+    waypoints: list[list[float]]
+    distance_km: float
+    duration_min: int
+    traffic_source: str
+
+    if client_waypoints and len(client_waypoints) >= 2:
+        waypoints = client_waypoints
+        distance_km = sum(
+            haversine_km(waypoints[i - 1][0], waypoints[i - 1][1], waypoints[i][0], waypoints[i][1])
+            for i in range(1, len(waypoints))
+        )
+        duration_min = int((distance_km / 40) * 60) if distance_km > 0 else 0
+        traffic_source = "estimated"
+    else:
+        osrm = get_osrm_route(start_lat, start_lon, end_lat, end_lon)
+        if osrm:
+            waypoints = osrm["waypoints"]
+            distance_km = float(osrm["distance_km"])
+            duration_min = int(osrm["duration_min"])
+            traffic_source = "osrm"
+        else:
+            cached = find_cached_route(start_lat, start_lon, end_lat, end_lon)
+            if cached:
+                waypoints = cached["waypoints"]
+                distance_km = float(cached.get("distance_km") or 0) or sum(
+                    haversine_km(cached["waypoints"][i - 1][0], cached["waypoints"][i - 1][1],
+                                 cached["waypoints"][i][0], cached["waypoints"][i][1])
+                    for i in range(1, len(cached["waypoints"]))
+                )
+                duration_min = int(cached.get("duration_min") or 0) or int((distance_km / 40) * 60)
+                traffic_source = "cached_osrm"
+            else:
+                waypoints = generate_dense_interpolation(start_lat, start_lon, end_lat, end_lon)
+                distance_km = sum(
+                    haversine_km(waypoints[i - 1][0], waypoints[i - 1][1], waypoints[i][0], waypoints[i][1])
+                    for i in range(1, len(waypoints))
+                )
+                duration_min = int((distance_km / 40) * 60)
+                traffic_source = "estimated"
+
+    # Layer GMaps timing on top whenever available
+    gmaps = get_google_maps_travel_time(start_lat, start_lon, end_lat, end_lon)
+    if gmaps:
+        duration_min = gmaps["duration_minutes"]
+        if gmaps["distance_km"] and traffic_source == "estimated":
+            distance_km = gmaps["distance_km"]
+        traffic_source = "google_maps_traffic" if gmaps["has_traffic"] else "google_maps"
+
+    return ResolvedRoute(
+        waypoints=waypoints,
+        distance_km=round(distance_km, 2),
+        duration_min=duration_min,
+        traffic_source=traffic_source,
+    )
 
 
 # ---------------------------------------------------------------------------

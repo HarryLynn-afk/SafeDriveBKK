@@ -16,21 +16,17 @@ from ..risk import (
     annotate_route_roles,
     apply_topsis,
     build_display_routes,
-    calculate_distance_from_waypoints,
-    calculate_route_risk_density_aware,
-    calculate_route_risk_ml,
     dedupe_scored_routes,
     evaluate_route,
     generate_alerts_from_segments,
+    score_route,
 )
 from ..routing import (
-    find_cached_route,
-    generate_dense_interpolation,
     generate_fast_route,
     generate_safe_route,
     get_google_maps_routes,
     get_google_maps_travel_time,
-    get_osrm_route,
+    resolve_route,
 )
 from ..utils.data import load_grid_stats
 from ..utils.rate_limit import rate_limit
@@ -81,65 +77,28 @@ def analyze_route():
             return jsonify({"error": "Invalid or missing coordinates."}), 400
 
         # ── Parse optional pre-computed waypoints from the client ──
-        parsed_waypoints: list[list[float]] = []
-        for point in data.get("waypoints") or []:
-            if isinstance(point, (list, tuple)) and len(point) >= 2:
-                parsed_waypoints.append([float(point[0]), float(point[1])])
+        parsed_waypoints: list[list[float]] = [
+            [float(p[0]), float(p[1])]
+            for p in (data.get("waypoints") or [])
+            if isinstance(p, (list, tuple)) and len(p) >= 2
+        ]
 
-        traffic_source = "estimated"
-
-        if len(parsed_waypoints) >= 2:
-            waypoints = parsed_waypoints
-            calculated_distance = calculate_distance_from_waypoints(waypoints)
-            try:
-                route_distance_km = max(0.0, float(data.get("distance_km") or data.get("distance")))
-            except (TypeError, ValueError):
-                route_distance_km = calculated_distance
-
-            gmaps = get_google_maps_travel_time(start_lat, start_lon, end_lat, end_lon)
-            if gmaps:
-                route_duration_min = gmaps["duration_minutes"]
-                traffic_source = "google_maps_traffic" if gmaps["has_traffic"] else "google_maps"
-            else:
-                try:
-                    route_duration_min = max(0, int(data.get("duration_min") or data.get("duration")))
-                except (TypeError, ValueError):
-                    route_duration_min = int((route_distance_km / 40) * 60) if route_distance_km > 0 else 0
-        else:
-            gmaps = get_google_maps_travel_time(start_lat, start_lon, end_lat, end_lon)
-            osrm = get_osrm_route(start_lat, start_lon, end_lat, end_lon)
-
-            if osrm:
-                waypoints = osrm["waypoints"]
-                route_distance_km = float(osrm["distance_km"])
-                route_duration_min = int(osrm["duration_min"])
-                traffic_source = "osrm"
-            else:
-                cached = find_cached_route(start_lat, start_lon, end_lat, end_lon)
-                if cached:
-                    waypoints = cached["waypoints"]
-                    route_distance_km = float(cached.get("distance_km") or 0) or calculate_distance_from_waypoints(waypoints)
-                    route_duration_min = int(cached.get("duration_min") or 0) or int((route_distance_km / 40) * 60)
-                    traffic_source = "cached_osrm"
-                else:
-                    waypoints = generate_dense_interpolation(start_lat, start_lon, end_lat, end_lon)
-                    route_distance_km = calculate_distance_from_waypoints(waypoints)
-                    route_duration_min = int((route_distance_km / 40) * 60)
-
-            if gmaps:
-                route_duration_min = gmaps["duration_minutes"]
-                if gmaps["distance_km"] and traffic_source == "estimated":
-                    route_distance_km = gmaps["distance_km"]
-                traffic_source = "google_maps_traffic" if gmaps["has_traffic"] else "google_maps"
+        resolved = resolve_route(
+            start_lat, start_lon, end_lat, end_lon,
+            client_waypoints=parsed_waypoints or None,
+        )
+        waypoints = resolved.waypoints
+        route_distance_km = resolved.distance_km
+        route_duration_min = resolved.duration_min
+        traffic_source = resolved.traffic_source
 
         sampled = waypoints[:: max(1, len(waypoints) // 50)]
         grid_df = load_grid_stats()
         segments = analyze_route_segments(sampled, grid_df, segment_distance_km=1.0)
         alerts = generate_alerts_from_segments(segments, advance_warning_km=0.5)
 
-        ml_risk = calculate_route_risk_ml(sampled)
-        overall_risk = ml_risk if ml_risk is not None else calculate_route_risk_density_aware(sampled, grid_df)
-        prediction_method = "xgboost" if ml_risk else "spatial"
+        overall_risk = score_route(sampled, grid_df)
+        prediction_method = overall_risk["prediction_method"]
 
         high   = sum(1 for s in segments if s["risk_level"] == "high")
         medium = sum(1 for s in segments if s["risk_level"] == "medium")
@@ -210,8 +169,7 @@ def compare_routes():
                 if sampled[-1] != wps[-1]:
                     sampled.append(wps[-1])
 
-                ml_risk = calculate_route_risk_ml(sampled)
-                risk = ml_risk if ml_risk is not None else calculate_route_risk_density_aware(sampled, grid_df)
+                risk = score_route(sampled, grid_df)
 
                 scored_routes.append({
                     "waypoints": wps,

@@ -18,6 +18,7 @@ from .geo import add_grid_bounds
 # Module-level cache (set once, reused across requests)
 # ---------------------------------------------------------------------------
 _grid_stats_cache: pd.DataFrame | None = None
+_accidents_cache: pd.DataFrame | None = None
 
 
 # ---------------------------------------------------------------------------
@@ -35,8 +36,12 @@ def _require_file(file_path: Path) -> None:
 
 def load_bangkok_accidents() -> pd.DataFrame:
     """Load and return the cleaned Bangkok accident records."""
+    global _accidents_cache
+    if _accidents_cache is not None:
+        return _accidents_cache
     _require_file(BANGKOK_ACCIDENTS_PATH)
-    return pd.read_csv(BANGKOK_ACCIDENTS_PATH, encoding="utf-8-sig")
+    _accidents_cache = pd.read_csv(BANGKOK_ACCIDENTS_PATH, encoding="utf-8-sig")
+    return _accidents_cache
 
 
 def load_grid_stats() -> pd.DataFrame:

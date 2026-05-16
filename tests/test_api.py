@@ -15,6 +15,8 @@ from unittest.mock import MagicMock, patch
 
 import pytest
 
+from src.routing import ResolvedRoute
+
 
 # ---------------------------------------------------------------------------
 # GET /api/temporal-stats
@@ -82,11 +84,13 @@ class TestAnalyzeRoute:
     }
 
     def test_valid_request_returns_200(self, client):
-        with (
-            patch("src.blueprints.routing_api.get_osrm_route", return_value=None),
-            patch("src.blueprints.routing_api.get_google_maps_travel_time", return_value=None),
-            patch("src.blueprints.routing_api.find_cached_route", return_value=None),
-        ):
+        dummy_resolved = ResolvedRoute(
+            waypoints=[[13.75, 100.50], [13.775, 100.525], [13.80, 100.55]],
+            distance_km=5.0,
+            duration_min=10,
+            traffic_source="estimated",
+        )
+        with patch("src.blueprints.routing_api.resolve_route", return_value=dummy_resolved):
             resp = client.post(
                 "/api/analyze-route",
                 json=self._VALID_PAYLOAD,
@@ -137,9 +141,9 @@ class TestCompareRoutes:
     def test_valid_request_returns_200_with_routes(self, client):
         with (
             patch("src.blueprints.routing_api.get_google_maps_routes", return_value=[]),
-            patch("src.blueprints.routing_api.get_osrm_route", return_value=None),
+            patch("src.routing.get_osrm_route", return_value=None),
+            patch("src.routing.find_cached_route", return_value=None),
             patch("src.blueprints.routing_api.get_google_maps_travel_time", return_value=None),
-            patch("src.blueprints.routing_api.find_cached_route", return_value=None),
         ):
             resp = client.post("/api/compare-routes", json=self._VALID_PAYLOAD)
         assert resp.status_code == 200
