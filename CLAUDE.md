@@ -20,13 +20,15 @@
 ## Folder Structure
 ```
 app.py                → WSGI entry point — calls create_app() only
+docs/
+  ubiquitous-language.md → Shared domain vocabulary (15 core terms, pass to Claude each session)
 src/
   app.py              → Application factory (create_app), blueprint registration, startup init
   config.py           → All paths, env vars, and constants — import from here
   extensions.py       → Shared app state: ml_predictor, gmaps_client, CHATBOT_DATA, USE_ML
   ml_model.py         → RiskPredictor class (XGBoost + spatial fallback)
-  risk.py             → Route risk scoring, TOPSIS ranking, segment analysis
-  routing.py          → OSRM/GMaps clients, fast/safe route generation, fallback chain
+  risk.py             → Route risk scoring, TOPSIS ranking, segment analysis; score_route() is the main entry point
+  routing.py          → OSRM/GMaps clients, route generation; resolve_route() is the main entry point
   data_processing.py  → Raw accident data cleaning
   feature_engineering.py → ML feature computation
   grid_aggregation.py → Bangkok spatial grid logic (0.009° cells)
@@ -73,13 +75,17 @@ tests/                → conftest.py (flask app + sample fixtures), test_api.py
 - **ML predictions always have a spatial fallback** via `RiskPredictor.fallback_to_spatial()` — the app must degrade gracefully when the model file is missing.
 - **Security headers are set globally** in `_register_request_hooks` — do not set them per-route.
 - **Max request body is 2 MB** — enforced in `create_app()`. Do not override.
+- **Route resolution goes through `resolve_route()`** — never re-implement the OSRM → cache → interpolation fallback chain inline in a blueprint.
+- **Route risk scoring goes through `score_route()`** — never call `calculate_route_risk_ml()` and `calculate_route_risk_density_aware()` directly from blueprints; `score_route()` owns the ML/spatial branching decision.
 
 ---
 
 ## Key Decisions Made
 - **Application factory pattern** (`create_app()`) — chosen so tests can spin up isolated instances without global state bleeding between test runs.
 - **XGBoost stored as native `.ubj` not `.pkl`** — eliminates pickle security warning and is the XGBoost-native format. The `.pkl` exists only for backward compatibility; `.ubj` always takes precedence.
-- **OSRM → cached preset → dense interpolation fallback chain** — because OSRM is a public API that can be slow or unavailable; presets in `static/route_presets.json` cover common Bangkok corridors.
+- **`resolve_route()` in `routing.py` owns the full fallback chain** — OSRM → cached preset → dense interpolation → GMaps timing overlay. Returns a `ResolvedRoute` dataclass. Blueprints call this one function; they never manage the chain themselves.
+- **`score_route()` in `risk.py` owns the ML/spatial branch** — calls XGBoost internally and falls back to spatial automatically. Returns a complete dict including `prediction_method`. Blueprints call this one function.
+- **`load_bangkok_accidents()` is now cached in memory** — same pattern as `load_grid_stats()`; CSV read only once per process.
 - **Google Maps traffic layered on top of OSRM geometry** — OSRM provides the route shape; GMaps provides live travel time when the API key is present. They're intentionally decoupled.
 - **Chatbot: scripted → ML cause → Groq LLM** — scripted patterns handle high-confidence known intents without burning Groq quota. Groq is only called when scripted + ML both fail.
 - **TOPSIS for multi-route ranking** — applied in `/api/compare-routes` to score alternatives on risk vs. time simultaneously, avoiding the need to hard-code a weighting scheme.
@@ -95,17 +101,18 @@ tests/                → conftest.py (flask app + sample fixtures), test_api.py
 - Thai-language chatbot support via pythainlp + Groq
 - Docker image builds clean (multi-stage, non-root)
 - GitHub Actions CI runs pytest + Docker build on every push to `main`
-- Pytest suite has 6 test modules covering API endpoints, risk scoring, routing, data loading, geo utilities, and chatbot utils
-- Deployed/targetted for **Render** (Gunicorn, `PORT` env var set automatically)
+- **130 tests passing** across 6 modules — API endpoints, risk scoring, routing, data loading, geo utilities, chatbot utils
+- `resolve_route()` and `score_route()` are the deep module interfaces for routing and risk; fully tested
+- Deployed/targeted for **Render** (Gunicorn, `PORT` env var set automatically)
 - Google Maps API key is optional — app degrades to OSRM + estimated travel times when absent
+- Project docs in `docs/ubiquitous-language.md` — 15 canonical domain terms, pass to Claude at session start
 
 ---
 
 ## Open Tasks
-1. Add more edge-case test coverage (e.g. OSRM timeout paths, out-of-bounds coordinates)
-2. Consider caching `load_bangkok_accidents()` / `load_grid_stats()` results in `extensions.py` to avoid re-reading CSVs on every request
-3. NLP cache (`static/nlp_cache.json`) has no invalidation strategy — may serve stale results after data updates
-4. Route presets (`static/route_presets.json`) are static; no automated refresh from live OSRM data
+1. Move `analytics_data()` aggregation logic (130+ lines) out of blueprint into `src/utils/data.py` — medium priority, identified by /improve-codebase-architecture
+2. NLP cache (`static/nlp_cache.json`) has no invalidation strategy — may serve stale results after data updates
+3. Route presets (`static/route_presets.json`) are static; no automated refresh from live OSRM data
 
 ---
 
@@ -118,6 +125,8 @@ tests/                → conftest.py (flask app + sample fixtures), test_api.py
 - **Never change the grid cell size (0.009°)** in one file without updating all three locations: `config.py`, `ml_model.py`, `grid_aggregation.py`
 - **Never load the XGBoost model with pickle** when `.ubj` is available — the native format is intentional
 - **Never commit secrets** — `.env` is gitignored; `.env.example` documents the required keys
+- **Never re-implement the route fallback chain inline** — always call `resolve_route()` from `src/routing.py`
+- **Never call `calculate_route_risk_ml()` or `calculate_route_risk_density_aware()` directly from blueprints** — call `score_route()` instead
 
 ---
 
@@ -125,3 +134,6 @@ tests/                → conftest.py (flask app + sample fixtures), test_api.py
 | Date | Task completed | Decisions made |
 |------|---------------|----------------|
 | 2026-05-16 | /init-project — generated CLAUDE.md from full codebase scan | Documented all architecture rules and key decisions |
+| 2026-05-16 | /ubiquitous-language — generated docs/ubiquitous-language.md with 15 core terms | Resolved 5 terminology inconsistencies (grid/cell, accident/crash, confidence/accuracy, alternative/detour, route/path/waypoints) |
+| 2026-05-16 | /improve-codebase-architecture — extracted resolve_route(), score_route(), added accidents cache | resolve_route() owns fallback chain; score_route() owns ML/spatial branch; both are the required entry points from blueprints |
+| 2026-05-16 | /tdd — added 18 tests for resolve_route() and score_route() | Test suite: 112 → 130; patches now target correct module boundaries |
