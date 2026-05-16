@@ -459,3 +459,95 @@ def build_display_routes(
             break
 
     return display
+
+
+# ---------------------------------------------------------------------------
+# Route comparison pipeline (rank, annotate, build response dict)
+# ---------------------------------------------------------------------------
+
+def _peak_label_for_score(score: int) -> tuple[str, str]:
+    if score >= 80:
+        return "Crosses extreme danger zone", "top 5% accident hotspots"
+    if score >= 60:
+        return "Crosses high-risk zones", "above-average severity"
+    if score >= 40:
+        return "Moderate risk areas ahead", "exercise caution"
+    return "Bypasses extreme danger zones", "30% safer peak risk"
+
+
+def _format_time_diff(diff_min: int) -> str:
+    if diff_min > 0:
+        return f"+{diff_min} min"
+    if diff_min < 0:
+        return f"{diff_min} min"
+    return "0 min"
+
+
+def _build_recommendation_text(route_fast: dict, route_safe: dict) -> str:
+    fast_score = int(route_fast["risk_score"])
+    safe_score = int(route_safe["risk_score"])
+    if safe_score >= fast_score:
+        return "Fast route is already the safest available option. No safer alternative exists for this trip."
+
+    reduction_pct = int((1 - safe_score / fast_score) * 100) if fast_score > 0 else 0
+    time_cost = route_safe["time_min"] - route_fast["time_min"]
+    if time_cost > 0:
+        return f"Safe route reduces risk by {reduction_pct}% for +{time_cost} minutes."
+    if time_cost < 0:
+        return f"Safe route reduces risk by {reduction_pct}% and is {abs(time_cost)} minutes faster."
+    return f"Safe route reduces risk by {reduction_pct}% with no extra time."
+
+
+def rank_and_annotate_routes(scored_routes: list[dict]) -> dict:
+    """Rank scored route alternatives and annotate them for the API response.
+
+    Pipeline:
+      1. Dedupe duplicate geometries.
+      2. Apply TOPSIS to attach a multi-criteria score per route.
+      3. Pick fast / safe / recommended.
+      4. Annotate each route with confidence, prediction_method, peak label,
+         badges, primary_role.
+      5. Build the display-routes list (up to three).
+      6. Compute the recommendation text and time-difference.
+
+    Returns the full response dict:
+      fast_route, safe_route, recommended_route, display_routes, all_routes,
+      route_fast, route_safe, recommendation.
+
+    Mutates the input list (route_id, route_key, topsis_score, badges,
+    confidence, prediction_method, peak_label, peak_detail, primary_role,
+    primary_label are added in place — matching legacy behaviour).
+    """
+    scored_routes = dedupe_scored_routes(scored_routes)
+    for i, r in enumerate(scored_routes):
+        r["route_id"] = f"route_{i}"
+
+    apply_topsis(scored_routes)
+
+    route_fast        = min(scored_routes, key=lambda r: r["time_min"])
+    route_safe        = min(scored_routes, key=lambda r: r["risk_score"])
+    route_recommended = max(scored_routes, key=lambda r: r.get("topsis_score", 0.0))
+
+    prediction_method = "xgboost" if (extensions.USE_ML and extensions.ml_predictor) else "spatial"
+    for r in scored_routes:
+        matched   = r.get("matched_grids", 0)
+        evaluated = max(1, r.get("evaluated_waypoints", 1))
+        r["confidence"] = round(min(0.99, 0.75 + (matched / evaluated) * 0.24), 2)
+        r["prediction_method"] = prediction_method
+        r["peak_label"], r["peak_detail"] = _peak_label_for_score(int(r["risk_score"]))
+
+    annotate_route_roles(scored_routes, route_fast, route_safe, route_recommended)
+    display_routes = build_display_routes(scored_routes, route_fast, route_safe, route_recommended)
+
+    route_safe["time_difference"] = _format_time_diff(route_safe["time_min"] - route_fast["time_min"])
+
+    return {
+        "fast_route": route_fast,
+        "safe_route": route_safe,
+        "recommended_route": route_recommended,
+        "display_routes": display_routes,
+        "all_routes": sorted(scored_routes, key=lambda r: r["time_min"]),
+        "route_fast": route_fast,
+        "route_safe": route_safe,
+        "recommendation": _build_recommendation_text(route_fast, route_safe),
+    }

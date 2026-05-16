@@ -18,9 +18,12 @@ from flask import Blueprint, jsonify, request
 
 from .. import extensions
 from ..config import GOOGLE_MAPS_SERVER_KEY
-from ..utils.data import calculate_temporal_stats, load_bangkok_accidents, load_grid_stats
-from ..utils.display import build_zone_display_name
-from ..utils.geo import assign_bangkok_area, latlon_to_grid_id, nearest_district
+from ..utils.data import (
+    build_analytics_payload,
+    calculate_temporal_stats,
+    load_bangkok_accidents,
+    load_grid_stats,
+)
 from ..utils.rate_limit import rate_limit
 from ..utils.validators import validate_coordinates
 
@@ -53,125 +56,8 @@ def temporal_stats():
 @api_bp.route("/analytics-data")
 def analytics_data():
     try:
-        df = load_bangkok_accidents()
-        grid_df = load_grid_stats()
-
-        # ── By hour ──
-        hour_counts = pd.to_numeric(df["hour"], errors="coerce").dropna().astype(int).value_counts().sort_index()
-        by_hour = {int(h): int(c) for h, c in hour_counts.items()}
-
-        # ── By day of week ──
-        from ..config import DAY_NAME_MAP
-        dow_counts = pd.to_numeric(df["day_of_week"], errors="coerce").dropna().astype(int).value_counts().sort_index()
-        by_day = {DAY_NAME_MAP.get(int(d), str(d)): int(c) for d, c in dow_counts.items()}
-
-        # ── By month ──
-        month_names = {
-            1: "Jan", 2: "Feb", 3: "Mar", 4: "Apr", 5: "May", 6: "Jun",
-            7: "Jul", 8: "Aug", 9: "Sep", 10: "Oct", 11: "Nov", 12: "Dec",
-        }
-        month_counts = pd.to_numeric(df["month"], errors="coerce").dropna().astype(int).value_counts().sort_index()
-        by_month = {month_names.get(int(m), str(m)): int(c) for m, c in month_counts.items()}
-
-        # ── Zone context lookup ──
-        zone_context_lookup: dict[str, pd.DataFrame] = {}
-        if {"LATITUDE", "LONGITUDE"}.issubset(df.columns):
-            ctx = df[["LATITUDE", "LONGITUDE", "รหัสสายทาง", "สายทาง", "KM"]].copy()
-            ctx["_lat"] = pd.to_numeric(ctx["LATITUDE"], errors="coerce")
-            ctx["_lon"] = pd.to_numeric(ctx["LONGITUDE"], errors="coerce")
-            ctx = ctx.dropna(subset=["_lat", "_lon"])
-            ctx["grid_id"] = ctx.apply(lambda r: latlon_to_grid_id(r["_lat"], r["_lon"]), axis=1)
-            ctx = ctx.dropna(subset=["grid_id"])
-            zone_context_lookup = {gid: grp.copy() for gid, grp in ctx.groupby("grid_id", sort=False)}
-
-        # ── Top 10 zones ──
-        top_zones = (
-            grid_df[grid_df["total_accidents"] > 0]
-            .nlargest(10, "total_accidents")[["grid_id", "total_accidents", "risk_level", "center_lat", "center_lon"]]
-            .to_dict(orient="records")
-        )
-        for zone in top_zones:
-            zone["district"] = nearest_district(zone["center_lat"], zone["center_lon"])
-            zone["zone_name"] = build_zone_display_name(
-                zone["district"],
-                zone_context_lookup.get(zone["grid_id"]),
-            )
-
-        # ── By area ──
-        by_area: dict[str, int] = {}
-        if "LATITUDE" in df.columns and "LONGITUDE" in df.columns:
-            areas = df.apply(lambda r: assign_bangkok_area(r["LATITUDE"], r["LONGITUDE"]), axis=1)
-            by_area = {str(k): int(v) for k, v in areas.dropna().value_counts().items()}
-
-        # ── Vehicle types ──
-        vehicle_cols = {
-            "Motorcycle": "รถจักรยานยนต์",
-            "Car": "รถยนต์นั่งส่วนบุคคล",
-            "Pickup": "รถปิคอัพบรรทุก4ล้อ",
-            "Van": "รถตู้",
-            "Truck 6W": "รถบรรทุก6ล้อ",
-            "Truck 10W+": "รถบรรทุกมากกว่า10ล้อ",
-            "Bus": "รถโดยสารมากกว่า4ล้อ",
-            "Pedestrian": "คนเดินเท้า",
-        }
-        by_vehicle = {
-            label: int(pd.to_numeric(df[col], errors="coerce").fillna(0).sum())
-            for label, col in vehicle_cols.items()
-            if col in df.columns and int(pd.to_numeric(df[col], errors="coerce").fillna(0).sum()) > 0
-        }
-
-        # ── Severity ──
-        severity = {
-            "Deaths": int(pd.to_numeric(df.get("ผู้เสียชีวิต", pd.Series(dtype=float)), errors="coerce").fillna(0).sum()),
-            "Serious Injuries": int(pd.to_numeric(df.get("ผู้บาดเจ็บสาหัส", pd.Series(dtype=float)), errors="coerce").fillna(0).sum()),
-            "Minor Injuries": int(pd.to_numeric(df.get("ผู้บาดเจ็บเล็กน้อย", pd.Series(dtype=float)), errors="coerce").fillna(0).sum()),
-        }
-
-        # ── Risk distribution ──
-        risk_level_series = grid_df["risk_level"].astype(str).str.lower()
-        active_mask = grid_df["total_accidents"] > 0
-        risk_distribution = {str(k): int(v) for k, v in risk_level_series[active_mask].value_counts().items()}
-        active_zones = int(active_mask.sum())
-        high_risk_zones = int((risk_level_series == "high").sum())
-        total_mapped = int(pd.to_numeric(grid_df["total_accidents"], errors="coerce").fillna(0).sum())
-        high_risk_accidents = int(
-            pd.to_numeric(grid_df.loc[risk_level_series == "high", "total_accidents"], errors="coerce").fillna(0).sum()
-        )
-        total_grids = int(len(grid_df))
-
-        # ── Weekend vs weekday ──
-        weekend_count = weekday_count = 0
-        weekend_col = df.get("is_weekend")
-        if weekend_col is not None:
-            if weekend_col.dtype == bool:
-                mask = weekend_col.fillna(False)
-            else:
-                mask = weekend_col.astype(str).str.lower().isin({"true", "1", "yes"})
-            weekend_count = int(mask.sum())
-            weekday_count = int(len(df) - weekend_count)
-
-        return jsonify({
-            "total_accidents": int(len(df)),
-            "total_grids": total_grids,
-            "by_hour": by_hour,
-            "by_day": by_day,
-            "by_month": by_month,
-            "top_zones": top_zones,
-            "by_area": by_area,
-            "by_vehicle": by_vehicle,
-            "severity": severity,
-            "risk_distribution": risk_distribution,
-            "weekend_vs_weekday": {"Weekend": weekend_count, "Weekday": weekday_count},
-            "summary": {
-                "active_zones": active_zones,
-                "high_risk_zones": high_risk_zones,
-                "mapped_accidents": total_mapped,
-                "high_risk_accidents": high_risk_accidents,
-                "high_risk_grid_share_percent": round((high_risk_zones / total_grids) * 100, 1) if total_grids else 0.0,
-                "high_risk_accident_share": round((high_risk_accidents / total_mapped) * 100, 1) if total_mapped else 0.0,
-                "high_risk_accident_share_exact": ((high_risk_accidents / total_mapped) * 100) if total_mapped else 0.0,
-            },
-        })
+        payload = build_analytics_payload(load_bangkok_accidents(), load_grid_stats())
+        return jsonify(payload)
     except Exception:
         logger.exception("Error in /api/analytics-data")
         return jsonify({"error": "Failed to load analytics data."}), 500

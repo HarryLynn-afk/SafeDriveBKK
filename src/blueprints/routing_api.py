@@ -10,24 +10,13 @@ import logging
 
 from flask import Blueprint, jsonify, request
 
-from .. import extensions
 from ..risk import (
     analyze_route_segments,
-    annotate_route_roles,
-    apply_topsis,
-    build_display_routes,
-    dedupe_scored_routes,
-    evaluate_route,
     generate_alerts_from_segments,
+    rank_and_annotate_routes,
     score_route,
 )
-from ..routing import (
-    generate_fast_route,
-    generate_safe_route,
-    get_google_maps_routes,
-    get_google_maps_travel_time,
-    resolve_route,
-)
+from ..routing import get_route_alternatives, resolve_route
 from ..utils.data import load_grid_stats
 from ..utils.rate_limit import rate_limit
 from ..utils.validators import validate_coordinates
@@ -156,119 +145,15 @@ def compare_routes():
             return jsonify({"error": "Start and end locations must be different"}), 400
 
         grid_df = load_grid_stats()
-
-        # ── Step 1: Get alternative routes ──
-        gmaps_routes = get_google_maps_routes(start_lat, start_lon, end_lat, end_lon)
-        alternatives_analyzed: int
-
-        if gmaps_routes:
-            scored_routes = []
-            for gr in gmaps_routes:
-                wps = gr["waypoints"]
-                sampled = wps[:: max(1, len(wps) // 80)]
-                if sampled[-1] != wps[-1]:
-                    sampled.append(wps[-1])
-
-                risk = score_route(sampled, grid_df)
-
-                scored_routes.append({
-                    "waypoints": wps,
-                    "distance_km": gr["distance_km"],
-                    "time_min": gr["duration_minutes"],
-                    "risk_score": risk["risk_score"],
-                    "risk_level": risk["risk_level"],
-                    "high_risk_zones": risk.get("high_risk_zones", 0),
-                    "high_risk_km": risk.get("high_risk_km", 0),
-                    "medium_risk_zones": risk.get("medium_risk_zones", 0),
-                    "matched_grids": risk.get("matched_grids", 0),
-                    "evaluated_waypoints": risk.get("evaluated_waypoints", len(sampled)),
-                    "traffic_source": "google_maps_traffic" if gr["has_traffic"] else "google_maps",
-                    "summary": gr.get("summary", ""),
-                })
-            alternatives_analyzed = len(gmaps_routes)
-        else:
-            fast_wps = generate_fast_route(start_lat, start_lon, end_lat, end_lon)
-            safe_wps = generate_safe_route(start_lat, start_lon, end_lat, end_lon, grid_df, fast_waypoints=fast_wps)
-            route_fast = evaluate_route(fast_wps, grid_df)
-            route_safe = evaluate_route(safe_wps, grid_df)
-            scored_routes = [route_fast, route_safe]
-
-            gmaps_time = get_google_maps_travel_time(start_lat, start_lon, end_lat, end_lon)
-            if gmaps_time:
-                route_fast["distance_km"] = gmaps_time["distance_km"]
-                route_fast["time_min"] = gmaps_time["duration_minutes"]
-                route_fast["traffic_source"] = "google_maps_traffic" if gmaps_time["has_traffic"] else "google_maps"
-            else:
-                route_fast["traffic_source"] = "estimated"
-            route_safe["traffic_source"] = "estimated"
-            alternatives_analyzed = 1
-
-        # ── Step 2: Dedupe + TOPSIS ──
-        scored_routes = dedupe_scored_routes(scored_routes)
-        for i, r in enumerate(scored_routes):
-            r["route_id"] = f"route_{i}"
-
-        apply_topsis(scored_routes)
-
-        route_fast        = min(scored_routes, key=lambda r: r["time_min"])
-        route_safe        = min(scored_routes, key=lambda r: r["risk_score"])
-        route_recommended = max(scored_routes, key=lambda r: r.get("topsis_score", 0.0))
-
-        # ── Step 3: Annotate metadata ──
-        prediction_method = "xgboost" if (extensions.USE_ML and extensions.ml_predictor) else "spatial"
-        for r in scored_routes:
-            matched   = r.get("matched_grids", 0)
-            evaluated = max(1, r.get("evaluated_waypoints", 1))
-            r["confidence"] = round(min(0.99, 0.75 + (matched / evaluated) * 0.24), 2)
-            r["prediction_method"] = prediction_method
-
-            score = int(r["risk_score"])
-            if score >= 80:
-                r["peak_label"] = "Crosses extreme danger zone"
-                r["peak_detail"] = "top 5% accident hotspots"
-            elif score >= 60:
-                r["peak_label"] = "Crosses high-risk zones"
-                r["peak_detail"] = "above-average severity"
-            elif score >= 40:
-                r["peak_label"] = "Moderate risk areas ahead"
-                r["peak_detail"] = "exercise caution"
-            else:
-                r["peak_label"] = "Bypasses extreme danger zones"
-                r["peak_detail"] = "30% safer peak risk"
-
-        annotate_route_roles(scored_routes, route_fast, route_safe, route_recommended)
-        display_routes = build_display_routes(scored_routes, route_fast, route_safe, route_recommended)
-
-        # ── Step 4: Time-difference label ──
-        time_diff = route_safe["time_min"] - route_fast["time_min"]
-        route_safe["time_difference"] = (
-            f"+{time_diff} min" if time_diff > 0 else (f"{time_diff} min" if time_diff < 0 else "0 min")
+        scored_routes, alternatives_analyzed = get_route_alternatives(
+            start_lat, start_lon, end_lat, end_lon, grid_df,
         )
-
-        # ── Step 5: Recommendation text ──
-        fast_score = int(route_fast["risk_score"])
-        safe_score = int(route_safe["risk_score"])
-        if safe_score >= fast_score:
-            recommendation = "Fast route is already the safest available option. No safer alternative exists for this trip."
-        else:
-            reduction_pct = int((1 - safe_score / fast_score) * 100) if fast_score > 0 else 0
-            time_cost = route_safe["time_min"] - route_fast["time_min"]
-            if time_cost > 0:
-                recommendation = f"Safe route reduces risk by {reduction_pct}% for +{time_cost} minutes."
-            elif time_cost < 0:
-                recommendation = f"Safe route reduces risk by {reduction_pct}% and is {abs(time_cost)} minutes faster."
-            else:
-                recommendation = f"Safe route reduces risk by {reduction_pct}% with no extra time."
+        ranked = rank_and_annotate_routes(scored_routes)
+        route_fast = ranked["route_fast"]
+        route_safe = ranked["route_safe"]
 
         return jsonify({
-            "fast_route": route_fast,
-            "safe_route": route_safe,
-            "recommended_route": route_recommended,
-            "display_routes": display_routes,
-            "all_routes": sorted(scored_routes, key=lambda r: r["time_min"]),
-            "route_fast": route_fast,
-            "route_safe": route_safe,
-            "recommendation": recommendation,
+            **ranked,
             "alternatives_analyzed": alternatives_analyzed,
             "debug": {
                 "fast_waypoints_sample": route_fast["waypoints"][:3],

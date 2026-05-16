@@ -77,6 +77,8 @@ tests/                → conftest.py (flask app + sample fixtures), test_api.py
 - **Max request body is 2 MB** — enforced in `create_app()`. Do not override.
 - **Route resolution goes through `resolve_route()`** — never re-implement the OSRM → cache → interpolation fallback chain inline in a blueprint.
 - **Route risk scoring goes through `score_route()`** — never call `calculate_route_risk_ml()` and `calculate_route_risk_density_aware()` directly from blueprints; `score_route()` owns the ML/spatial branching decision.
+- **Route comparison goes through `get_route_alternatives()` + `rank_and_annotate_routes()`** — blueprints must not orchestrate the dedupe → TOPSIS → annotate → display chain inline.
+- **Analytics aggregation goes through `build_analytics_payload()`** — never replicate per-aggregation pandas logic in blueprints.
 
 ---
 
@@ -89,6 +91,10 @@ tests/                → conftest.py (flask app + sample fixtures), test_api.py
 - **Google Maps traffic layered on top of OSRM geometry** — OSRM provides the route shape; GMaps provides live travel time when the API key is present. They're intentionally decoupled.
 - **Chatbot: scripted → ML cause → Groq LLM** — scripted patterns handle high-confidence known intents without burning Groq quota. Groq is only called when scripted + ML both fail.
 - **TOPSIS for multi-route ranking** — applied in `/api/compare-routes` to score alternatives on risk vs. time simultaneously, avoiding the need to hard-code a weighting scheme.
+- **`get_route_alternatives()` in `routing.py` owns alternatives generation** — GMaps Directions first; falls back to fast + safe pair with GMaps timing layered on. Returns scored routes ready to rank.
+- **`rank_and_annotate_routes()` in `risk.py` owns the comparison pipeline** — dedupe → TOPSIS → fast/safe/recommended selection → confidence/peak labels → display routes → recommendation text. Single entry point for the `/api/compare-routes` response body.
+- **`build_analytics_payload()` in `utils/data.py` owns the analytics response** — internally composed of small private aggregators (temporal, top zones, area, vehicle, severity, risk distribution, weekend split). Thai column names live here, not in the blueprint.
+- **Scripted intents are registered via `@intent(name, patterns)` in `chatbot_intents.py`** — patterns and handler live together; there is no separate `INTENTS` dict or `_HANDLERS` dispatch table. Matching priority is encoded by `_INTENT_ORDER` (a list of intent names) because pattern overlap means some intents must be tried before others.
 - **Non-root Docker user** — the container runs as `appuser`; the `/app` directory is chowned accordingly.
 - **Bangkok spatial grid: 0.009° cells** — this constant is replicated in `config.py`, `ml_model.py`, and `grid_aggregation.py`. All three must stay in sync.
 - **Consistent API response shape** — all success responses include a `success: true` key or a top-level data key; all errors return `{"error": "..."}` with an appropriate HTTP status.
@@ -103,6 +109,8 @@ tests/                → conftest.py (flask app + sample fixtures), test_api.py
 - GitHub Actions CI runs pytest + Docker build on every push to `main`
 - **130 tests passing** across 6 modules — API endpoints, risk scoring, routing, data loading, geo utilities, chatbot utils
 - `resolve_route()` and `score_route()` are the deep module interfaces for routing and risk; fully tested
+- `get_route_alternatives()` + `rank_and_annotate_routes()` are the deep module interfaces for `/api/compare-routes`; blueprint is now ~30 lines
+- `build_analytics_payload()` is the deep module interface for `/api/analytics-data`; blueprint is now ~7 lines
 - Deployed/targeted for **Render** (Gunicorn, `PORT` env var set automatically)
 - Google Maps API key is optional — app degrades to OSRM + estimated travel times when absent
 - Project docs in `docs/ubiquitous-language.md` — 15 canonical domain terms, pass to Claude at session start
@@ -110,9 +118,9 @@ tests/                → conftest.py (flask app + sample fixtures), test_api.py
 ---
 
 ## Open Tasks
-1. Move `analytics_data()` aggregation logic (130+ lines) out of blueprint into `src/utils/data.py` — medium priority, identified by /improve-codebase-architecture
-2. NLP cache (`static/nlp_cache.json`) has no invalidation strategy — may serve stale results after data updates
-3. Route presets (`static/route_presets.json`) are static; no automated refresh from live OSRM data
+1. NLP cache (`static/nlp_cache.json`) has no invalidation strategy — may serve stale results after data updates
+2. Route presets (`static/route_presets.json`) are static; no automated refresh from live OSRM data
+3. Add unit tests for `get_route_alternatives()`, `rank_and_annotate_routes()`, `build_analytics_payload()`, and the `@intent` registry — current coverage is via existing endpoint tests only
 
 ---
 
@@ -127,6 +135,9 @@ tests/                → conftest.py (flask app + sample fixtures), test_api.py
 - **Never commit secrets** — `.env` is gitignored; `.env.example` documents the required keys
 - **Never re-implement the route fallback chain inline** — always call `resolve_route()` from `src/routing.py`
 - **Never call `calculate_route_risk_ml()` or `calculate_route_risk_density_aware()` directly from blueprints** — call `score_route()` instead
+- **Never orchestrate `dedupe_scored_routes` / `apply_topsis` / `annotate_route_roles` / `build_display_routes` from blueprints** — call `rank_and_annotate_routes()` instead
+- **Never replicate analytics aggregation in blueprints** — call `build_analytics_payload()` from `src/utils/data.py`
+- **Never reintroduce `INTENTS` or `_HANDLERS` dicts in `chatbot_intents.py`** — register new scripted intents with the `@intent(name, patterns)` decorator and add the intent name to `_INTENT_ORDER` at the desired priority position
 
 ---
 
@@ -137,3 +148,5 @@ tests/                → conftest.py (flask app + sample fixtures), test_api.py
 | 2026-05-16 | /ubiquitous-language — generated docs/ubiquitous-language.md with 15 core terms | Resolved 5 terminology inconsistencies (grid/cell, accident/crash, confidence/accuracy, alternative/detour, route/path/waypoints) |
 | 2026-05-16 | /improve-codebase-architecture — extracted resolve_route(), score_route(), added accidents cache | resolve_route() owns fallback chain; score_route() owns ML/spatial branch; both are the required entry points from blueprints |
 | 2026-05-16 | /tdd — added 18 tests for resolve_route() and score_route() | Test suite: 112 → 130; patches now target correct module boundaries |
+| 2026-05-16 | /improve-codebase-architecture — extracted `get_route_alternatives()` + `rank_and_annotate_routes()` (route comparison) and `build_analytics_payload()` (analytics) | routing_api compare_routes: 145 → ~30 lines; api analytics_data: 124 → 7 lines. All 130 tests still passing. |
+| 2026-05-16 | /improve-codebase-architecture — converted chatbot_intents.py from `INTENTS` dict + standalone handlers + `_HANDLERS` dispatch table to `@intent(name, patterns)` decorator | 3-place pattern → 2-place pattern (decorator + `_INTENT_ORDER` list). Patterns now live with their handlers. 130 tests + `python -m src.chatbot_intents` smoke test (18/21) confirm behavioral parity. |

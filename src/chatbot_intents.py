@@ -90,267 +90,71 @@ def _extract_route_reference(user_message):
 
 
 # ---------------------------------------------------------------------------
-# Intent patterns  (20 intents)
+# Intent registry (decorator-driven)
 # ---------------------------------------------------------------------------
+#
+# Each scripted intent is defined alongside its handler via the @intent
+# decorator. Patterns and handler live together — no separate INTENTS dict
+# and no string-keyed _HANDLERS dispatch table.
+#
+# Matching priority is encoded by _INTENT_ORDER below (a list of intent
+# names) because pattern overlap means order matters — e.g. speeding_stats
+# is checked before list_dangerous_zones to avoid false matches. To add a
+# new intent: write a handler decorated with @intent(...), then add the
+# intent name to _INTENT_ORDER at the desired priority position.
 
-INTENTS = {
-    # ── High-priority direct questions (must resolve before Groq) ───────
-    "top_danger_corridors": {
-        "patterns": [
-            re.compile(r"which\s+(?:zones?|areas?|places?|roads?|corridors?)\s+(?:are\s+)?most\s+dangerous", re.I),
-            re.compile(r"what\s+are\s+the\s+most\s+dangerous\s+(?:zones?|areas?|places?|roads?|corridors?)", re.I),
-            re.compile(r"(?:most|worst|highest).*(?:dangerous|risky).*(?:zones?|areas?|roads?|corridors?)", re.I),
-            re.compile(r"(?:ย่าน|พื้นที่|โซน|เขต|จุด|ถนน).*(?:ไหน|ใด).*(?:อันตราย|เสี่ยง).*(?:ที่สุด|สุด)", re.I),
-            re.compile(r"ถนนเส้นไหน.*(?:อันตราย|เสี่ยง).*(?:ที่สุด|สุด)?", re.I),
-            re.compile(r"(?:พื้นที่|ย่าน|โซน).*(?:อันตราย|เสี่ยง).*(?:ที่สุด|สุด)", re.I),
-        ],
-        "handler": "handle_top_danger_corridors",
-    },
-    "peak_risk_time": {
-        "patterns": [
-            re.compile(r"what\s+time.*accidents?.*(?:most\s+common|most|peak|highest)", re.I),
-            re.compile(r"when\s+is\s+it\s+most\s+dangerous", re.I),
-            re.compile(r"(?:peak|worst|most\s+dangerous).*(?:time|hour)", re.I),
-            re.compile(r"(?:ช่วงเวลา|เวลา).*(?:ไหน|ใด).*(?:อันตราย|เสี่ยง).*(?:ที่สุด|สุด)", re.I),
-            re.compile(r"อุบัติเหตุ.*(?:เวลา|ช่วงเวลา).*(?:ไหน|ใด).*(?:เยอะ|มาก).*(?:ที่สุด|สุด)", re.I),
-        ],
-        "handler": "handle_peak_risk_time",
-    },
-    "peak_risk_day": {
-        "patterns": [
-            re.compile(r"what\s+day.*(?:most\s+dangerous|most\s+accidents?|highest)", re.I),
-            re.compile(r"which\s+day\s+has\s+most\s+accidents?", re.I),
-            re.compile(r"(?:most\s+dangerous|worst).*(?:day|weekday)", re.I),
-            re.compile(r"วัน(?:ไหน|ใด).*(?:อันตราย|เสี่ยง).*(?:ที่สุด|สุด)", re.I),
-            re.compile(r"วัน(?:ไหน|ใด).*อุบัติเหตุ.*(?:เยอะ|มาก).*(?:ที่สุด|สุด)", re.I),
-        ],
-        "handler": "handle_peak_risk_day",
-    },
-    "model_reliability": {
-        "patterns": [
-            re.compile(r"how\s+(?:accurate|reliable).*(?:model|safedrive|system|app)", re.I),
-            re.compile(r"how\s+reliable\s+is\s+safedrive", re.I),
-            re.compile(r"(?:can\s+i\s+trust|trust).*(?:model|safedrive|system)", re.I),
-            re.compile(r"(?:accuracy|reliability).*(?:model|safedrive|system)", re.I),
-            re.compile(r"โมเดล.*(?:แม่นยำ|น่าเชื่อถือ).*(?:แค่ไหน|ขนาดไหน)", re.I),
-            re.compile(r"(?:ระบบ|แอป|safedrive).*(?:แม่นยำ|น่าเชื่อถือ).*(?:แค่ไหน|ขนาดไหน)", re.I),
-        ],
-        "handler": "handle_model_reliability",
-    },
+_INTENT_PATTERNS: dict[str, list] = {}
+_INTENT_BY_NAME: dict[str, "object"] = {}
 
-    # ── Location-based (8) ─────────────────────────────────────────────
-    "list_speeding_zones": {
-        "patterns": [
-            re.compile(r"(?:which|what|where).*(?:areas?|zones?|places?).*speed", re.I),
-            re.compile(r"where.*speed(?:ing)?.*(?:common|happen|occur|problem)", re.I),
-            re.compile(r"speed(?:ing)?.*(?:zones?|areas?|locations?|hotspots?)", re.I),
-            re.compile(r"top.*speed(?:ing)?.*(?:zones?|areas?)", re.I),
-        ],
-        "handler": "handle_speeding_zones",
-    },
-    "list_drunk_zones": {
-        "patterns": [
-            re.compile(r"(?:where|which).*drunk.*driv", re.I),
-            re.compile(r"drunk.*driv.*(?:areas?|zones?|locations?)", re.I),
-            re.compile(r"alcohol.*(?:relat|accident|crash|zone|area)", re.I),
-            re.compile(r"(?:areas?|zones?).*drunk", re.I),
-        ],
-        "handler": "handle_drunk_zones",
-    },
-    # ── Cause-based stats (placed before zone_safety to avoid false matches) ──
-    "speeding_stats": {
-        "patterns": [
-            re.compile(r"speed(?:ing)?.*(?:stat|number|data|how (?:much|many|often))", re.I),
-            re.compile(r"how (?:much|many|common|often).*speed(?:ing)?", re.I),
-            re.compile(r"speed(?:ing)?.*(?:percent|proportion|rate)", re.I),
-            re.compile(r"tell.*(?:me|us).*(?:about)?.*speed(?:ing)?$", re.I),
-        ],
-        "handler": "handle_speeding_stats",
-    },
-    "drunk_stats": {
-        "patterns": [
-            re.compile(r"drunk.*driv.*(?:stat|number|data|how)", re.I),
-            re.compile(r"how (?:much|many|common|often).*drunk", re.I),
-            re.compile(r"alcohol.*(?:stat|number|data|percent)", re.I),
-            re.compile(r"(?:dui|dwi).*(?:stat|data|number)", re.I),
-            re.compile(r"(?:tell|about).*drunk.*(?:driv|stat)", re.I),
-        ],
-        "handler": "handle_drunk_stats",
-    },
-    "cutting_stats": {
-        "patterns": [
-            re.compile(r"cutting.*(?:front|in).*(?:stat|data|number)", re.I),
-            re.compile(r"(?:how (?:much|many|common|often)).*cut(?:ting)?.*(?:front|in)", re.I),
-            re.compile(r"cut(?:ting)?.*(?:front|in).*(?:stat|percent|rate)", re.I),
-        ],
-        "handler": "handle_cutting_stats",
-    },
 
-    # ── Time-based (placed before zone_safety to avoid false matches) ──
-    "rush_hour": {
-        "patterns": [
-            re.compile(r"rush.*hour.*(?:danger|safe|risk|accident|stat)", re.I),
-            re.compile(r"(?:is|are).*rush.*hours?.*(?:danger|safe|risk)", re.I),
-            re.compile(r"(?:danger|safe|risk|accident).*(?:during|in).*rush.*hour", re.I),
-            re.compile(r"commut(?:e|ing).*(?:safe|danger|risk)", re.I),
-        ],
-        "handler": "handle_rush_hour",
-    },
+def intent(name: str, patterns: list):
+    """Register a function as the handler for a scripted intent.
 
-    "list_dangerous_zones": {
-        "patterns": [
-            re.compile(r"(?:most|top|worst).*dangerous.*(?:areas?|zones?|places?|intersections?|roads?)", re.I),
-            re.compile(r"dangerous.*(?:intersections?|areas?|zones?|roads?)", re.I),
-            re.compile(r"(?:highest|most).*(?:risk|accident).*(?:areas?|zones?)", re.I),
-            re.compile(r"(?:where|which).*(?:most|many|lots?).*accidents?", re.I),
-            re.compile(r"worst.*(?:areas?|zones?|roads?|intersections?)", re.I),
-        ],
-        "handler": "handle_dangerous_zones",
-    },
-    "zone_safety_query": {
-        "patterns": [
-            re.compile(r"(?:is|how)\s+(?:safe|dangerous)\s+(?:is|in|at|near)\s+(.+)", re.I),
-            re.compile(r"(?:safe|danger|risk)\s+(?:of|in|at|near|around)\s+(.+)", re.I),
-            re.compile(r"tell me about\s+(.+?)(?:\s+(?:area|zone|road|intersection))\s*$", re.I),
-            re.compile(r"how (?:risky|safe) is\s+(.+)", re.I),
-            re.compile(r"^is\s+(.+?)\s+(?:safe|dangerous|risky)\s*\??$", re.I),
-        ],
-        "handler": "handle_zone_safety",
-    },
-    "route_safety": {
-        "patterns": [
-            re.compile(r"(?:safe|safest|best).*route.*(?:to|from|between)", re.I),
-            re.compile(r"(?:how|which).*(?:route|way|path).*(?:safe|avoid)", re.I),
-            re.compile(r"(?:navigate|drive|travel|go).*(?:safe|avoid.*danger)", re.I),
-            re.compile(r"route.*(?:recommendation|suggest|plan)", re.I),
-            re.compile(r"(?:เส้นทาง|route).*(?:ไหน|ใด|นี้).*(?:ปลอดภัย|เสี่ยง|อันตราย)", re.I),
-            re.compile(r"(?:ไป|ขับ|เดินทาง).*(?:อย่างไร|ยังไง).*(?:ปลอดภัย|เลี่ยง|เสี่ยง)", re.I),
-            re.compile(r"(?:คืนนี้|ตอนกลางคืน).*(?:ขับรถ|เดินทาง).*(?:ปลอดภัย|เสี่ยง|อันตราย)", re.I),
-            re.compile(r"(?:ช่วย|ขอ).*(?:แนะนำ|หา).*(?:เส้นทาง).*(?:ปลอดภัย|เลี่ยง)", re.I),
-        ],
-        "handler": "handle_route_safety",
-    },
-    "rain_data_gap": {
-        "patterns": [
-            re.compile(r"(?:rain|raining|weather|storm|wet roads?).*(?:risk|danger|safe|accident|increase)", re.I),
-            re.compile(r"(?:how much|does).*(?:rain|weather).*(?:increase|affect).*(?:risk|accident)", re.I),
-        ],
-        "handler": "handle_rain_data_gap",
-    },
-    "camera_deployment": {
-        "patterns": [
-            re.compile(r"where.*(?:install|deploy|place|put).*cameras?", re.I),
-            re.compile(r"(?:install|deploy|place|put).*cameras?.*where", re.I),
-            re.compile(r"(?:speed|traffic|red.?light).*cameras?.*(?:install|deploy|place|need)", re.I),
-            re.compile(r"cameras?.*(?:deploy|install).*(?:recommend|suggest|where)", re.I),
-            re.compile(r"where.*(?:should|could).*cameras?", re.I),
-        ],
-        "handler": "handle_camera_deployment",
-    },
-    "high_risk_zones": {
-        "patterns": [
-            re.compile(r"(?:show|list|display).*(?:high|red).*(?:risk|danger).*zones?", re.I),
-            re.compile(r"high.*risk.*zones?", re.I),
-            re.compile(r"red.*zones?", re.I),
-            re.compile(r"(?:all|list).*danger.*zones?", re.I),
-        ],
-        "handler": "handle_high_risk_zones",
-    },
-    "motorcycle_zones": {
-        "patterns": [
-            re.compile(r"motorcycle.*(?:accident|crash|zone|area|danger)", re.I),
-            re.compile(r"(?:where|which).*motorcycle.*(?:crash|accident|danger|risk)", re.I),
-            re.compile(r"(?:areas?|zones?).*(?:high|many|most).*motorcycles?", re.I),
-            re.compile(r"(?:motorbike|bike).*(?:accident|crash|risk|danger)", re.I),
-        ],
-        "handler": "handle_motorcycle_zones",
-    },
+    The decorator stores the patterns and handler keyed by intent name.
+    Matching priority is determined by _INTENT_ORDER, not by decoration order.
+    """
+    def decorator(handler_fn):
+        _INTENT_PATTERNS[name] = patterns
+        _INTENT_BY_NAME[name] = handler_fn
+        return handler_fn
+    return decorator
 
-    # ── Cause-based (remaining) ──────────────────────────────────────
-    "cause_breakdown": {
-        "patterns": [
-            re.compile(r"(?:what|which).*caus(?:e|es|ing).*accidents?", re.I),
-            re.compile(r"(?:breakdown|distribution).*(?:by|of).*caus", re.I),
-            re.compile(r"(?:main|top|primary|common).*caus(?:e|es)", re.I),
-            re.compile(r"why.*(?:accidents?|crashes?).*happen", re.I),
-            re.compile(r"accident.*caus(?:e|es)", re.I),
-            re.compile(r"(?:สาเหตุ|อะไร).*(?:อุบัติเหตุ|ชน|เกิดเหตุ).*(?:หลัก|มาก|บ่อย|ส่วนใหญ่)", re.I),
-            re.compile(r"อุบัติเหตุ.*(?:เกิดจาก|เพราะ|สาเหตุ).*(?:อะไร|อะไรบ้าง)", re.I),
-        ],
-        "handler": "handle_cause_breakdown",
-    },
-    "cause_comparison": {
-        "patterns": [
-            re.compile(r"compare.*caus(?:e|es)", re.I),
-            re.compile(r"caus(?:e|es).*(?:compare|comparison|vs|versus)", re.I),
-            re.compile(r"(?:which|what).*(?:bigger|worse|more).*caus(?:e|es)", re.I),
-            re.compile(r"(?:speed|drunk|cutting).*(?:vs|versus|compared?|or).*(?:speed|drunk|cutting)", re.I),
-        ],
-        "handler": "handle_cause_comparison",
-    },
 
-    # ── Time-based (3) ────────────────────────────────────────────────
-    "time_patterns": {
-        "patterns": [
-            re.compile(r"when.*(?:most|many).*accidents?", re.I),
-            re.compile(r"when.*accidents?.*(?:most|common|frequent|happen)", re.I),
-            re.compile(r"(?:most|peak).*dangerous.*(?:time|hour|day|month|period)", re.I),
-            re.compile(r"(?:what|which).*(?:time|hour|day|month).*(?:dangerous|worst|most)", re.I),
-            re.compile(r"(?:time|temporal|hourly|daily|monthly).*(?:pattern|trend|distribution)", re.I),
-            re.compile(r"when.*(?:should|shouldn't).*(?:drive|travel|avoid)", re.I),
-            re.compile(r"(?:peak|worst).*(?:hours?|times?|days?)", re.I),
-            re.compile(r"(?:เวลา|ช่วงเวลา|วัน|เดือนไหน).*(?:อันตราย|เสี่ยง|อุบัติเหตุ).*(?:มาก|เยอะ|สูง|ที่สุด)", re.I),
-            re.compile(r"(?:ควร|ไม่ควร).*(?:ขับรถ|เดินทาง).*(?:เวลา|ช่วงเวลา).*(?:ไหน|ใด)", re.I),
-        ],
-        "handler": "handle_time_patterns",
-    },
-    "weekend_pattern": {
-        "patterns": [
-            re.compile(r"weekend.*(?:vs|versus|compared?|or).*weekday", re.I),
-            re.compile(r"weekday.*(?:vs|versus|compared?|or).*weekend", re.I),
-            re.compile(r"(?:is|are).*weekends?.*(?:more|less).*(?:danger|safe|risk)", re.I),
-            re.compile(r"(?:saturday|sunday).*(?:danger|safe|accident|risk)", re.I),
-        ],
-        "handler": "handle_weekend_pattern",
-    },
-
-    # ── Recommendation (2) ────────────────────────────────────────────
-    "policy_recommendations": {
-        "patterns": [
-            re.compile(r"(?:what|which).*(?:should|could|can).*(?:bangkok|city|government|policy).*do", re.I),
-            re.compile(r"recommend(?:ation)?s?", re.I),
-            re.compile(r"(?:policy|action|measure|solution|intervention).*(?:suggest|recommend|propose)", re.I),
-            re.compile(r"how.*(?:reduce|prevent|improve|fix).*(?:accident|crash|safety)", re.I),
-            re.compile(r"(?:suggest|propose).*(?:solution|improvement|change)", re.I),
-        ],
-        "handler": "handle_policy_recommendations",
-    },
-    # ── Meta (2) ──────────────────────────────────────────────────────
-    "how_it_works": {
-        "patterns": [
-            re.compile(r"how.*(?:does|do).*(?:this|it|system|model|app|project).*work", re.I),
-            re.compile(r"how.*(?:you|model|system).*(?:analy[sz]|predict|detect|classify)", re.I),
-            re.compile(r"(?:explain|describe).*(?:system|model|method|approach|pipeline|architecture)", re.I),
-            re.compile(r"what.*(?:technology|tech|stack|model|algorithm|method).*(?:use|behind|under)", re.I),
-            re.compile(r"(?:xgboost|nlp|machine.?learning).*(?:how|explain|work)", re.I),
-            re.compile(r"(?:ระบบ|โมเดล|แอป|โปรเจกต์).*(?:ทำงาน|วิเคราะห์|ทำนาย|ตรวจจับ).*(?:อย่างไร|ยังไง)", re.I),
-            re.compile(r"(?:ใช้|มี).*(?:เทคโนโลยี|โมเดล|วิธี).*(?:อะไร|แบบไหน)", re.I),
-        ],
-        "handler": "handle_how_it_works",
-    },
-    "data_source": {
-        "patterns": [
-            re.compile(r"(?:what|which|where).*data.*(?:use|from|source|come)", re.I),
-            re.compile(r"(?:how many|how much).*(?:accidents?|records?|data)", re.I),
-            re.compile(r"data.*(?:source|origin|from|about)", re.I),
-            re.compile(r"(?:about|tell).*(?:the|your).*data(?:set)?", re.I),
-            re.compile(r"(?:how big|size|scope).*data", re.I),
-            re.compile(r"(?:ข้อมูล|ดาต้า).*(?:มาจาก|ที่มา|แหล่ง|ใช้)", re.I),
-            re.compile(r"(?:มี|ใช้).*(?:ข้อมูล|อุบัติเหตุ).*(?:กี่|เท่าไร|เท่าไหร่)", re.I),
-        ],
-        "handler": "handle_data_source",
-    },
-}
+_INTENT_ORDER: list[str] = [
+    # ── High-priority direct questions (resolve before Groq) ───────────
+    "top_danger_corridors",
+    "peak_risk_time",
+    "peak_risk_day",
+    "model_reliability",
+    # ── Location-based ─────────────────────────────────────────────────
+    "list_speeding_zones",
+    "list_drunk_zones",
+    # ── Cause-based stats (must come before zone_safety to avoid false matches)
+    "speeding_stats",
+    "drunk_stats",
+    "cutting_stats",
+    # ── Time-based (also before zone_safety) ───────────────────────────
+    "rush_hour",
+    # ── Location-based (continued) ─────────────────────────────────────
+    "list_dangerous_zones",
+    "zone_safety_query",
+    "route_safety",
+    "rain_data_gap",
+    "camera_deployment",
+    "high_risk_zones",
+    "motorcycle_zones",
+    # ── Cause-based (remaining) ────────────────────────────────────────
+    "cause_breakdown",
+    "cause_comparison",
+    # ── Time-based (remaining) ─────────────────────────────────────────
+    "time_patterns",
+    "weekend_pattern",
+    # ── Recommendation ─────────────────────────────────────────────────
+    "policy_recommendations",
+    # ── Meta ───────────────────────────────────────────────────────────
+    "how_it_works",
+    "data_source",
+]
 
 
 # ---------------------------------------------------------------------------
@@ -359,17 +163,18 @@ INTENTS = {
 
 def detect_intent(user_message):
     """
-    Match user_message against all intent patterns.
+    Match user_message against all registered intent patterns.
 
-    Returns the intent name (str) if a pattern matches, or None if
-    no scripted intent is found (caller should fall through to Groq AI).
+    Iterates intents in _INTENT_ORDER priority. Returns the intent name
+    (str) on first match, or None if no scripted intent matches (caller
+    should fall through to Groq AI).
     """
     text = user_message.strip()
     if not text:
         return None
 
-    for intent_name, config in INTENTS.items():
-        for pattern in config["patterns"]:
+    for intent_name in _INTENT_ORDER:
+        for pattern in _INTENT_PATTERNS.get(intent_name, ()):
             if pattern.search(text):
                 return intent_name
 
@@ -389,9 +194,7 @@ def get_scripted_response(intent, user_message=""):
             "followup": str   — optional follow-up prompt,
         }
     """
-    handler_name = INTENTS[intent]["handler"]
-    handler_fn = _HANDLERS[handler_name]
-    return handler_fn(user_message)
+    return _INTENT_BY_NAME[intent](user_message)
 
 
 # ---------------------------------------------------------------------------
@@ -417,6 +220,17 @@ def _top_zone_anchors():
     }
 
 
+@intent(
+    name="top_danger_corridors",
+    patterns=[
+        re.compile(r"which\s+(?:zones?|areas?|places?|roads?|corridors?)\s+(?:are\s+)?most\s+dangerous", re.I),
+        re.compile(r"what\s+are\s+the\s+most\s+dangerous\s+(?:zones?|areas?|places?|roads?|corridors?)", re.I),
+        re.compile(r"(?:most|worst|highest).*(?:dangerous|risky).*(?:zones?|areas?|roads?|corridors?)", re.I),
+        re.compile(r"(?:ย่าน|พื้นที่|โซน|เขต|จุด|ถนน).*(?:ไหน|ใด).*(?:อันตราย|เสี่ยง).*(?:ที่สุด|สุด)", re.I),
+        re.compile(r"ถนนเส้นไหน.*(?:อันตราย|เสี่ยง).*(?:ที่สุด|สุด)?", re.I),
+        re.compile(r"(?:พื้นที่|ย่าน|โซน).*(?:อันตราย|เสี่ยง).*(?:ที่สุด|สุด)", re.I),
+    ],
+)
 def handle_top_danger_corridors(user_message=""):
     anchors = _top_zone_anchors()
     west = anchors["west"]
@@ -447,6 +261,16 @@ def handle_top_danger_corridors(user_message=""):
     }
 
 
+@intent(
+    name="peak_risk_time",
+    patterns=[
+        re.compile(r"what\s+time.*accidents?.*(?:most\s+common|most|peak|highest)", re.I),
+        re.compile(r"when\s+is\s+it\s+most\s+dangerous", re.I),
+        re.compile(r"(?:peak|worst|most\s+dangerous).*(?:time|hour)", re.I),
+        re.compile(r"(?:ช่วงเวลา|เวลา).*(?:ไหน|ใด).*(?:อันตราย|เสี่ยง).*(?:ที่สุด|สุด)", re.I),
+        re.compile(r"อุบัติเหตุ.*(?:เวลา|ช่วงเวลา).*(?:ไหน|ใด).*(?:เยอะ|มาก).*(?:ที่สุด|สุด)", re.I),
+    ],
+)
 def handle_peak_risk_time(user_message=""):
     data = load_chatbot_data()
     tp = data["time_patterns"]
@@ -473,6 +297,16 @@ def handle_peak_risk_time(user_message=""):
     }
 
 
+@intent(
+    name="peak_risk_day",
+    patterns=[
+        re.compile(r"what\s+day.*(?:most\s+dangerous|most\s+accidents?|highest)", re.I),
+        re.compile(r"which\s+day\s+has\s+most\s+accidents?", re.I),
+        re.compile(r"(?:most\s+dangerous|worst).*(?:day|weekday)", re.I),
+        re.compile(r"วัน(?:ไหน|ใด).*(?:อันตราย|เสี่ยง).*(?:ที่สุด|สุด)", re.I),
+        re.compile(r"วัน(?:ไหน|ใด).*อุบัติเหตุ.*(?:เยอะ|มาก).*(?:ที่สุด|สุด)", re.I),
+    ],
+)
 def handle_peak_risk_day(user_message=""):
     data = load_chatbot_data()
     tp = data["time_patterns"]
@@ -499,6 +333,17 @@ def handle_peak_risk_day(user_message=""):
     }
 
 
+@intent(
+    name="model_reliability",
+    patterns=[
+        re.compile(r"how\s+(?:accurate|reliable).*(?:model|safedrive|system|app)", re.I),
+        re.compile(r"how\s+reliable\s+is\s+safedrive", re.I),
+        re.compile(r"(?:can\s+i\s+trust|trust).*(?:model|safedrive|system)", re.I),
+        re.compile(r"(?:accuracy|reliability).*(?:model|safedrive|system)", re.I),
+        re.compile(r"โมเดล.*(?:แม่นยำ|น่าเชื่อถือ).*(?:แค่ไหน|ขนาดไหน)", re.I),
+        re.compile(r"(?:ระบบ|แอป|safedrive).*(?:แม่นยำ|น่าเชื่อถือ).*(?:แค่ไหน|ขนาดไหน)", re.I),
+    ],
+)
 def handle_model_reliability(user_message=""):
     data = load_chatbot_data()
     stats = data["stats"]
@@ -528,6 +373,15 @@ def handle_model_reliability(user_message=""):
 
 # ── Location-based ────────────────────────────────────────────────────
 
+@intent(
+    name="list_speeding_zones",
+    patterns=[
+        re.compile(r"(?:which|what|where).*(?:areas?|zones?|places?).*speed", re.I),
+        re.compile(r"where.*speed(?:ing)?.*(?:common|happen|occur|problem)", re.I),
+        re.compile(r"speed(?:ing)?.*(?:zones?|areas?|locations?|hotspots?)", re.I),
+        re.compile(r"top.*speed(?:ing)?.*(?:zones?|areas?)", re.I),
+    ],
+)
 def handle_speeding_zones(user_message=""):
     data = load_chatbot_data()
     speeding = data["causes"]["speeding"]
@@ -544,6 +398,15 @@ def handle_speeding_zones(user_message=""):
     }
 
 
+@intent(
+    name="list_drunk_zones",
+    patterns=[
+        re.compile(r"(?:where|which).*drunk.*driv", re.I),
+        re.compile(r"drunk.*driv.*(?:areas?|zones?|locations?)", re.I),
+        re.compile(r"alcohol.*(?:relat|accident|crash|zone|area)", re.I),
+        re.compile(r"(?:areas?|zones?).*drunk", re.I),
+    ],
+)
 def handle_drunk_zones(user_message=""):
     data = load_chatbot_data()
 
@@ -576,6 +439,16 @@ def handle_drunk_zones(user_message=""):
     }
 
 
+@intent(
+    name="list_dangerous_zones",
+    patterns=[
+        re.compile(r"(?:most|top|worst).*dangerous.*(?:areas?|zones?|places?|intersections?|roads?)", re.I),
+        re.compile(r"dangerous.*(?:intersections?|areas?|zones?|roads?)", re.I),
+        re.compile(r"(?:highest|most).*(?:risk|accident).*(?:areas?|zones?)", re.I),
+        re.compile(r"(?:where|which).*(?:most|many|lots?).*accidents?", re.I),
+        re.compile(r"worst.*(?:areas?|zones?|roads?|intersections?)", re.I),
+    ],
+)
 def handle_dangerous_zones(user_message=""):
     data = load_chatbot_data()
     zones = data["zones"]
@@ -606,6 +479,16 @@ def handle_dangerous_zones(user_message=""):
     }
 
 
+@intent(
+    name="zone_safety_query",
+    patterns=[
+        re.compile(r"(?:is|how)\s+(?:safe|dangerous)\s+(?:is|in|at|near)\s+(.+)", re.I),
+        re.compile(r"(?:safe|danger|risk)\s+(?:of|in|at|near|around)\s+(.+)", re.I),
+        re.compile(r"tell me about\s+(.+?)(?:\s+(?:area|zone|road|intersection))\s*$", re.I),
+        re.compile(r"how (?:risky|safe) is\s+(.+)", re.I),
+        re.compile(r"^is\s+(.+?)\s+(?:safe|dangerous|risky)\s*\??$", re.I),
+    ],
+)
 def handle_zone_safety(user_message=""):
     data = load_chatbot_data()
 
@@ -676,6 +559,19 @@ def handle_zone_safety(user_message=""):
         }
 
 
+@intent(
+    name="route_safety",
+    patterns=[
+        re.compile(r"(?:safe|safest|best).*route.*(?:to|from|between)", re.I),
+        re.compile(r"(?:how|which).*(?:route|way|path).*(?:safe|avoid)", re.I),
+        re.compile(r"(?:navigate|drive|travel|go).*(?:safe|avoid.*danger)", re.I),
+        re.compile(r"route.*(?:recommendation|suggest|plan)", re.I),
+        re.compile(r"(?:เส้นทาง|route).*(?:ไหน|ใด|นี้).*(?:ปลอดภัย|เสี่ยง|อันตราย)", re.I),
+        re.compile(r"(?:ไป|ขับ|เดินทาง).*(?:อย่างไร|ยังไง).*(?:ปลอดภัย|เลี่ยง|เสี่ยง)", re.I),
+        re.compile(r"(?:คืนนี้|ตอนกลางคืน).*(?:ขับรถ|เดินทาง).*(?:ปลอดภัย|เสี่ยง|อันตราย)", re.I),
+        re.compile(r"(?:ช่วย|ขอ).*(?:แนะนำ|หา).*(?:เส้นทาง).*(?:ปลอดภัย|เลี่ยง)", re.I),
+    ],
+)
 def handle_route_safety(user_message=""):
     route_reference = _extract_route_reference(user_message)
     is_thai = _has_thai_text(user_message)
@@ -699,6 +595,13 @@ def handle_route_safety(user_message=""):
     }
 
 
+@intent(
+    name="rain_data_gap",
+    patterns=[
+        re.compile(r"(?:rain|raining|weather|storm|wet roads?).*(?:risk|danger|safe|accident|increase)", re.I),
+        re.compile(r"(?:how much|does).*(?:rain|weather).*(?:increase|affect).*(?:risk|accident)", re.I),
+    ],
+)
 def handle_rain_data_gap(user_message=""):
     return {
         "type": "info",
@@ -711,6 +614,15 @@ def handle_rain_data_gap(user_message=""):
 
 
 
+@intent(
+    name="high_risk_zones",
+    patterns=[
+        re.compile(r"(?:show|list|display).*(?:high|red).*(?:risk|danger).*zones?", re.I),
+        re.compile(r"high.*risk.*zones?", re.I),
+        re.compile(r"red.*zones?", re.I),
+        re.compile(r"(?:all|list).*danger.*zones?", re.I),
+    ],
+)
 def handle_high_risk_zones(user_message=""):
     data = load_chatbot_data()
     high_risk = []
@@ -734,6 +646,15 @@ def handle_high_risk_zones(user_message=""):
     }
 
 
+@intent(
+    name="motorcycle_zones",
+    patterns=[
+        re.compile(r"motorcycle.*(?:accident|crash|zone|area|danger)", re.I),
+        re.compile(r"(?:where|which).*motorcycle.*(?:crash|accident|danger|risk)", re.I),
+        re.compile(r"(?:areas?|zones?).*(?:high|many|most).*motorcycles?", re.I),
+        re.compile(r"(?:motorbike|bike).*(?:accident|crash|risk|danger)", re.I),
+    ],
+)
 def handle_motorcycle_zones(user_message=""):
     data = load_chatbot_data()
 
@@ -764,6 +685,18 @@ def handle_motorcycle_zones(user_message=""):
 
 # ── Cause-based ──────────────────────────────────────────────────────
 
+@intent(
+    name="cause_breakdown",
+    patterns=[
+        re.compile(r"(?:what|which).*caus(?:e|es|ing).*accidents?", re.I),
+        re.compile(r"(?:breakdown|distribution).*(?:by|of).*caus", re.I),
+        re.compile(r"(?:main|top|primary|common).*caus(?:e|es)", re.I),
+        re.compile(r"why.*(?:accidents?|crashes?).*happen", re.I),
+        re.compile(r"accident.*caus(?:e|es)", re.I),
+        re.compile(r"(?:สาเหตุ|อะไร).*(?:อุบัติเหตุ|ชน|เกิดเหตุ).*(?:หลัก|มาก|บ่อย|ส่วนใหญ่)", re.I),
+        re.compile(r"อุบัติเหตุ.*(?:เกิดจาก|เพราะ|สาเหตุ).*(?:อะไร|อะไรบ้าง)", re.I),
+    ],
+)
 def handle_cause_breakdown(user_message=""):
     data = load_chatbot_data()
     causes = data["causes"]
@@ -786,6 +719,15 @@ def handle_cause_breakdown(user_message=""):
     }
 
 
+@intent(
+    name="speeding_stats",
+    patterns=[
+        re.compile(r"speed(?:ing)?.*(?:stat|number|data|how (?:much|many|often))", re.I),
+        re.compile(r"how (?:much|many|common|often).*speed(?:ing)?", re.I),
+        re.compile(r"speed(?:ing)?.*(?:percent|proportion|rate)", re.I),
+        re.compile(r"tell.*(?:me|us).*(?:about)?.*speed(?:ing)?$", re.I),
+    ],
+)
 def handle_speeding_stats(user_message=""):
     data = load_chatbot_data()
     speeding = data["causes"]["speeding"]
@@ -802,6 +744,16 @@ def handle_speeding_stats(user_message=""):
     }
 
 
+@intent(
+    name="drunk_stats",
+    patterns=[
+        re.compile(r"drunk.*driv.*(?:stat|number|data|how)", re.I),
+        re.compile(r"how (?:much|many|common|often).*drunk", re.I),
+        re.compile(r"alcohol.*(?:stat|number|data|percent)", re.I),
+        re.compile(r"(?:dui|dwi).*(?:stat|data|number)", re.I),
+        re.compile(r"(?:tell|about).*drunk.*(?:driv|stat)", re.I),
+    ],
+)
 def handle_drunk_stats(user_message=""):
     data = load_chatbot_data()
 
@@ -818,6 +770,14 @@ def handle_drunk_stats(user_message=""):
     }
 
 
+@intent(
+    name="cutting_stats",
+    patterns=[
+        re.compile(r"cutting.*(?:front|in).*(?:stat|data|number)", re.I),
+        re.compile(r"(?:how (?:much|many|common|often)).*cut(?:ting)?.*(?:front|in)", re.I),
+        re.compile(r"cut(?:ting)?.*(?:front|in).*(?:stat|percent|rate)", re.I),
+    ],
+)
 def handle_cutting_stats(user_message=""):
     data = load_chatbot_data()
     cutting = data["causes"]["cutting_in_front"]
@@ -834,6 +794,15 @@ def handle_cutting_stats(user_message=""):
     }
 
 
+@intent(
+    name="cause_comparison",
+    patterns=[
+        re.compile(r"compare.*caus(?:e|es)", re.I),
+        re.compile(r"caus(?:e|es).*(?:compare|comparison|vs|versus)", re.I),
+        re.compile(r"(?:which|what).*(?:bigger|worse|more).*caus(?:e|es)", re.I),
+        re.compile(r"(?:speed|drunk|cutting).*(?:vs|versus|compared?|or).*(?:speed|drunk|cutting)", re.I),
+    ],
+)
 def handle_cause_comparison(user_message=""):
     data = load_chatbot_data()
     causes = data["causes"]
@@ -864,6 +833,20 @@ def handle_cause_comparison(user_message=""):
 
 # ── Time-based ───────────────────────────────────────────────────────
 
+@intent(
+    name="time_patterns",
+    patterns=[
+        re.compile(r"when.*(?:most|many).*accidents?", re.I),
+        re.compile(r"when.*accidents?.*(?:most|common|frequent|happen)", re.I),
+        re.compile(r"(?:most|peak).*dangerous.*(?:time|hour|day|month|period)", re.I),
+        re.compile(r"(?:what|which).*(?:time|hour|day|month).*(?:dangerous|worst|most)", re.I),
+        re.compile(r"(?:time|temporal|hourly|daily|monthly).*(?:pattern|trend|distribution)", re.I),
+        re.compile(r"when.*(?:should|shouldn't).*(?:drive|travel|avoid)", re.I),
+        re.compile(r"(?:peak|worst).*(?:hours?|times?|days?)", re.I),
+        re.compile(r"(?:เวลา|ช่วงเวลา|วัน|เดือนไหน).*(?:อันตราย|เสี่ยง|อุบัติเหตุ).*(?:มาก|เยอะ|สูง|ที่สุด)", re.I),
+        re.compile(r"(?:ควร|ไม่ควร).*(?:ขับรถ|เดินทาง).*(?:เวลา|ช่วงเวลา).*(?:ไหน|ใด)", re.I),
+    ],
+)
 def handle_time_patterns(user_message=""):
     data = load_chatbot_data()
     tp = data["time_patterns"]
@@ -879,6 +862,15 @@ def handle_time_patterns(user_message=""):
     }
 
 
+@intent(
+    name="rush_hour",
+    patterns=[
+        re.compile(r"rush.*hour.*(?:danger|safe|risk|accident|stat)", re.I),
+        re.compile(r"(?:is|are).*rush.*hours?.*(?:danger|safe|risk)", re.I),
+        re.compile(r"(?:danger|safe|risk|accident).*(?:during|in).*rush.*hour", re.I),
+        re.compile(r"commut(?:e|ing).*(?:safe|danger|risk)", re.I),
+    ],
+)
 def handle_rush_hour(user_message=""):
     data = load_chatbot_data()
     tp = data["time_patterns"]
@@ -898,6 +890,15 @@ def handle_rush_hour(user_message=""):
     }
 
 
+@intent(
+    name="weekend_pattern",
+    patterns=[
+        re.compile(r"weekend.*(?:vs|versus|compared?|or).*weekday", re.I),
+        re.compile(r"weekday.*(?:vs|versus|compared?|or).*weekend", re.I),
+        re.compile(r"(?:is|are).*weekends?.*(?:more|less).*(?:danger|safe|risk)", re.I),
+        re.compile(r"(?:saturday|sunday).*(?:danger|safe|accident|risk)", re.I),
+    ],
+)
 def handle_weekend_pattern(user_message=""):
     data = load_chatbot_data()
     tp = data["time_patterns"]
@@ -921,6 +922,16 @@ def handle_weekend_pattern(user_message=""):
 
 # ── Recommendation ───────────────────────────────────────────────────
 
+@intent(
+    name="policy_recommendations",
+    patterns=[
+        re.compile(r"(?:what|which).*(?:should|could|can).*(?:bangkok|city|government|policy).*do", re.I),
+        re.compile(r"recommend(?:ation)?s?", re.I),
+        re.compile(r"(?:policy|action|measure|solution|intervention).*(?:suggest|recommend|propose)", re.I),
+        re.compile(r"how.*(?:reduce|prevent|improve|fix).*(?:accident|crash|safety)", re.I),
+        re.compile(r"(?:suggest|propose).*(?:solution|improvement|change)", re.I),
+    ],
+)
 def handle_policy_recommendations(user_message=""):
     data = load_chatbot_data()
     recs = data["recommendations"]
@@ -939,6 +950,16 @@ def handle_policy_recommendations(user_message=""):
     }
 
 
+@intent(
+    name="camera_deployment",
+    patterns=[
+        re.compile(r"where.*(?:install|deploy|place|put).*cameras?", re.I),
+        re.compile(r"(?:install|deploy|place|put).*cameras?.*where", re.I),
+        re.compile(r"(?:speed|traffic|red.?light).*cameras?.*(?:install|deploy|place|need)", re.I),
+        re.compile(r"cameras?.*(?:deploy|install).*(?:recommend|suggest|where)", re.I),
+        re.compile(r"where.*(?:should|could).*cameras?", re.I),
+    ],
+)
 def handle_camera_deployment(user_message=""):
     data = load_chatbot_data()
     speeding = data["causes"]["speeding"]
@@ -960,6 +981,18 @@ def handle_camera_deployment(user_message=""):
 
 # ── Meta ─────────────────────────────────────────────────────────────
 
+@intent(
+    name="how_it_works",
+    patterns=[
+        re.compile(r"how.*(?:does|do).*(?:this|it|system|model|app|project).*work", re.I),
+        re.compile(r"how.*(?:you|model|system).*(?:analy[sz]|predict|detect|classify)", re.I),
+        re.compile(r"(?:explain|describe).*(?:system|model|method|approach|pipeline|architecture)", re.I),
+        re.compile(r"what.*(?:technology|tech|stack|model|algorithm|method).*(?:use|behind|under)", re.I),
+        re.compile(r"(?:xgboost|nlp|machine.?learning).*(?:how|explain|work)", re.I),
+        re.compile(r"(?:ระบบ|โมเดล|แอป|โปรเจกต์).*(?:ทำงาน|วิเคราะห์|ทำนาย|ตรวจจับ).*(?:อย่างไร|ยังไง)", re.I),
+        re.compile(r"(?:ใช้|มี).*(?:เทคโนโลยี|โมเดล|วิธี).*(?:อะไร|แบบไหน)", re.I),
+    ],
+)
 def handle_how_it_works(user_message=""):
     data = load_chatbot_data()
     is_thai = _has_thai_text(user_message)
@@ -989,6 +1022,18 @@ def handle_how_it_works(user_message=""):
     }
 
 
+@intent(
+    name="data_source",
+    patterns=[
+        re.compile(r"(?:what|which|where).*data.*(?:use|from|source|come)", re.I),
+        re.compile(r"(?:how many|how much).*(?:accidents?|records?|data)", re.I),
+        re.compile(r"data.*(?:source|origin|from|about)", re.I),
+        re.compile(r"(?:about|tell).*(?:the|your).*data(?:set)?", re.I),
+        re.compile(r"(?:how big|size|scope).*data", re.I),
+        re.compile(r"(?:ข้อมูล|ดาต้า).*(?:มาจาก|ที่มา|แหล่ง|ใช้)", re.I),
+        re.compile(r"(?:มี|ใช้).*(?:ข้อมูล|อุบัติเหตุ).*(?:กี่|เท่าไร|เท่าไหร่)", re.I),
+    ],
+)
 def handle_data_source(user_message=""):
     data = load_chatbot_data()
     stats = data["stats"]
@@ -1210,38 +1255,6 @@ def handle_ml_cause_response(cause_key: str, confidence: float, user_message: st
 
 
 # ---------------------------------------------------------------------------
-# Handler dispatch table
-# ---------------------------------------------------------------------------
-
-_HANDLERS = {
-    "handle_top_danger_corridors": handle_top_danger_corridors,
-    "handle_peak_risk_time": handle_peak_risk_time,
-    "handle_peak_risk_day": handle_peak_risk_day,
-    "handle_model_reliability": handle_model_reliability,
-    "handle_speeding_zones": handle_speeding_zones,
-    "handle_drunk_zones": handle_drunk_zones,
-    "handle_dangerous_zones": handle_dangerous_zones,
-    "handle_zone_safety": handle_zone_safety,
-    "handle_route_safety": handle_route_safety,
-    "handle_rain_data_gap": handle_rain_data_gap,
-    "handle_high_risk_zones": handle_high_risk_zones,
-    "handle_motorcycle_zones": handle_motorcycle_zones,
-    "handle_cause_breakdown": handle_cause_breakdown,
-    "handle_speeding_stats": handle_speeding_stats,
-    "handle_drunk_stats": handle_drunk_stats,
-    "handle_cutting_stats": handle_cutting_stats,
-    "handle_cause_comparison": handle_cause_comparison,
-    "handle_time_patterns": handle_time_patterns,
-    "handle_rush_hour": handle_rush_hour,
-    "handle_weekend_pattern": handle_weekend_pattern,
-    "handle_policy_recommendations": handle_policy_recommendations,
-    "handle_camera_deployment": handle_camera_deployment,
-    "handle_how_it_works": handle_how_it_works,
-    "handle_data_source": handle_data_source,
-}
-
-
-# ---------------------------------------------------------------------------
 # Quick test
 # ---------------------------------------------------------------------------
 
@@ -1290,5 +1303,5 @@ if __name__ == "__main__":
     print(f"\n{'=' * 70}")
     print(f"Matched: {matched}/{len(test_messages)} ({matched / len(test_messages) * 100:.0f}%)")
     print(f"Fall-through to AI: {len(test_messages) - matched}")
-    print(f"Total intents defined: {len(INTENTS)}")
-    print(f"Total patterns: {sum(len(i['patterns']) for i in INTENTS.values())}")
+    print(f"Total intents defined: {len(_INTENT_BY_NAME)}")
+    print(f"Total patterns: {sum(len(p) for p in _INTENT_PATTERNS.values())}")

@@ -140,10 +140,10 @@ class TestCompareRoutes:
 
     def test_valid_request_returns_200_with_routes(self, client):
         with (
-            patch("src.blueprints.routing_api.get_google_maps_routes", return_value=[]),
+            patch("src.routing.get_google_maps_routes", return_value=[]),
             patch("src.routing.get_osrm_route", return_value=None),
             patch("src.routing.find_cached_route", return_value=None),
-            patch("src.blueprints.routing_api.get_google_maps_travel_time", return_value=None),
+            patch("src.routing.get_google_maps_travel_time", return_value=None),
         ):
             resp = client.post("/api/compare-routes", json=self._VALID_PAYLOAD)
         assert resp.status_code == 200

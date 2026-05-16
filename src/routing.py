@@ -440,6 +440,69 @@ def _build_detour_path(
     return path
 
 
+def get_route_alternatives(
+    start_lat: float,
+    start_lon: float,
+    end_lat: float,
+    end_lon: float,
+    grid_df,
+) -> tuple[list[dict], int]:
+    """Return scored route alternatives between two points.
+
+    Tries Google Maps Directions first (multiple alternatives). Falls back to
+    a fast + safe pair generated locally, with GMaps timing layered on top of
+    the fast leg when available.
+
+    Returns (scored_routes, alternatives_analyzed). Each route dict is
+    ready to feed into `risk.rank_and_annotate_routes()`.
+    """
+    # Imported here to avoid circular import (risk imports nothing from routing).
+    from .risk import evaluate_route, score_route
+
+    gmaps_routes = get_google_maps_routes(start_lat, start_lon, end_lat, end_lon)
+
+    if gmaps_routes:
+        scored_routes: list[dict] = []
+        for gr in gmaps_routes:
+            wps = gr["waypoints"]
+            sampled = wps[:: max(1, len(wps) // 80)]
+            if sampled[-1] != wps[-1]:
+                sampled.append(wps[-1])
+
+            risk = score_route(sampled, grid_df)
+            scored_routes.append({
+                "waypoints": wps,
+                "distance_km": gr["distance_km"],
+                "time_min": gr["duration_minutes"],
+                "risk_score": risk["risk_score"],
+                "risk_level": risk["risk_level"],
+                "high_risk_zones": risk.get("high_risk_zones", 0),
+                "high_risk_km": risk.get("high_risk_km", 0),
+                "medium_risk_zones": risk.get("medium_risk_zones", 0),
+                "matched_grids": risk.get("matched_grids", 0),
+                "evaluated_waypoints": risk.get("evaluated_waypoints", len(sampled)),
+                "traffic_source": "google_maps_traffic" if gr["has_traffic"] else "google_maps",
+                "summary": gr.get("summary", ""),
+            })
+        return scored_routes, len(gmaps_routes)
+
+    fast_wps = generate_fast_route(start_lat, start_lon, end_lat, end_lon)
+    safe_wps = generate_safe_route(start_lat, start_lon, end_lat, end_lon, grid_df, fast_waypoints=fast_wps)
+    route_fast = evaluate_route(fast_wps, grid_df)
+    route_safe = evaluate_route(safe_wps, grid_df)
+
+    gmaps_time = get_google_maps_travel_time(start_lat, start_lon, end_lat, end_lon)
+    if gmaps_time:
+        route_fast["distance_km"] = gmaps_time["distance_km"]
+        route_fast["time_min"] = gmaps_time["duration_minutes"]
+        route_fast["traffic_source"] = "google_maps_traffic" if gmaps_time["has_traffic"] else "google_maps"
+    else:
+        route_fast["traffic_source"] = "estimated"
+    route_safe["traffic_source"] = "estimated"
+
+    return [route_fast, route_safe], 1
+
+
 def generate_safe_route(
     start_lat: float,
     start_lon: float,
