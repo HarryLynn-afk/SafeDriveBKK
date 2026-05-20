@@ -32,7 +32,7 @@ src/
   data_processing.py  → Raw accident data cleaning
   feature_engineering.py → ML feature computation
   grid_aggregation.py → Bangkok spatial grid logic (0.009° cells)
-  nlp_analysis.py     → NLP pipeline over accident text
+  nlp_analysis.py     → NLP pipeline over accident text; load_nlp_cache() is the public entry point
   chatbot_groq.py     → Groq LLM wrapper
   chatbot_intents.py  → Scripted intent detection + ML cause matching
   chatbot_utils.py    → Chatbot payload sanitization helpers
@@ -59,7 +59,10 @@ templates/            → Jinja2: base.html, index.html, trip_planner.html, anal
                         about.html, nlp.html, floating_chat.html
 tests/                → conftest.py (flask app + sample fixtures), test_api.py,
                         test_risk.py, test_routing.py, test_data.py, test_geo.py,
-                        test_chatbot_utils.py, test_chatbot_intents.py
+                        test_chatbot_utils.py, test_chatbot_intents.py,
+                        test_nlp_cache.py, test_refresh_presets.py
+scripts/
+  refresh_route_presets.py → refresh_presets() re-queries OSRM and rewrites route_presets.json
 ```
 
 ---
@@ -94,6 +97,8 @@ tests/                → conftest.py (flask app + sample fixtures), test_api.py
 - **`get_route_alternatives()` in `routing.py` owns alternatives generation** — GMaps Directions first; falls back to fast + safe pair with GMaps timing layered on. Returns scored routes ready to rank.
 - **`rank_and_annotate_routes()` in `risk.py` owns the comparison pipeline** — dedupe → TOPSIS → fast/safe/recommended selection → confidence/peak labels → display routes → recommendation text. Single entry point for the `/api/compare-routes` response body.
 - **`build_analytics_payload()` in `utils/data.py` owns the analytics response** — internally composed of small private aggregators (temporal, top zones, area, vehicle, severity, risk distribution, weekend split). Thai column names live here, not in the blueprint.
+- **`load_nlp_cache()` in `nlp_analysis.py` is the NLP cache entry point** — in-process singleton with mtime-based staleness detection. Logs a warning but never regenerates synchronously (pipeline is too slow for a web request). Regenerate offline with `python -m src.nlp_analysis`.
+- **`reload_route_presets()` + `scripts/refresh_route_presets.py`** — two-part refresh: script re-queries OSRM and writes the file; `reload_route_presets()` busts the in-process cache. Both are needed for a live process to see updated presets.
 - **Scripted intents are registered via `@intent(name, patterns)` in `chatbot_intents.py`** — patterns and handler live together; there is no separate `INTENTS` dict or `_HANDLERS` dispatch table. Matching priority is encoded by `_INTENT_ORDER` (a list of intent names) because pattern overlap means some intents must be tried before others.
 - **Non-root Docker user** — the container runs as `appuser`; the `/app` directory is chowned accordingly.
 - **Bangkok spatial grid: 0.009° cells** — this constant is replicated in `config.py`, `ml_model.py`, and `grid_aggregation.py`. All three must stay in sync.
@@ -107,10 +112,14 @@ tests/                → conftest.py (flask app + sample fixtures), test_api.py
 - Thai-language chatbot support via pythainlp + Groq
 - Docker image builds clean (multi-stage, non-root)
 - GitHub Actions CI runs pytest + Docker build on every push to `main`
-- **174 tests passing** across 7 modules — API endpoints, risk scoring, routing, data loading, geo utilities, chatbot utils, chatbot intent registry
+- **199 tests passing** across 9 modules — all previous + NLP cache + route preset refresh
 - `resolve_route()` and `score_route()` are the deep module interfaces for routing and risk; fully tested
-- `get_route_alternatives()` + `rank_and_annotate_routes()` are the deep module interfaces for `/api/compare-routes`; blueprint is now ~30 lines; both fully unit-tested
+- `get_route_alternatives()` + `rank_and_annotate_routes()` are the deep module interfaces for `/api/compare-routes`; blueprint is now ~30 lines; fully unit-tested
 - `build_analytics_payload()` is the deep module interface for `/api/analytics-data`; blueprint is now ~7 lines; fully unit-tested
+- `load_nlp_cache()` in `src/nlp_analysis.py` is the public entry point for NLP results — in-process singleton, detects staleness via mtime comparison, never raises, warns when accident data is newer than cache
+- `reload_route_presets()` in `src/routing.py` busts the in-process presets cache; `scripts/refresh_route_presets.py` re-queries OSRM and rewrites the file — run with `python -m scripts.refresh_route_presets`
+- `static/route_presets.json` refreshed from live OSRM (all 4 presets updated 2026-05-20)
+- **All open tasks are now closed** — no remaining backlog
 - Deployed/targeted for **Render** (Gunicorn, `PORT` env var set automatically)
 - Google Maps API key is optional — app degrades to OSRM + estimated travel times when absent
 - Project docs in `docs/ubiquitous-language.md` — 15 canonical domain terms, pass to Claude at session start
@@ -118,8 +127,9 @@ tests/                → conftest.py (flask app + sample fixtures), test_api.py
 ---
 
 ## Open Tasks
-1. NLP cache (`static/nlp_cache.json`) has no invalidation strategy — may serve stale results after data updates
-2. Route presets (`static/route_presets.json`) are static; no automated refresh from live OSRM data
+None — all known tasks are closed. Next priorities if work continues:
+1. Run `python -m src.nlp_analysis` to regenerate `nlp_cache.json` if accident data is updated (script exists; no CI automation yet)
+2. Add `scripts/refresh_route_presets.py` to a scheduled CI job so presets stay fresh automatically
 
 ---
 
@@ -137,6 +147,8 @@ tests/                → conftest.py (flask app + sample fixtures), test_api.py
 - **Never orchestrate `dedupe_scored_routes` / `apply_topsis` / `annotate_route_roles` / `build_display_routes` from blueprints** — call `rank_and_annotate_routes()` instead
 - **Never replicate analytics aggregation in blueprints** — call `build_analytics_payload()` from `src/utils/data.py`
 - **Never reintroduce `INTENTS` or `_HANDLERS` dicts in `chatbot_intents.py`** — register new scripted intents with the `@intent(name, patterns)` decorator and add the intent name to `_INTENT_ORDER` at the desired priority position
+- **Never call `_load_nlp_cache()` in blueprints** — call `load_nlp_cache()` from `src.nlp_analysis` instead; the blueprint must own zero file I/O logic for NLP data
+- **Never re-query OSRM for route preset refresh inside a web request** — use `python -m scripts.refresh_route_presets` offline; call `reload_route_presets()` after the file is written
 
 ---
 
@@ -152,3 +164,4 @@ tests/                → conftest.py (flask app + sample fixtures), test_api.py
 | 2026-05-16 | /tdd — added 10 tests for `@intent` registry boundary in `test_chatbot_intents.py` | Covers known-pattern matches, no-match/empty cases, `_INTENT_ORDER` priority, decorator registration, and `get_scripted_response` dispatch. Test suite: 130 → 140. |
 | 2026-05-20 | /end-session — review session; corrected test count 130 → 140 in CLAUDE.md, added `test_chatbot_intents.py` to folder structure | No new code changes; all commits were already on main. |
 | 2026-05-20 | /tdd — added 34 unit tests for `get_route_alternatives()`, `rank_and_annotate_routes()`, and `build_analytics_payload()` | Test suite: 140 → 174. Open Task 3 closed. GMaps vs fallback paths, confidence bounds, prediction_method branching, temporal/risk/weekend aggregations all covered at module boundary. |
+| 2026-05-20 | Closed all open tasks: NLP cache invalidation (`load_nlp_cache()` with mtime staleness), route preset refresh (`reload_route_presets()` + `scripts/refresh_route_presets.py`), 59 new unit tests | Test suite: 140 → 199. No remaining open tasks. `scripts/` package added. `nlp_bp.py` now delegates all file I/O to `load_nlp_cache()`. |
