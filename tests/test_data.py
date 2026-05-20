@@ -8,7 +8,7 @@ days, rush-hour stats), and error handling for missing files.
 import pandas as pd
 import pytest
 
-from src.utils.data import calculate_temporal_stats, format_hour_range
+from src.utils.data import build_analytics_payload, calculate_temporal_stats, format_hour_range
 
 
 class TestFormatHourRange:
@@ -65,3 +65,83 @@ class TestCalculateTemporalStats:
         for day in result["dangerous_days"]:
             assert "day_name" in day
             assert isinstance(day["day_name"], str)
+
+
+# ---------------------------------------------------------------------------
+# build_analytics_payload — full analytics response dict
+# ---------------------------------------------------------------------------
+
+_ANALYTICS_REQUIRED_KEYS = {
+    "total_accidents", "total_grids", "by_hour", "by_day", "by_month",
+    "top_zones", "by_area", "by_vehicle", "severity",
+    "risk_distribution", "weekend_vs_weekday", "summary",
+}
+
+
+class TestBuildAnalyticsPayload:
+    # ---- shape ----
+
+    def test_returns_all_required_keys(self, sample_accidents_df, sample_grid_df):
+        result = build_analytics_payload(sample_accidents_df, sample_grid_df)
+        assert _ANALYTICS_REQUIRED_KEYS.issubset(result.keys())
+
+    # ---- counts ----
+
+    def test_total_accidents_equals_dataframe_length(self, sample_accidents_df, sample_grid_df):
+        result = build_analytics_payload(sample_accidents_df, sample_grid_df)
+        assert result["total_accidents"] == len(sample_accidents_df)
+
+    def test_total_grids_equals_grid_df_length(self, sample_accidents_df, sample_grid_df):
+        result = build_analytics_payload(sample_accidents_df, sample_grid_df)
+        assert result["total_grids"] == len(sample_grid_df)
+
+    # ---- temporal breakdowns ----
+
+    def test_by_hour_keys_are_integers(self, sample_accidents_df, sample_grid_df):
+        result = build_analytics_payload(sample_accidents_df, sample_grid_df)
+        for key in result["by_hour"]:
+            assert isinstance(key, int)
+
+    def test_by_hour_covers_all_hours_in_data(self, sample_accidents_df, sample_grid_df):
+        # sample_accidents_df hours: [7, 8, 17, 17, 23, 8, 17]
+        result = build_analytics_payload(sample_accidents_df, sample_grid_df)
+        assert set(result["by_hour"].keys()) == {7, 8, 17, 23}
+
+    def test_by_day_keys_are_day_name_strings(self, sample_accidents_df, sample_grid_df):
+        result = build_analytics_payload(sample_accidents_df, sample_grid_df)
+        for key in result["by_day"]:
+            assert isinstance(key, str)
+
+    def test_by_month_keys_are_month_name_strings(self, sample_accidents_df, sample_grid_df):
+        # sample_accidents_df months: [1, 1, 2, 2, 3, 3, 4]
+        result = build_analytics_payload(sample_accidents_df, sample_grid_df)
+        assert set(result["by_month"].keys()) == {"Jan", "Feb", "Mar", "Apr"}
+
+    # ---- weekend split ----
+
+    def test_weekend_vs_weekday_sums_to_total_accidents(self, sample_accidents_df, sample_grid_df):
+        result = build_analytics_payload(sample_accidents_df, sample_grid_df)
+        split = result["weekend_vs_weekday"]
+        assert split["Weekend"] + split["Weekday"] == len(sample_accidents_df)
+
+    def test_weekend_vs_weekday_counts_match_data(self, sample_accidents_df, sample_grid_df):
+        # sample_accidents_df is_weekend: [F, F, F, T, T, F, F] → Weekend=2, Weekday=5
+        result = build_analytics_payload(sample_accidents_df, sample_grid_df)
+        assert result["weekend_vs_weekday"]["Weekend"] == 2
+        assert result["weekend_vs_weekday"]["Weekday"] == 5
+
+    # ---- risk distribution ----
+
+    def test_risk_distribution_excludes_zero_accident_grids(self, sample_accidents_df, sample_grid_df):
+        # sample_grid_df has one grid with total_accidents=0 (G011_010)
+        # so that grid's risk_level ("low") should not inflate the count beyond active grids
+        result = build_analytics_payload(sample_accidents_df, sample_grid_df)
+        dist = result["risk_distribution"]
+        # Total active grids: 3 (5+15+30 accidents); inactive: 1 (G011_010, 0 accidents)
+        assert sum(dist.values()) == 3
+
+    def test_summary_has_active_zones_and_high_risk_zones(self, sample_accidents_df, sample_grid_df):
+        result = build_analytics_payload(sample_accidents_df, sample_grid_df)
+        summary = result["summary"]
+        assert "active_zones" in summary
+        assert "high_risk_zones" in summary

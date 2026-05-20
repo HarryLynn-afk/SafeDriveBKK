@@ -15,27 +15,18 @@ import logging
 
 from flask import Blueprint, jsonify, request
 
-from ..config import BASE_DIR, NLP_CACHE_PATH
+from ..config import BASE_DIR
+from ..nlp_analysis import load_nlp_cache
 
 logger = logging.getLogger(__name__)
 
 nlp_bp = Blueprint("nlp", __name__, url_prefix="/api/nlp")
 
 
-def _load_nlp_cache() -> dict:
-    try:
-        if NLP_CACHE_PATH.exists():
-            with open(NLP_CACHE_PATH, encoding="utf-8") as f:
-                return json.load(f)
-    except (json.JSONDecodeError, OSError):
-        logger.warning("Failed to load NLP cache from %s", NLP_CACHE_PATH)
-    return {}
-
-
 @nlp_bp.route("/pipeline-preview")
 def pipeline_preview():
     try:
-        return jsonify(_load_nlp_cache().get("pipeline_preview", {}))
+        return jsonify(load_nlp_cache().get("pipeline_preview", {}))
     except Exception:
         logger.exception("Error in /api/nlp/pipeline-preview")
         return jsonify({"error": "Failed to load pipeline preview."}), 500
@@ -44,7 +35,7 @@ def pipeline_preview():
 @nlp_bp.route("/cause-analysis")
 def cause_analysis():
     try:
-        return jsonify(_load_nlp_cache().get("cause_analysis", {}))
+        return jsonify(load_nlp_cache().get("cause_analysis", {}))
     except Exception:
         logger.exception("Error in /api/nlp/cause-analysis")
         return jsonify({"error": "Failed to load cause analysis."}), 500
@@ -53,7 +44,7 @@ def cause_analysis():
 @nlp_bp.route("/recommendations")
 def recommendations():
     try:
-        return jsonify({"recommendations": _load_nlp_cache().get("recommendations", [])})
+        return jsonify({"recommendations": load_nlp_cache().get("recommendations", [])})
     except Exception:
         logger.exception("Error in /api/nlp/recommendations")
         return jsonify({"error": "Failed to load recommendations."}), 500
@@ -62,7 +53,7 @@ def recommendations():
 @nlp_bp.route("/wordcloud")
 def wordcloud():
     try:
-        return jsonify(_load_nlp_cache().get("word_cloud", {}))
+        return jsonify(load_nlp_cache().get("word_cloud", {}))
     except Exception:
         logger.exception("Error in /api/nlp/wordcloud")
         return jsonify({"error": "Failed to load word cloud data."}), 500

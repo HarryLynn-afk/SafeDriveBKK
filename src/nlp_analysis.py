@@ -698,6 +698,47 @@ class NLPAnalyzer:
         return cache
 
 
+# ---------------------------------------------------------------------------
+# Cache loader — in-process singleton with staleness detection
+# ---------------------------------------------------------------------------
+
+_nlp_cache: dict | None = None
+
+
+def load_nlp_cache() -> dict:
+    """Return NLP analysis results from nlp_cache.json.
+
+    Reads from disk once per process lifetime; subsequent calls return the
+    in-process copy. If the accident data file is newer than the cache file,
+    logs a warning and returns the stale cache — regeneration is intentionally
+    left to the offline step (`python -m src.nlp_analysis`) so web requests
+    are never blocked by a multi-minute pipeline run.
+
+    Always returns a dict (empty if the cache file is missing or unreadable).
+    """
+    global _nlp_cache
+    if _nlp_cache is not None:
+        return _nlp_cache
+
+    try:
+        if NLP_CACHE_PATH.exists():
+            with open(NLP_CACHE_PATH, encoding="utf-8") as f:
+                _nlp_cache = json.load(f)
+            if ACCIDENTS_PATH.exists():
+                if ACCIDENTS_PATH.stat().st_mtime > NLP_CACHE_PATH.stat().st_mtime:
+                    LOGGER.warning(
+                        "NLP cache is stale — accident data is newer than %s. "
+                        "Run `python -m src.nlp_analysis` to regenerate.",
+                        NLP_CACHE_PATH,
+                    )
+            return _nlp_cache
+    except (json.JSONDecodeError, OSError):
+        LOGGER.warning("Failed to load NLP cache from %s", NLP_CACHE_PATH)
+
+    _nlp_cache = {}
+    return _nlp_cache
+
+
 if __name__ == "__main__":
     logging.basicConfig(level=logging.INFO)
     analyzer = NLPAnalyzer()

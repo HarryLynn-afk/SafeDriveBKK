@@ -68,6 +68,12 @@ def _load_route_presets() -> dict:
     return _route_presets_cache
 
 
+def reload_route_presets() -> None:
+    """Discard the in-process presets cache; next find_cached_route() re-reads the file."""
+    global _route_presets_cache
+    _route_presets_cache = None
+
+
 def find_cached_route(
     start_lat: float,
     start_lon: float,

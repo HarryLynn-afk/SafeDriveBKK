@@ -59,7 +59,7 @@ templates/            → Jinja2: base.html, index.html, trip_planner.html, anal
                         about.html, nlp.html, floating_chat.html
 tests/                → conftest.py (flask app + sample fixtures), test_api.py,
                         test_risk.py, test_routing.py, test_data.py, test_geo.py,
-                        test_chatbot_utils.py
+                        test_chatbot_utils.py, test_chatbot_intents.py
 ```
 
 ---
@@ -107,10 +107,10 @@ tests/                → conftest.py (flask app + sample fixtures), test_api.py
 - Thai-language chatbot support via pythainlp + Groq
 - Docker image builds clean (multi-stage, non-root)
 - GitHub Actions CI runs pytest + Docker build on every push to `main`
-- **130 tests passing** across 6 modules — API endpoints, risk scoring, routing, data loading, geo utilities, chatbot utils
+- **174 tests passing** across 7 modules — API endpoints, risk scoring, routing, data loading, geo utilities, chatbot utils, chatbot intent registry
 - `resolve_route()` and `score_route()` are the deep module interfaces for routing and risk; fully tested
-- `get_route_alternatives()` + `rank_and_annotate_routes()` are the deep module interfaces for `/api/compare-routes`; blueprint is now ~30 lines
-- `build_analytics_payload()` is the deep module interface for `/api/analytics-data`; blueprint is now ~7 lines
+- `get_route_alternatives()` + `rank_and_annotate_routes()` are the deep module interfaces for `/api/compare-routes`; blueprint is now ~30 lines; both fully unit-tested
+- `build_analytics_payload()` is the deep module interface for `/api/analytics-data`; blueprint is now ~7 lines; fully unit-tested
 - Deployed/targeted for **Render** (Gunicorn, `PORT` env var set automatically)
 - Google Maps API key is optional — app degrades to OSRM + estimated travel times when absent
 - Project docs in `docs/ubiquitous-language.md` — 15 canonical domain terms, pass to Claude at session start
@@ -120,7 +120,6 @@ tests/                → conftest.py (flask app + sample fixtures), test_api.py
 ## Open Tasks
 1. NLP cache (`static/nlp_cache.json`) has no invalidation strategy — may serve stale results after data updates
 2. Route presets (`static/route_presets.json`) are static; no automated refresh from live OSRM data
-3. Add unit tests for `get_route_alternatives()`, `rank_and_annotate_routes()`, `build_analytics_payload()`, and the `@intent` registry — current coverage is via existing endpoint tests only
 
 ---
 
@@ -150,3 +149,6 @@ tests/                → conftest.py (flask app + sample fixtures), test_api.py
 | 2026-05-16 | /tdd — added 18 tests for resolve_route() and score_route() | Test suite: 112 → 130; patches now target correct module boundaries |
 | 2026-05-16 | /improve-codebase-architecture — extracted `get_route_alternatives()` + `rank_and_annotate_routes()` (route comparison) and `build_analytics_payload()` (analytics) | routing_api compare_routes: 145 → ~30 lines; api analytics_data: 124 → 7 lines. All 130 tests still passing. |
 | 2026-05-16 | /improve-codebase-architecture — converted chatbot_intents.py from `INTENTS` dict + standalone handlers + `_HANDLERS` dispatch table to `@intent(name, patterns)` decorator | 3-place pattern → 2-place pattern (decorator + `_INTENT_ORDER` list). Patterns now live with their handlers. 130 tests + `python -m src.chatbot_intents` smoke test (18/21) confirm behavioral parity. |
+| 2026-05-16 | /tdd — added 10 tests for `@intent` registry boundary in `test_chatbot_intents.py` | Covers known-pattern matches, no-match/empty cases, `_INTENT_ORDER` priority, decorator registration, and `get_scripted_response` dispatch. Test suite: 130 → 140. |
+| 2026-05-20 | /end-session — review session; corrected test count 130 → 140 in CLAUDE.md, added `test_chatbot_intents.py` to folder structure | No new code changes; all commits were already on main. |
+| 2026-05-20 | /tdd — added 34 unit tests for `get_route_alternatives()`, `rank_and_annotate_routes()`, and `build_analytics_payload()` | Test suite: 140 → 174. Open Task 3 closed. GMaps vs fallback paths, confidence bounds, prediction_method branching, temporal/risk/weekend aggregations all covered at module boundary. |

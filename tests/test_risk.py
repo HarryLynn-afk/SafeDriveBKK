@@ -21,6 +21,7 @@ from src.risk import (
     dedupe_scored_routes,
     evaluate_route,
     generate_alerts_from_segments,
+    rank_and_annotate_routes,
     score_route,
 )
 
@@ -296,3 +297,130 @@ class TestAnnotateAndDisplay:
         annotate_route_roles(routes, fast, safe, rec)
         display = build_display_routes(routes, fast, safe, rec)
         assert len(display) <= 3
+
+
+# ---------------------------------------------------------------------------
+# rank_and_annotate_routes — full comparison pipeline
+# ---------------------------------------------------------------------------
+
+_RANK_REQUIRED_KEYS = {
+    "fast_route", "safe_route", "recommended_route",
+    "display_routes", "all_routes", "route_fast", "route_safe", "recommendation",
+}
+
+
+def _make_scored(time_min: int, risk_score: int, offset: float = 0.0) -> dict:
+    """Minimal scored-route dict suitable as rank_and_annotate_routes input."""
+    return {
+        "waypoints": [[13.75 + offset + i * 0.001, 100.5] for i in range(5)],
+        "time_min": time_min,
+        "risk_score": risk_score,
+        "distance_km": 5.0,
+    }
+
+
+class TestRankAndAnnotateRoutes:
+    def _no_ml(self):
+        mock_ext = MagicMock()
+        mock_ext.USE_ML = False
+        mock_ext.ml_predictor = None
+        return mock_ext
+
+    def _with_ml(self):
+        mock_ext = MagicMock()
+        mock_ext.USE_ML = True
+        mock_ext.ml_predictor = MagicMock()
+        return mock_ext
+
+    def _run(self, routes, ext=None):
+        if ext is None:
+            ext = self._no_ml()
+        with patch("src.risk.extensions", ext):
+            return rank_and_annotate_routes(routes)
+
+    # ---- return shape ----
+
+    def test_returns_all_required_keys(self):
+        routes = [_make_scored(15, 70), _make_scored(30, 20, offset=0.1)]
+        result = self._run(routes)
+        assert _RANK_REQUIRED_KEYS.issubset(result.keys())
+
+    def test_display_routes_at_most_three(self):
+        routes = [
+            _make_scored(10, 80),
+            _make_scored(25, 50, offset=0.1),
+            _make_scored(40, 20, offset=0.2),
+            _make_scored(35, 35, offset=0.3),
+        ]
+        result = self._run(routes)
+        assert len(result["display_routes"]) <= 3
+
+    # ---- fast / safe selection ----
+
+    def test_fast_route_has_minimum_time(self):
+        routes = [_make_scored(15, 70), _make_scored(30, 20, offset=0.1), _make_scored(25, 45, offset=0.2)]
+        result = self._run(routes)
+        assert result["fast_route"]["time_min"] == 15
+
+    def test_safe_route_has_minimum_risk_score(self):
+        routes = [_make_scored(15, 70), _make_scored(30, 20, offset=0.1), _make_scored(25, 45, offset=0.2)]
+        result = self._run(routes)
+        assert result["safe_route"]["risk_score"] == 20
+
+    def test_all_routes_sorted_by_time_ascending(self):
+        routes = [_make_scored(30, 20, offset=0.1), _make_scored(15, 70), _make_scored(25, 45, offset=0.2)]
+        result = self._run(routes)
+        times = [r["time_min"] for r in result["all_routes"]]
+        assert times == sorted(times)
+
+    # ---- per-route annotations ----
+
+    def test_confidence_within_bounds_for_all_routes(self):
+        routes = [_make_scored(15, 70), _make_scored(30, 20, offset=0.1)]
+        result = self._run(routes)
+        for route in result["all_routes"]:
+            assert 0.0 <= route["confidence"] <= 0.99
+
+    def test_prediction_method_is_spatial_when_ml_disabled(self):
+        routes = [_make_scored(15, 70), _make_scored(30, 20, offset=0.1)]
+        result = self._run(routes, ext=self._no_ml())
+        for route in result["all_routes"]:
+            assert route["prediction_method"] == "spatial"
+
+    def test_prediction_method_is_xgboost_when_ml_enabled(self):
+        routes = [_make_scored(15, 70), _make_scored(30, 20, offset=0.1)]
+        result = self._run(routes, ext=self._with_ml())
+        for route in result["all_routes"]:
+            assert route["prediction_method"] == "xgboost"
+
+    def test_each_route_has_peak_label(self):
+        routes = [_make_scored(15, 70), _make_scored(30, 20, offset=0.1)]
+        result = self._run(routes)
+        for route in result["all_routes"]:
+            assert "peak_label" in route
+            assert isinstance(route["peak_label"], str)
+
+    # ---- recommendation and time_difference ----
+
+    def test_recommendation_is_nonempty_string(self):
+        routes = [_make_scored(15, 70), _make_scored(30, 20, offset=0.1)]
+        result = self._run(routes)
+        assert isinstance(result["recommendation"], str)
+        assert len(result["recommendation"]) > 0
+
+    def test_safe_route_has_time_difference_key(self):
+        routes = [_make_scored(15, 70), _make_scored(30, 20, offset=0.1)]
+        result = self._run(routes)
+        assert "time_difference" in result["safe_route"]
+
+    # ---- degenerate: single-route input ----
+
+    def test_single_route_returns_all_required_keys(self):
+        routes = [_make_scored(20, 50)]
+        result = self._run(routes)
+        assert _RANK_REQUIRED_KEYS.issubset(result.keys())
+
+    def test_single_route_fast_safe_and_recommended_are_same(self):
+        routes = [_make_scored(20, 50)]
+        result = self._run(routes)
+        assert result["fast_route"]["time_min"] == result["safe_route"]["time_min"]
