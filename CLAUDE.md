@@ -128,7 +128,7 @@ scripts/
 - `load_nlp_cache()` in `src/nlp_analysis.py` is the public entry point for NLP results — in-process singleton, detects staleness via mtime comparison, never raises, warns when accident data is newer than cache
 - `reload_route_presets()` in `src/routing.py` busts the in-process presets cache; `scripts/refresh_route_presets.py` re-queries OSRM and rewrites the file — run with `python -m scripts.refresh_route_presets`
 - `static/route_presets.json` refreshed from live OSRM (all 4 presets updated 2026-05-20)
-- **No remaining open architecture tasks** — all items surfaced by the 2026-05-20 review are closed
+- **One High-priority architecture task open from 2026-05-23 review** — `/api/compare-predictions` blueprint still inlines ML/spatial dispatch (last blueprint doing this). See Open Tasks.
 - Deployed/targeted for **Render** (Gunicorn, `PORT` env var set automatically)
 - Google Maps API key is optional — app degrades to OSRM + estimated travel times when absent
 - Project docs in `docs/ubiquitous-language.md` — 15 canonical domain terms, pass to Claude at session start
@@ -136,8 +136,12 @@ scripts/
 ---
 
 ## Open Tasks
-1. Run `python -m src.nlp_analysis` to regenerate `nlp_cache.json` if accident data is updated (script exists; no CI automation yet)
-2. Add `scripts/refresh_route_presets.py` to a scheduled CI job so presets stay fresh automatically
+Surfaced by 2026-05-23 `/improve-codebase-architecture` Phase 1 report; one High held for next focused session, two Lows queued.
+1. **High — `/api/compare-predictions` still inlines ML/spatial dispatch** — handler in `src/blueprints/api.py:137-179` reaches into `extensions.ml_predictor` directly, runs two parallel `try/except` blocks for `predict_risk()` and `fallback_to_spatial()`, and computes the difference dict inline. This is the last blueprint doing manual ML/spatial branching — same shape we extracted for `score_route` / `respond_to_chat_message` / `build_route_analysis_payload` / `calculate_segment_risk`. Extract to a `compare_predictions_payload(lat, lon)` (or a method on `RiskPredictor`) that returns both predictions and the diff dict.
+2. **Low — `/api/risk-zones` data shaping in blueprint** — `df[df["total_accidents"] > 0].copy()` + `df.where(pd.notna(df), None)` lives in the handler; belongs next to `load_grid_stats()` in `src/utils/data.py` (or a new `load_active_risk_zones()`).
+3. **Low — accuracy strings drift between `_MODEL_ACCURACY_BY_METHOD` (risk.py) and `model_info` (api.py)** — `"83.8% holdout crash capture"` (risk.py) vs `"83.8% holdout crash capture rate"` (api.py) already disagree on wording. Single-source-of-truth fix when one of those endpoints is next touched.
+4. Run `python -m src.nlp_analysis` to regenerate `nlp_cache.json` if accident data is updated (script exists; no CI automation yet).
+5. Add `scripts/refresh_route_presets.py` to a scheduled CI job so presets stay fresh automatically.
 
 ---
 
@@ -178,3 +182,4 @@ scripts/
 | 2026-05-20 | Closed all open tasks: NLP cache invalidation (`load_nlp_cache()` with mtime staleness), route preset refresh (`reload_route_presets()` + `scripts/refresh_route_presets.py`), 59 new unit tests | Test suite: 140 → 199. No remaining open tasks. `scripts/` package added. `nlp_bp.py` now delegates all file I/O to `load_nlp_cache()`. |
 | 2026-05-20 | /improve-codebase-architecture + /tdd — extracted `respond_to_chat_message()` to `src/chatbot.py`; added 8 boundary tests in `test_chatbot_pipeline.py` | Chatbot blueprint: 50 → 8 lines in handler body. 9 cross-module imports → 1. Same pattern as `resolve_route()` / `build_analytics_payload()`. Test suite: 199 → 207. Two medium-priority items (`calculate_segment_risk` fallback dup, `analyze_route` handler inlining) surfaced and held for next session. |
 | 2026-05-23 | /build-plan + /design-check + /tdd — closed both held items: collapsed `calculate_segment_risk` to a single call (no more `{"method": "fallback"}` drift) and extracted `build_route_analysis_payload(resolved, grid_df)` to `src/risk.py` | `/api/analyze-route` handler: 60 → 4 lines. 4 cross-module imports → 1. Added 4 boundary tests for `calculate_segment_risk` and 9 for `build_route_analysis_payload`. Test suite: 207 → 220. Open architecture tasks: 0. |
+| 2026-05-23 | /improve-codebase-architecture Phase 1 — scanned for remaining shallow modules | 1 High (`/api/compare-predictions` inline ML/spatial dispatch), 2 Lows (`/api/risk-zones` shaping, accuracy-string drift). Held all three for a focused next session. |
