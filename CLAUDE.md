@@ -85,6 +85,7 @@ scripts/
 - **Route comparison goes through `get_route_alternatives()` + `rank_and_annotate_routes()`** — blueprints must not orchestrate the dedupe → TOPSIS → annotate → display chain inline.
 - **Analytics aggregation goes through `build_analytics_payload()`** — never replicate per-aggregation pandas logic in blueprints.
 - **Chatbot orchestration goes through `respond_to_chat_message()`** in `src/chatbot.py` — never re-implement the scripted → ML cause → Groq tier dispatch, trip-planner CTA attachment, or sanitization chain inside a blueprint.
+- **Single-route analysis goes through `build_route_analysis_payload()`** in `src/risk.py` — never re-implement sampling, segment analysis, alert generation, scoring, bucket counting, or model_accuracy mapping inside `/api/analyze-route`. The blueprint receives a `ResolvedRoute` and a `grid_df` and delegates the entire response shape to this function.
 
 ---
 
@@ -104,6 +105,8 @@ scripts/
 - **`reload_route_presets()` + `scripts/refresh_route_presets.py`** — two-part refresh: script re-queries OSRM and writes the file; `reload_route_presets()` busts the in-process cache. Both are needed for a live process to see updated presets.
 - **Scripted intents are registered via `@intent(name, patterns)` in `chatbot_intents.py`** — patterns and handler live together; there is no separate `INTENTS` dict or `_HANDLERS` dispatch table. Matching priority is encoded by `_INTENT_ORDER` (a list of intent names) because pattern overlap means some intents must be tried before others.
 - **`respond_to_chat_message()` in `src/chatbot.py` owns the chatbot pipeline** — scripted → ML cause (≥ 0.6 confidence) → Groq, then trip-planner CTA attachment and payload sanitization. Reads `extensions.CHATBOT_DATA` internally. The `/api/chatbot` blueprint is now an 8-line wrapper. Same architectural pattern as `resolve_route()` / `score_route()` / `build_analytics_payload()`.
+- **`build_route_analysis_payload(resolved, grid_df)` in `src/risk.py` owns the /api/analyze-route response** — sampling, `analyze_route_segments`, `generate_alerts_from_segments`, `score_route`, high/medium/low bucketing, and the `prediction_method → model_accuracy` mapping all live inside. The blueprint is now a 4-line wrapper. Same architectural pattern as `rank_and_annotate_routes()` for `/api/compare-routes`.
+- **`calculate_segment_risk` trusts `predict_risk`'s internal fallback** — the outer try/except chain that called `fallback_to_spatial()` separately was redundant (predict_risk already does that internally when the model fails). Collapsed to a single call per branch; the misleading `{"method": "fallback"}` drift is gone — that string is now only returned when `ml_predictor` is None.
 - **Non-root Docker user** — the container runs as `appuser`; the `/app` directory is chowned accordingly.
 - **Bangkok spatial grid: 0.009° cells** — this constant is replicated in `config.py`, `ml_model.py`, and `grid_aggregation.py`. All three must stay in sync.
 - **Consistent API response shape** — all success responses include a `success: true` key or a top-level data key; all errors return `{"error": "..."}` with an appropriate HTTP status.
@@ -116,15 +119,16 @@ scripts/
 - Thai-language chatbot support via pythainlp + Groq
 - Docker image builds clean (multi-stage, non-root)
 - GitHub Actions CI runs pytest + Docker build on every push to `main`
-- **207 tests passing** across 10 modules — all previous + chatbot pipeline boundary tests
+- **220 tests passing** across 10 modules — all previous + 4 `calculate_segment_risk` boundary tests + 9 `build_route_analysis_payload` boundary tests
 - `resolve_route()` and `score_route()` are the deep module interfaces for routing and risk; fully tested
 - `get_route_alternatives()` + `rank_and_annotate_routes()` are the deep module interfaces for `/api/compare-routes`; blueprint is now ~30 lines; fully unit-tested
 - `build_analytics_payload()` is the deep module interface for `/api/analytics-data`; blueprint is now ~7 lines; fully unit-tested
 - `respond_to_chat_message()` in `src/chatbot.py` is the deep module interface for `/api/chatbot`; blueprint is now an 8-line wrapper; 8 boundary tests in `test_chatbot_pipeline.py`
+- `build_route_analysis_payload()` in `src/risk.py` is the deep module interface for `/api/analyze-route`; blueprint analyze_route handler is now ~4 lines (resolve → build → jsonify); 9 boundary tests in `test_risk.py::TestBuildRouteAnalysisPayload`
 - `load_nlp_cache()` in `src/nlp_analysis.py` is the public entry point for NLP results — in-process singleton, detects staleness via mtime comparison, never raises, warns when accident data is newer than cache
 - `reload_route_presets()` in `src/routing.py` busts the in-process presets cache; `scripts/refresh_route_presets.py` re-queries OSRM and rewrites the file — run with `python -m scripts.refresh_route_presets`
 - `static/route_presets.json` refreshed from live OSRM (all 4 presets updated 2026-05-20)
-- **Two medium-priority refactors held for next session** — see Open Tasks
+- **No remaining open architecture tasks** — all items surfaced by the 2026-05-20 review are closed
 - Deployed/targeted for **Render** (Gunicorn, `PORT` env var set automatically)
 - Google Maps API key is optional — app degrades to OSRM + estimated travel times when absent
 - Project docs in `docs/ubiquitous-language.md` — 15 canonical domain terms, pass to Claude at session start
@@ -132,11 +136,8 @@ scripts/
 ---
 
 ## Open Tasks
-Surfaced by 2026-05-20 `/improve-codebase-architecture` Phase 1 report and deferred for focused sessions:
-1. **`calculate_segment_risk` in `src/risk.py` duplicates `predict_risk`'s internal fallback** — outer try/except chain calls `predict_risk()` then `fallback_to_spatial()`, but `predict_risk()` already calls `fallback_to_spatial()` itself when the model fails. Outer chain returns `{"method": "fallback"}`, inner returns `{"method": "spatial_fallback"}` — they've already drifted. Collapse to a single call.
-2. **`/api/analyze-route` blueprint still inlines segment aggregation** — after `resolve_route()`, the handler still does sampling, segment analysis, alert generation, `score_route()`, high/medium/low counting, and a 25-line response dict. Mirrors pre-extraction state of compare-routes. Extract to `build_route_analysis_payload(resolved, grid_df)`.
-3. Run `python -m src.nlp_analysis` to regenerate `nlp_cache.json` if accident data is updated (script exists; no CI automation yet)
-4. Add `scripts/refresh_route_presets.py` to a scheduled CI job so presets stay fresh automatically
+1. Run `python -m src.nlp_analysis` to regenerate `nlp_cache.json` if accident data is updated (script exists; no CI automation yet)
+2. Add `scripts/refresh_route_presets.py` to a scheduled CI job so presets stay fresh automatically
 
 ---
 
@@ -157,6 +158,8 @@ Surfaced by 2026-05-20 `/improve-codebase-architecture` Phase 1 report and defer
 - **Never call `_load_nlp_cache()` in blueprints** — call `load_nlp_cache()` from `src.nlp_analysis` instead; the blueprint must own zero file I/O logic for NLP data
 - **Never re-query OSRM for route preset refresh inside a web request** — use `python -m scripts.refresh_route_presets` offline; call `reload_route_presets()` after the file is written
 - **Never orchestrate chatbot tiers inside a blueprint** — call `respond_to_chat_message()` from `src.chatbot`. The blueprint must not import from `chatbot_intents`, `chatbot_groq`, or `chatbot_utils` directly.
+- **Never inline sampling / segment analysis / alert generation / scoring inside `/api/analyze-route`** — call `build_route_analysis_payload(resolved, grid_df)` from `src.risk`. The blueprint must not import `analyze_route_segments`, `generate_alerts_from_segments`, or `score_route` directly.
+- **Never re-add the outer `fallback_to_spatial()` chain to `calculate_segment_risk`** — `predict_risk()` already handles its own spatial fallback. The function trusts that contract and only catches uncaught exceptions from the ML path.
 
 ---
 
@@ -174,3 +177,4 @@ Surfaced by 2026-05-20 `/improve-codebase-architecture` Phase 1 report and defer
 | 2026-05-20 | /tdd — added 34 unit tests for `get_route_alternatives()`, `rank_and_annotate_routes()`, and `build_analytics_payload()` | Test suite: 140 → 174. Open Task 3 closed. GMaps vs fallback paths, confidence bounds, prediction_method branching, temporal/risk/weekend aggregations all covered at module boundary. |
 | 2026-05-20 | Closed all open tasks: NLP cache invalidation (`load_nlp_cache()` with mtime staleness), route preset refresh (`reload_route_presets()` + `scripts/refresh_route_presets.py`), 59 new unit tests | Test suite: 140 → 199. No remaining open tasks. `scripts/` package added. `nlp_bp.py` now delegates all file I/O to `load_nlp_cache()`. |
 | 2026-05-20 | /improve-codebase-architecture + /tdd — extracted `respond_to_chat_message()` to `src/chatbot.py`; added 8 boundary tests in `test_chatbot_pipeline.py` | Chatbot blueprint: 50 → 8 lines in handler body. 9 cross-module imports → 1. Same pattern as `resolve_route()` / `build_analytics_payload()`. Test suite: 199 → 207. Two medium-priority items (`calculate_segment_risk` fallback dup, `analyze_route` handler inlining) surfaced and held for next session. |
+| 2026-05-23 | /build-plan + /design-check + /tdd — closed both held items: collapsed `calculate_segment_risk` to a single call (no more `{"method": "fallback"}` drift) and extracted `build_route_analysis_payload(resolved, grid_df)` to `src/risk.py` | `/api/analyze-route` handler: 60 → 4 lines. 4 cross-module imports → 1. Added 4 boundary tests for `calculate_segment_risk` and 9 for `build_route_analysis_payload`. Test suite: 207 → 220. Open architecture tasks: 0. |

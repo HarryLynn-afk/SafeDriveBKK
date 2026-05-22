@@ -16,14 +16,17 @@ from src.risk import (
     annotate_route_roles,
     apply_topsis,
     build_display_routes,
+    build_route_analysis_payload,
     calculate_distance_from_waypoints,
     calculate_route_risk_density_aware,
+    calculate_segment_risk,
     dedupe_scored_routes,
     evaluate_route,
     generate_alerts_from_segments,
     rank_and_annotate_routes,
     score_route,
 )
+from src.routing import ResolvedRoute
 
 
 # ---------------------------------------------------------------------------
@@ -99,6 +102,63 @@ class TestScoreRoute:
             mock_ext.ml_predictor = None
             result = score_route(_SIMPLE_WPS, sample_grid_df)
         assert result["risk_level"] in ("low", "medium", "high")
+
+
+# ---------------------------------------------------------------------------
+# calculate_segment_risk — single-point risk with internal fallback
+# ---------------------------------------------------------------------------
+
+class TestCalculateSegmentRisk:
+    def test_uses_predict_risk_when_ml_enabled(self):
+        with patch("src.risk.extensions") as mock_ext:
+            mock_ext.USE_ML = True
+            mock_ext.ml_predictor = MagicMock()
+            mock_ext.ml_predictor.predict_risk.return_value = {
+                "risk_score": 60, "risk_level": "high",
+                "confidence": 0.9, "method": "xgboost", "grid_id": "G010_010",
+            }
+            result = calculate_segment_risk(13.75, 100.5, hour=8, day_of_week=1)
+        mock_ext.ml_predictor.predict_risk.assert_called_once_with(13.75, 100.5, 8, 1)
+        mock_ext.ml_predictor.fallback_to_spatial.assert_not_called()
+        assert result["method"] == "xgboost"
+        assert result["risk_score"] == 60
+
+    def test_uses_fallback_when_ml_disabled_but_predictor_exists(self):
+        with patch("src.risk.extensions") as mock_ext:
+            mock_ext.USE_ML = False
+            mock_ext.ml_predictor = MagicMock()
+            mock_ext.ml_predictor.fallback_to_spatial.return_value = {
+                "risk_score": 20, "risk_level": "low",
+                "confidence": 0.5, "method": "spatial_fallback", "grid_id": "G010_010",
+            }
+            result = calculate_segment_risk(13.75, 100.5)
+        mock_ext.ml_predictor.predict_risk.assert_not_called()
+        mock_ext.ml_predictor.fallback_to_spatial.assert_called_once_with(13.75, 100.5)
+        assert result["method"] == "spatial_fallback"
+
+    def test_returns_hardcoded_fallback_when_no_predictor(self):
+        with patch("src.risk.extensions") as mock_ext:
+            mock_ext.USE_ML = False
+            mock_ext.ml_predictor = None
+            result = calculate_segment_risk(13.75, 100.5)
+        assert result["method"] == "fallback"
+        assert result["risk_level"] == "medium"
+        assert result["grid_id"] is None
+
+    def test_predict_risk_raising_falls_back_to_spatial(self):
+        """When ML is enabled and predict_risk raises an uncaught exception,
+        we still degrade to spatial fallback — never to the hardcoded dict."""
+        with patch("src.risk.extensions") as mock_ext:
+            mock_ext.USE_ML = True
+            mock_ext.ml_predictor = MagicMock()
+            mock_ext.ml_predictor.predict_risk.side_effect = RuntimeError("boom")
+            mock_ext.ml_predictor.fallback_to_spatial.return_value = {
+                "risk_score": 25, "risk_level": "low",
+                "confidence": 0.5, "method": "spatial_fallback", "grid_id": "G010_010",
+            }
+            result = calculate_segment_risk(13.75, 100.5)
+        mock_ext.ml_predictor.fallback_to_spatial.assert_called_once_with(13.75, 100.5)
+        assert result["method"] == "spatial_fallback"
 
 
 # ---------------------------------------------------------------------------
@@ -424,3 +484,90 @@ class TestRankAndAnnotateRoutes:
         routes = [_make_scored(20, 50)]
         result = self._run(routes)
         assert result["fast_route"]["time_min"] == result["safe_route"]["time_min"]
+
+
+# ---------------------------------------------------------------------------
+# build_route_analysis_payload — deep-module entry point for /api/analyze-route
+# ---------------------------------------------------------------------------
+
+_PAYLOAD_TOP_KEYS = {"success", "route", "segments", "alerts", "summary"}
+
+
+def _make_resolved(traffic_source: str = "osrm") -> ResolvedRoute:
+    return ResolvedRoute(
+        waypoints=[[13.690 + i * 0.0005, 100.440 + i * 0.0005] for i in range(60)],
+        distance_km=4.321,
+        duration_min=12,
+        traffic_source=traffic_source,
+    )
+
+
+class TestBuildRouteAnalysisPayload:
+    def _mock_score(self, method: str = "spatial", risk_score: int = 40):
+        return {
+            "risk_score": risk_score,
+            "risk_level": "medium",
+            "high_risk_km": 0.8,
+            "matched_grids": 4,
+            "evaluated_waypoints": 5,
+            "prediction_method": method,
+        }
+
+    def test_returns_top_level_keys(self, sample_grid_df):
+        with patch("src.risk.score_route", return_value=self._mock_score()):
+            result = build_route_analysis_payload(_make_resolved(), sample_grid_df)
+        assert _PAYLOAD_TOP_KEYS.issubset(result.keys())
+        assert result["success"] is True
+
+    def test_route_block_mirrors_resolved_route(self, sample_grid_df):
+        resolved = _make_resolved(traffic_source="google_maps_traffic")
+        with patch("src.risk.score_route", return_value=self._mock_score()):
+            result = build_route_analysis_payload(resolved, sample_grid_df)
+        assert result["route"]["waypoints"] == resolved.waypoints
+        assert result["route"]["distance_km"] == round(resolved.distance_km, 2)
+        assert result["route"]["duration_min"] == resolved.duration_min
+        assert result["route"]["traffic_source"] == "google_maps_traffic"
+
+    def test_risk_score_clamped_to_100(self, sample_grid_df):
+        with patch("src.risk.score_route", return_value=self._mock_score(risk_score=150)):
+            result = build_route_analysis_payload(_make_resolved(), sample_grid_df)
+        assert result["route"]["risk_score"] == 100
+
+    def test_summary_xgboost_uses_holdout_accuracy_string(self, sample_grid_df):
+        with patch("src.risk.score_route", return_value=self._mock_score(method="xgboost")):
+            result = build_route_analysis_payload(_make_resolved(), sample_grid_df)
+        assert result["summary"]["prediction_method"] == "xgboost"
+        assert "holdout" in result["summary"]["model_accuracy"]
+
+    def test_summary_spatial_uses_baseline_accuracy_string(self, sample_grid_df):
+        with patch("src.risk.score_route", return_value=self._mock_score(method="spatial")):
+            result = build_route_analysis_payload(_make_resolved(), sample_grid_df)
+        assert result["summary"]["prediction_method"] == "spatial"
+        assert "spatial baseline" in result["summary"]["model_accuracy"]
+
+    def test_bucket_counts_match_segments_list(self, sample_grid_df):
+        with patch("src.risk.score_route", return_value=self._mock_score()):
+            result = build_route_analysis_payload(_make_resolved(), sample_grid_df)
+        segments = result["segments"]
+        summary = result["summary"]
+        assert summary["high_risk_segments"]   == sum(1 for s in segments if s["risk_level"] == "high")
+        assert summary["medium_risk_segments"] == sum(1 for s in segments if s["risk_level"] == "medium")
+        assert summary["low_risk_segments"]    == sum(1 for s in segments if s["risk_level"] == "low")
+
+    def test_total_alerts_matches_alerts_list(self, sample_grid_df):
+        with patch("src.risk.score_route", return_value=self._mock_score()):
+            result = build_route_analysis_payload(_make_resolved(), sample_grid_df)
+        assert result["summary"]["total_alerts"] == len(result["alerts"])
+
+    def test_summary_carries_traffic_source(self, sample_grid_df):
+        resolved = _make_resolved(traffic_source="cached_osrm")
+        with patch("src.risk.score_route", return_value=self._mock_score()):
+            result = build_route_analysis_payload(resolved, sample_grid_df)
+        assert result["summary"]["traffic_source"] == "cached_osrm"
+
+    def test_summary_totals_match_resolved(self, sample_grid_df):
+        resolved = _make_resolved()
+        with patch("src.risk.score_route", return_value=self._mock_score()):
+            result = build_route_analysis_payload(resolved, sample_grid_df)
+        assert result["summary"]["total_distance"] == round(resolved.distance_km, 2)
+        assert result["summary"]["total_time"] == resolved.duration_min

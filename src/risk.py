@@ -10,12 +10,16 @@ import hashlib
 import json
 import math
 from datetime import datetime
+from typing import TYPE_CHECKING
 
 import numpy as np
 import pandas as pd
 
 from . import extensions
 from .utils.geo import find_grid_for_point, haversine_km
+
+if TYPE_CHECKING:
+    from .routing import ResolvedRoute
 
 # ---------------------------------------------------------------------------
 # Single-point risk
@@ -27,25 +31,28 @@ def calculate_segment_risk(
     hour: int | None = None,
     day_of_week: int | None = None,
 ) -> dict:
-    """Calculate risk for a single point using ML (XGBoost) or spatial fallback."""
+    """Calculate risk for a single point.
+
+    predict_risk() already falls back to spatial scoring internally when the
+    XGBoost model is unavailable, so callers get the right method tag without
+    needing an outer fallback chain.
+    """
     if hour is None:
         hour = datetime.now().hour
     if day_of_week is None:
         day_of_week = datetime.now().weekday()
 
-    if extensions.USE_ML and extensions.ml_predictor:
-        try:
-            return extensions.ml_predictor.predict_risk(lat, lon, hour, day_of_week)
-        except Exception:
-            pass
+    predictor = extensions.ml_predictor
+    if predictor is None:
+        return {"risk_score": 35, "risk_level": "medium", "confidence": 0.3, "method": "fallback", "grid_id": None}
 
-    if extensions.ml_predictor:
-        try:
-            return extensions.ml_predictor.fallback_to_spatial(lat, lon)
-        except Exception:
-            pass
+    if not extensions.USE_ML:
+        return predictor.fallback_to_spatial(lat, lon)
 
-    return {"risk_score": 35, "risk_level": "medium", "confidence": 0.3, "method": "fallback", "grid_id": None}
+    try:
+        return predictor.predict_risk(lat, lon, hour, day_of_week)
+    except Exception:
+        return predictor.fallback_to_spatial(lat, lon)
 
 
 # ---------------------------------------------------------------------------
@@ -550,4 +557,67 @@ def rank_and_annotate_routes(scored_routes: list[dict]) -> dict:
         "route_fast": route_fast,
         "route_safe": route_safe,
         "recommendation": _build_recommendation_text(route_fast, route_safe),
+    }
+
+
+# ---------------------------------------------------------------------------
+# Single-route analysis payload (deep-module entry point for /api/analyze-route)
+# ---------------------------------------------------------------------------
+
+_MODEL_ACCURACY_BY_METHOD = {
+    "xgboost": "83.8% holdout crash capture",
+    "spatial": "83.8% spatial baseline capture",
+}
+
+
+def build_route_analysis_payload(
+    resolved: "ResolvedRoute",
+    grid_df: pd.DataFrame,
+) -> dict:
+    """Build the complete /api/analyze-route response body.
+
+    Owns sampling, segment analysis, alert generation, overall scoring,
+    bucket counting, and accuracy string mapping. The blueprint is now a
+    thin wrapper that only handles input validation and HTTP framing.
+    """
+    waypoints = resolved.waypoints
+    sampled = waypoints[:: max(1, len(waypoints) // 50)]
+
+    segments = analyze_route_segments(sampled, grid_df, segment_distance_km=1.0)
+    alerts = generate_alerts_from_segments(segments, advance_warning_km=0.5)
+    overall_risk = score_route(sampled, grid_df)
+
+    prediction_method = overall_risk["prediction_method"]
+    model_accuracy = _MODEL_ACCURACY_BY_METHOD.get(
+        prediction_method, "83.8% spatial baseline capture"
+    )
+
+    high   = sum(1 for s in segments if s["risk_level"] == "high")
+    medium = sum(1 for s in segments if s["risk_level"] == "medium")
+    low    = sum(1 for s in segments if s["risk_level"] == "low")
+
+    return {
+        "success": True,
+        "route": {
+            "waypoints": waypoints,
+            "distance_km": round(resolved.distance_km, 2),
+            "duration_min": resolved.duration_min,
+            "risk_score": min(100, overall_risk["risk_score"]),
+            "risk_level": overall_risk["risk_level"],
+            "high_risk_km": overall_risk.get("high_risk_km", 0),
+            "traffic_source": resolved.traffic_source,
+        },
+        "segments": segments,
+        "alerts": alerts,
+        "summary": {
+            "total_distance": round(resolved.distance_km, 2),
+            "total_time": resolved.duration_min,
+            "high_risk_segments": high,
+            "medium_risk_segments": medium,
+            "low_risk_segments": low,
+            "total_alerts": len(alerts),
+            "prediction_method": prediction_method,
+            "model_accuracy": model_accuracy,
+            "traffic_source": resolved.traffic_source,
+        },
     }
