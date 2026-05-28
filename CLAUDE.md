@@ -86,6 +86,7 @@ scripts/
 - **Analytics aggregation goes through `build_analytics_payload()`** — never replicate per-aggregation pandas logic in blueprints.
 - **Chatbot orchestration goes through `respond_to_chat_message()`** in `src/chatbot.py` — never re-implement the scripted → ML cause → Groq tier dispatch, trip-planner CTA attachment, or sanitization chain inside a blueprint.
 - **Single-route analysis goes through `build_route_analysis_payload()`** in `src/risk.py` — never re-implement sampling, segment analysis, alert generation, scoring, bucket counting, or model_accuracy mapping inside `/api/analyze-route`. The blueprint receives a `ResolvedRoute` and a `grid_df` and delegates the entire response shape to this function.
+- **Prediction comparison goes through `compare_predictions_payload()`** in `src/risk.py` — never re-implement the `USE_ML` gate, the dual `predict_risk`/`fallback_to_spatial` calls, or the difference math inside `/api/compare-predictions`. The blueprint passes `lat, lon` and delegates the full response shape to this function.
 
 ---
 
@@ -107,6 +108,7 @@ scripts/
 - **`respond_to_chat_message()` in `src/chatbot.py` owns the chatbot pipeline** — scripted → ML cause (≥ 0.6 confidence) → Groq, then trip-planner CTA attachment and payload sanitization. Reads `extensions.CHATBOT_DATA` internally. The `/api/chatbot` blueprint is now an 8-line wrapper. Same architectural pattern as `resolve_route()` / `score_route()` / `build_analytics_payload()`.
 - **`build_route_analysis_payload(resolved, grid_df)` in `src/risk.py` owns the /api/analyze-route response** — sampling, `analyze_route_segments`, `generate_alerts_from_segments`, `score_route`, high/medium/low bucketing, and the `prediction_method → model_accuracy` mapping all live inside. The blueprint is now a 4-line wrapper. Same architectural pattern as `rank_and_annotate_routes()` for `/api/compare-routes`.
 - **`calculate_segment_risk` trusts `predict_risk`'s internal fallback** — the outer try/except chain that called `fallback_to_spatial()` separately was redundant (predict_risk already does that internally when the model fails). Collapsed to a single call per branch; the misleading `{"method": "fallback"}` drift is gone — that string is now only returned when `ml_predictor` is None.
+- **`compare_predictions_payload(lat, lon)` in `src/risk.py` owns the /api/compare-predictions response** — the `USE_ML` gate, both `predict_risk`/`fallback_to_spatial` try/except calls, and the absolute+percentage difference math all live inside. Reads `extensions.ml_predictor` / `extensions.USE_ML` internally (same pattern as `score_route()`). Chosen over a `RiskPredictor` method because a method can't see the module-level `USE_ML` flag, and `predict_risk` falls back to spatial internally — so a method would mislabel a spatial result as `ml_prediction` when `USE_ML` is off. The `/api/compare-predictions` handler is now a thin wrapper.
 - **Non-root Docker user** — the container runs as `appuser`; the `/app` directory is chowned accordingly.
 - **Bangkok spatial grid: 0.009° cells** — this constant is replicated in `config.py`, `ml_model.py`, and `grid_aggregation.py`. All three must stay in sync.
 - **Consistent API response shape** — all success responses include a `success: true` key or a top-level data key; all errors return `{"error": "..."}` with an appropriate HTTP status.
@@ -119,16 +121,17 @@ scripts/
 - Thai-language chatbot support via pythainlp + Groq
 - Docker image builds clean (multi-stage, non-root)
 - GitHub Actions CI runs pytest + Docker build on every push to `main`
-- **220 tests passing** across 10 modules — all previous + 4 `calculate_segment_risk` boundary tests + 9 `build_route_analysis_payload` boundary tests
+- **226 tests passing** across 10 modules — all previous + 6 `compare_predictions_payload` boundary tests
 - `resolve_route()` and `score_route()` are the deep module interfaces for routing and risk; fully tested
 - `get_route_alternatives()` + `rank_and_annotate_routes()` are the deep module interfaces for `/api/compare-routes`; blueprint is now ~30 lines; fully unit-tested
 - `build_analytics_payload()` is the deep module interface for `/api/analytics-data`; blueprint is now ~7 lines; fully unit-tested
 - `respond_to_chat_message()` in `src/chatbot.py` is the deep module interface for `/api/chatbot`; blueprint is now an 8-line wrapper; 8 boundary tests in `test_chatbot_pipeline.py`
 - `build_route_analysis_payload()` in `src/risk.py` is the deep module interface for `/api/analyze-route`; blueprint analyze_route handler is now ~4 lines (resolve → build → jsonify); 9 boundary tests in `test_risk.py::TestBuildRouteAnalysisPayload`
+- `compare_predictions_payload()` in `src/risk.py` is the deep module interface for `/api/compare-predictions`; blueprint handler is now a thin wrapper (parse/validate → call → jsonify); 6 boundary tests in `test_risk.py::TestComparePredictionsPayload`. Every blueprint that does ML/spatial work now delegates to a deep module — no handler branches on `USE_ML`/`ml_predictor` directly anymore.
 - `load_nlp_cache()` in `src/nlp_analysis.py` is the public entry point for NLP results — in-process singleton, detects staleness via mtime comparison, never raises, warns when accident data is newer than cache
 - `reload_route_presets()` in `src/routing.py` busts the in-process presets cache; `scripts/refresh_route_presets.py` re-queries OSRM and rewrites the file — run with `python -m scripts.refresh_route_presets`
 - `static/route_presets.json` refreshed from live OSRM (all 4 presets updated 2026-05-20)
-- **One High-priority architecture task open from 2026-05-23 review** — `/api/compare-predictions` blueprint still inlines ML/spatial dispatch (last blueprint doing this). See Open Tasks.
+- **Three Low-priority architecture tasks open** — `/api/risk-zones` data shaping in blueprint, accuracy-string drift across ~6 files, and `/api/nlp/ml-metrics` direct file I/O in blueprint. No High/Medium items open. See Open Tasks.
 - Deployed/targeted for **Render** (Gunicorn, `PORT` env var set automatically)
 - Google Maps API key is optional — app degrades to OSRM + estimated travel times when absent
 - Project docs in `docs/ubiquitous-language.md` — 15 canonical domain terms, pass to Claude at session start
@@ -136,10 +139,10 @@ scripts/
 ---
 
 ## Open Tasks
-Surfaced by 2026-05-23 `/improve-codebase-architecture` Phase 1 report; one High held for next focused session, two Lows queued.
-1. **High — `/api/compare-predictions` still inlines ML/spatial dispatch** — handler in `src/blueprints/api.py:137-179` reaches into `extensions.ml_predictor` directly, runs two parallel `try/except` blocks for `predict_risk()` and `fallback_to_spatial()`, and computes the difference dict inline. This is the last blueprint doing manual ML/spatial branching — same shape we extracted for `score_route` / `respond_to_chat_message` / `build_route_analysis_payload` / `calculate_segment_risk`. Extract to a `compare_predictions_payload(lat, lon)` (or a method on `RiskPredictor`) that returns both predictions and the diff dict.
-2. **Low — `/api/risk-zones` data shaping in blueprint** — `df[df["total_accidents"] > 0].copy()` + `df.where(pd.notna(df), None)` lives in the handler; belongs next to `load_grid_stats()` in `src/utils/data.py` (or a new `load_active_risk_zones()`).
-3. **Low — accuracy strings drift between `_MODEL_ACCURACY_BY_METHOD` (risk.py) and `model_info` (api.py)** — `"83.8% holdout crash capture"` (risk.py) vs `"83.8% holdout crash capture rate"` (api.py) already disagree on wording. Single-source-of-truth fix when one of those endpoints is next touched.
+The 2026-05-23 High (`/api/compare-predictions` dispatch) was closed 2026-05-28. Three Lows remain — all good candidates to bundle into one "blueprint cleanup" run since #1 and #3 share the "blueprints do their own data/IO" smell.
+1. **Low — `/api/risk-zones` data shaping in blueprint** — `df[df["total_accidents"] > 0].copy()` + `df.where(pd.notna(df), None)` lives in the handler; belongs next to `load_grid_stats()` in `src/utils/data.py` (or a new `load_active_risk_zones()`).
+2. **Low — accuracy strings drift across ~6 files** — `"83.8%"` capture rate is hand-written with different wording in `risk.py` (`_MODEL_ACCURACY_BY_METHOD`), `api.py` (`model_info`), `chatbot_groq.py`, `chatbot_data_processor.py`, and `app.py` startup logs. Single-source it (e.g. a constant in `config.py`) so the number can't drift.
+3. **Low — `/api/nlp/ml-metrics` does direct file I/O in the blueprint** — `src/blueprints/nlp_bp.py:62-72` builds a path from `BASE_DIR` and runs `open()` + `json.load()` itself; the only NLP route still doing its own I/O. Move the read behind a loader in `src/nlp_analysis.py` (or `utils/data.py`) to match the `load_nlp_cache()` rule.
 4. Run `python -m src.nlp_analysis` to regenerate `nlp_cache.json` if accident data is updated (script exists; no CI automation yet).
 5. Add `scripts/refresh_route_presets.py` to a scheduled CI job so presets stay fresh automatically.
 
@@ -164,6 +167,7 @@ Surfaced by 2026-05-23 `/improve-codebase-architecture` Phase 1 report; one High
 - **Never orchestrate chatbot tiers inside a blueprint** — call `respond_to_chat_message()` from `src.chatbot`. The blueprint must not import from `chatbot_intents`, `chatbot_groq`, or `chatbot_utils` directly.
 - **Never inline sampling / segment analysis / alert generation / scoring inside `/api/analyze-route`** — call `build_route_analysis_payload(resolved, grid_df)` from `src.risk`. The blueprint must not import `analyze_route_segments`, `generate_alerts_from_segments`, or `score_route` directly.
 - **Never re-add the outer `fallback_to_spatial()` chain to `calculate_segment_risk`** — `predict_risk()` already handles its own spatial fallback. The function trusts that contract and only catches uncaught exceptions from the ML path.
+- **Never branch on `extensions.USE_ML` / `extensions.ml_predictor` inside `/api/compare-predictions`** — call `compare_predictions_payload(lat, lon)` from `src.risk`. The blueprint must not call `predict_risk` / `fallback_to_spatial` or compute the difference dict itself.
 
 ---
 
@@ -183,3 +187,4 @@ Surfaced by 2026-05-23 `/improve-codebase-architecture` Phase 1 report; one High
 | 2026-05-20 | /improve-codebase-architecture + /tdd — extracted `respond_to_chat_message()` to `src/chatbot.py`; added 8 boundary tests in `test_chatbot_pipeline.py` | Chatbot blueprint: 50 → 8 lines in handler body. 9 cross-module imports → 1. Same pattern as `resolve_route()` / `build_analytics_payload()`. Test suite: 199 → 207. Two medium-priority items (`calculate_segment_risk` fallback dup, `analyze_route` handler inlining) surfaced and held for next session. |
 | 2026-05-23 | /build-plan + /design-check + /tdd — closed both held items: collapsed `calculate_segment_risk` to a single call (no more `{"method": "fallback"}` drift) and extracted `build_route_analysis_payload(resolved, grid_df)` to `src/risk.py` | `/api/analyze-route` handler: 60 → 4 lines. 4 cross-module imports → 1. Added 4 boundary tests for `calculate_segment_risk` and 9 for `build_route_analysis_payload`. Test suite: 207 → 220. Open architecture tasks: 0. |
 | 2026-05-23 | /improve-codebase-architecture Phase 1 — scanned for remaining shallow modules | 1 High (`/api/compare-predictions` inline ML/spatial dispatch), 2 Lows (`/api/risk-zones` shaping, accuracy-string drift). Held all three for a focused next session. |
+| 2026-05-28 | /improve-codebase-architecture + /tdd — closed the High: extracted `compare_predictions_payload(lat, lon)` to `src/risk.py`; added 6 boundary tests in `test_risk.py::TestComparePredictionsPayload` | `/api/compare-predictions` handler is now a thin wrapper; no blueprint branches on `USE_ML`/`ml_predictor` anymore. Standalone fn over `RiskPredictor` method (preserves the `USE_ML` gate). Mutation-tested the gate. Test suite: 220 → 226. Phase 1 re-scan surfaced a new Low (`/api/nlp/ml-metrics` file I/O); 3 Lows now open, 0 High/Medium. |
