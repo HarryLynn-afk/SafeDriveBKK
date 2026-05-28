@@ -58,6 +58,37 @@ GRID_LOCATION_NAMES = {
     "G020_009": "Taling Chan / Ratchaphruek Intersection",
 }
 
+# Canonical primary-cause table — single source of truth for the 5 cause_*
+# columns in ml_features.csv. All builders derive their lookups from this;
+# never re-list the column names or keys per function (they drift silently).
+PRIMARY_CAUSES = {
+    "speeding": {
+        "thai": "ขับรถเร็วเกินอัตรากำหนด",
+        "column": "cause_ขับรถเร็วเกินอัตรากำหนด",
+        "english": "Speeding",
+    },
+    "cutting_in_front": {
+        "thai": "คน/รถ/สัตว์ตัดหน้ากระชั้นชิด",
+        "column": "cause_คน/รถ/สัตว์ตัดหน้ากระชั้นชิด",
+        "english": "Cutting in front",
+    },
+    "red_light": {
+        "thai": "ฝ่าฝืนสัญญาณไฟ/เครื่องหมายจราจร",
+        "column": "cause_ฝ่าฝืนสัญญาณไฟ/เครื่องหมายจราจร",
+        "english": "Running red light / traffic sign violation",
+    },
+    "tire_blowout": {
+        "thai": "ยางเสื่อมสภาพ/ยางแตก",
+        "column": "cause_ยางเสื่อมสภาพ/ยางแตก",
+        "english": "Tire blowout / worn tires",
+    },
+    "drowsy_driving": {
+        "thai": "หลับใน",
+        "column": "cause_หลับใน",
+        "english": "Drowsy driving",
+    },
+}
+
 # English cause name mapping
 CAUSE_ENGLISH = {
     "ขับรถเร็วเกินอัตรากำหนด": "Speeding",
@@ -151,13 +182,7 @@ def build_causes(nlp_cache, ml_features, grid_stats):
         risk_lookup[gid] = safe_float(row.get("risk_score", 0))
 
     # Cause column mapping (Thai cause name -> ml_features column)
-    cause_col_map = {
-        "ขับรถเร็วเกินอัตรากำหนด": "cause_ขับรถเร็วเกินอัตรากำหนด",
-        "คน/รถ/สัตว์ตัดหน้ากระชั้นชิด": "cause_คน/รถ/สัตว์ตัดหน้ากระชั้นชิด",
-        "ยางเสื่อมสภาพ/ยางแตก": "cause_ยางเสื่อมสภาพ/ยางแตก",
-        "หลับใน": "cause_หลับใน",
-        "ฝ่าฝืนสัญญาณไฟ/เครื่องหมายจราจร": "cause_ฝ่าฝืนสัญญาณไฟ/เครื่องหมายจราจร",
-    }
+    cause_col_map = {m["thai"]: m["column"] for m in PRIMARY_CAUSES.values()}
 
     causes = {}
     for cat in categories:
@@ -232,10 +257,10 @@ def build_time_patterns(accidents):
     total = len(accidents)
 
     # Find peaks
-    peak_hour = max(hour_counts, key=hour_counts.get) if hour_counts else 10
-    peak_day = max(day_counts, key=day_counts.get) if day_counts else "Saturday"
-    peak_month = max(month_counts, key=month_counts.get) if month_counts else 3
-    safest_hour = min(hour_counts, key=hour_counts.get) if hour_counts else 3
+    peak_hour = max(hour_counts, key=lambda h: hour_counts[h]) if hour_counts else 10
+    peak_day = max(day_counts, key=lambda d: day_counts[d]) if day_counts else "Saturday"
+    peak_month = max(month_counts, key=lambda m: month_counts[m]) if month_counts else 3
+    safest_hour = min(hour_counts, key=lambda h: hour_counts[h]) if hour_counts else 3
 
     # Build hourly breakdown
     hourly = {}
@@ -303,14 +328,8 @@ def build_zones(ml_features, grid_stats):
         reverse=True,
     )
 
-    cause_cols = {
-        "speeding": "cause_ขับรถเร็วเกินอัตรากำหนด",
-        "cutting_in_front": "cause_คน/รถ/สัตว์ตัดหน้ากระชั้นชิด",
-        "red_light": "cause_ฝ่าฝืนสัญญาณไฟ/เครื่องหมายจราจร",
-        "tire_blowout": "cause_ยางเสื่อมสภาพ/ยางแตก",
-        "drowsy_driving": "cause_หลับใน",
-        "other": "cause_other",
-    }
+    cause_cols = {key: m["column"] for key, m in PRIMARY_CAUSES.items()}
+    cause_cols["other"] = "cause_other"
 
     zones = {}
     for row in sorted_features[:30]:
@@ -350,24 +369,17 @@ def build_zones(ml_features, grid_stats):
 
 def build_recommendations(nlp_cache, ml_features):
     """Build prioritized policy recommendations from NLP zone analysis."""
-    # Count zones where each cause is dominant (>50% of accidents) from ml_features
-    cause_col_map = {
-        "Speeding": "cause_ขับรถเร็วเกินอัตรากำหนด",
-        "Cutting in front": "cause_คน/รถ/สัตว์ตัดหน้ากระชั้นชิด",
-        "Running red light": "cause_ฝ่าฝืนสัญญาณไฟ/เครื่องหมายจราจร",
-        "Drowsy driving": "cause_หลับใน",
-        "Tire blowout": "cause_ยางเสื่อมสภาพ/ยางแตก",
-    }
-
+    # Count zones where each cause is dominant (>30% of accidents) from ml_features.
+    # Keyed by PRIMARY_CAUSES short key so the lookups below can't drift.
     cause_zone_counts = defaultdict(int)
     for row in ml_features:
         total = safe_int(row.get("total_accidents", 0))
         if total < 5:
             continue
-        for cause_name, col in cause_col_map.items():
-            pct = safe_float(row.get(col, 0))
+        for key, m in PRIMARY_CAUSES.items():
+            pct = safe_float(row.get(m["column"], 0))
             if pct > 30:
-                cause_zone_counts[cause_name] += 1
+                cause_zone_counts[key] += 1
 
     recommendations = [
         {
@@ -375,7 +387,7 @@ def build_recommendations(nlp_cache, ml_features):
             "title": "Speed Camera Deployment",
             "description": "Deploy automated speed enforcement in high-speeding zones. 82% of top danger zones have speeding as the dominant cause.",
             "target_cause": "Speeding",
-            "zones_affected": cause_zone_counts.get("Speeding", 0),
+            "zones_affected": cause_zone_counts.get("speeding", 0),
             "expected_impact": "Targets Bangkok's dominant crash cause across the top danger zones",
             "cost_estimate": "฿2.5M per camera installation",
             "recommendation_type": "enforcement",
@@ -385,7 +397,7 @@ def build_recommendations(nlp_cache, ml_features):
             "title": "Intersection Safety Redesign",
             "description": "Redesign dangerous intersections with better signage, barriers, and traffic signals to reduce cutting-in-front accidents.",
             "target_cause": "Cutting in front",
-            "zones_affected": cause_zone_counts.get("Cutting in front", 0),
+            "zones_affected": cause_zone_counts.get("cutting_in_front", 0),
             "expected_impact": "Targets cutting-in-front hotspots at busy intersections",
             "cost_estimate": "฿5-15M per intersection",
             "recommendation_type": "infrastructure",
@@ -395,7 +407,7 @@ def build_recommendations(nlp_cache, ml_features):
             "title": "Rumble Strips & Road Surface Treatment",
             "description": "Install rumble strips on highway stretches with high rear-end collision rates. Target drowsy driving zones.",
             "target_cause": "Drowsy driving",
-            "zones_affected": cause_zone_counts.get("Drowsy driving", 0),
+            "zones_affected": cause_zone_counts.get("drowsy_driving", 0),
             "expected_impact": "Targets highway corridors with elevated drowsy-driving risk",
             "cost_estimate": "฿500K per km of highway",
             "recommendation_type": "infrastructure",
@@ -405,7 +417,7 @@ def build_recommendations(nlp_cache, ml_features):
             "title": "Red Light Camera Network",
             "description": "Install red-light cameras at intersections with high traffic signal violations.",
             "target_cause": "Running red light",
-            "zones_affected": cause_zone_counts.get("Running red light / traffic sign violation", 0),
+            "zones_affected": cause_zone_counts.get("red_light", 0),
             "expected_impact": "Targets repeated signal-violation intersections",
             "cost_estimate": "฿1.5M per intersection",
             "recommendation_type": "enforcement",
@@ -415,7 +427,7 @@ def build_recommendations(nlp_cache, ml_features):
             "title": "Vehicle Inspection Checkpoints",
             "description": "Set up mobile inspection points in zones with high tire blowout and mechanical failure rates.",
             "target_cause": "Tire blowout / mechanical",
-            "zones_affected": cause_zone_counts.get("Tire blowout / worn tires", 0),
+            "zones_affected": cause_zone_counts.get("tire_blowout", 0),
             "expected_impact": "Targets mechanical-failure and tire-related trouble spots",
             "cost_estimate": "฿200K per checkpoint per month",
             "recommendation_type": "enforcement",
