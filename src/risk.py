@@ -8,6 +8,7 @@ from __future__ import annotations
 
 import hashlib
 import json
+import logging
 import math
 from datetime import datetime
 from typing import TYPE_CHECKING
@@ -20,6 +21,8 @@ from .utils.geo import find_grid_for_point, haversine_km
 
 if TYPE_CHECKING:
     from .routing import ResolvedRoute
+
+logger = logging.getLogger(__name__)
 
 # ---------------------------------------------------------------------------
 # Single-point risk
@@ -568,6 +571,44 @@ _MODEL_ACCURACY_BY_METHOD = {
     "xgboost": "83.8% holdout crash capture",
     "spatial": "83.8% spatial baseline capture",
 }
+
+
+def compare_predictions_payload(lat: float, lon: float) -> dict:
+    """Build the /api/compare-predictions response body.
+
+    Owns the USE_ML gate, both prediction calls, and the difference math.
+    The ML branch only runs when the XGBoost model actually loaded
+    (extensions.USE_ML); the spatial branch runs whenever a predictor exists,
+    so the two columns stay honestly labelled even in spatial-only mode.
+    """
+    result: dict = {
+        "location": {"lat": lat, "lon": lon},
+        "ml_prediction": None,
+        "spatial_prediction": None,
+        "difference": None,
+    }
+
+    if extensions.USE_ML and extensions.ml_predictor:
+        try:
+            result["ml_prediction"] = extensions.ml_predictor.predict_risk(lat, lon)
+        except Exception:
+            logger.exception("ML prediction failed in compare_predictions_payload")
+
+    if extensions.ml_predictor:
+        try:
+            result["spatial_prediction"] = extensions.ml_predictor.fallback_to_spatial(lat, lon)
+        except Exception:
+            logger.exception("Spatial prediction failed in compare_predictions_payload")
+
+    if result["ml_prediction"] and result["spatial_prediction"]:
+        ml_score = result["ml_prediction"]["risk_score"]
+        sp_score = result["spatial_prediction"]["risk_score"]
+        result["difference"] = {
+            "absolute": ml_score - sp_score,
+            "percentage": round(((ml_score - sp_score) / max(sp_score, 1)) * 100, 1),
+        }
+
+    return result
 
 
 def build_route_analysis_payload(

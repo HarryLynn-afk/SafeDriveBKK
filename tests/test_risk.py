@@ -20,6 +20,7 @@ from src.risk import (
     calculate_distance_from_waypoints,
     calculate_route_risk_density_aware,
     calculate_segment_risk,
+    compare_predictions_payload,
     dedupe_scored_routes,
     evaluate_route,
     generate_alerts_from_segments,
@@ -571,3 +572,71 @@ class TestBuildRouteAnalysisPayload:
             result = build_route_analysis_payload(resolved, sample_grid_df)
         assert result["summary"]["total_distance"] == round(resolved.distance_km, 2)
         assert result["summary"]["total_time"] == resolved.duration_min
+
+
+# ---------------------------------------------------------------------------
+# compare_predictions_payload — deep-module boundary for /api/compare-predictions
+# ---------------------------------------------------------------------------
+
+class TestComparePredictionsPayload:
+    @staticmethod
+    def _predictor(ml_score=60, spatial_score=40):
+        predictor = MagicMock()
+        predictor.predict_risk.return_value = {"risk_score": ml_score, "risk_level": "medium"}
+        predictor.fallback_to_spatial.return_value = {"risk_score": spatial_score, "risk_level": "medium"}
+        return predictor
+
+    def test_location_always_echoes_input(self):
+        with patch("src.risk.extensions") as mock_ext:
+            mock_ext.USE_ML = False
+            mock_ext.ml_predictor = None
+            result = compare_predictions_payload(13.75, 100.5)
+        assert result["location"] == {"lat": 13.75, "lon": 100.5}
+
+    def test_both_predictions_set_and_difference_computed(self):
+        with patch("src.risk.extensions") as mock_ext:
+            mock_ext.USE_ML = True
+            mock_ext.ml_predictor = self._predictor(ml_score=60, spatial_score=40)
+            result = compare_predictions_payload(13.75, 100.5)
+        assert result["ml_prediction"]["risk_score"] == 60
+        assert result["spatial_prediction"]["risk_score"] == 40
+        assert result["difference"] == {"absolute": 20, "percentage": 50.0}
+
+    def test_ml_gated_off_yields_none_ml_and_no_difference(self):
+        predictor = self._predictor()
+        with patch("src.risk.extensions") as mock_ext:
+            mock_ext.USE_ML = False
+            mock_ext.ml_predictor = predictor
+            result = compare_predictions_payload(13.75, 100.5)
+        assert result["ml_prediction"] is None
+        assert result["spatial_prediction"] is not None
+        assert result["difference"] is None
+        predictor.predict_risk.assert_not_called()
+
+    def test_no_predictor_yields_all_none(self):
+        with patch("src.risk.extensions") as mock_ext:
+            mock_ext.USE_ML = True
+            mock_ext.ml_predictor = None
+            result = compare_predictions_payload(13.75, 100.5)
+        assert result["ml_prediction"] is None
+        assert result["spatial_prediction"] is None
+        assert result["difference"] is None
+
+    def test_predict_risk_raising_keeps_spatial_and_skips_difference(self):
+        predictor = self._predictor()
+        predictor.predict_risk.side_effect = RuntimeError("boom")
+        with patch("src.risk.extensions") as mock_ext:
+            mock_ext.USE_ML = True
+            mock_ext.ml_predictor = predictor
+            result = compare_predictions_payload(13.75, 100.5)
+        assert result["ml_prediction"] is None
+        assert result["spatial_prediction"] is not None
+        assert result["difference"] is None
+
+    def test_zero_spatial_score_does_not_divide_by_zero(self):
+        with patch("src.risk.extensions") as mock_ext:
+            mock_ext.USE_ML = True
+            mock_ext.ml_predictor = self._predictor(ml_score=10, spatial_score=0)
+            result = compare_predictions_payload(13.75, 100.5)
+        assert result["difference"]["absolute"] == 10
+        assert result["difference"]["percentage"] == 1000.0
