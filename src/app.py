@@ -13,6 +13,7 @@ import json
 import logging
 
 from flask import Flask, jsonify, request
+from werkzeug.middleware.proxy_fix import ProxyFix
 
 from .config import (
     BASE_DIR,
@@ -34,6 +35,11 @@ def create_app() -> Flask:
         template_folder=str(BASE_DIR / "templates"),
         static_folder=str(BASE_DIR / "static"),
     )
+
+    # Trust one layer of reverse proxy (Render/Gunicorn) so request.remote_addr
+    # reflects the real client IP — otherwise the rate limiter keys on the proxy
+    # IP and throttles all users as one.
+    app.wsgi_app = ProxyFix(app.wsgi_app, x_for=1, x_proto=1)
 
     # ── Security configuration ──────────────────────────────────────────────
     app.config["SECRET_KEY"] = SECRET_KEY

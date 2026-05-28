@@ -28,6 +28,22 @@ from flask import jsonify, request
 _counters: dict = defaultdict(lambda: {"count": 0, "reset_at": 0.0})
 _lock = threading.Lock()
 
+# Periodically drop counters for IPs whose window has fully elapsed so the
+# in-memory store cannot grow without bound under many distinct clients.
+_CLEANUP_INTERVAL_SECONDS = 600.0
+_last_cleanup = 0.0
+
+
+def _evict_expired(now: float) -> None:
+    """Purge counters whose window has elapsed. Caller must hold _lock."""
+    global _last_cleanup
+    if now - _last_cleanup < _CLEANUP_INTERVAL_SECONDS:
+        return
+    _last_cleanup = now
+    stale = [key for key, entry in _counters.items() if now > entry["reset_at"]]
+    for key in stale:
+        del _counters[key]
+
 
 def rate_limit(max_calls: int, window_seconds: int):
     """Decorator: allow at most *max_calls* requests per IP per *window_seconds*."""
@@ -39,6 +55,7 @@ def rate_limit(max_calls: int, window_seconds: int):
             now = time.monotonic()
 
             with _lock:
+                _evict_expired(now)
                 entry = _counters[key]
                 if now > entry["reset_at"]:
                     entry["count"] = 0
