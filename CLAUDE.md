@@ -121,7 +121,7 @@ scripts/
 - Thai-language chatbot support via pythainlp + Groq
 - Docker image builds clean (multi-stage, non-root)
 - GitHub Actions CI runs pytest + Docker build on every push to `main`
-- **250 tests passing** across 12 modules — added `test_chatbot_data_processor.py` (8) and `test_ml_model.py` (16, the RiskPredictor core)
+- **309 tests passing** across 16 modules — backfilled coverage for the ML core and data pipeline: `test_ml_model.py` (16), `test_chatbot_groq.py` (25), `test_grid_aggregation.py` (16), `test_feature_engineering.py` (12), `test_chatbot_data_processor.py` (8), `test_rate_limit.py` (5)
 - `resolve_route()` and `score_route()` are the deep module interfaces for routing and risk; fully tested
 - `get_route_alternatives()` + `rank_and_annotate_routes()` are the deep module interfaces for `/api/compare-routes`; blueprint is now ~30 lines; fully unit-tested
 - `build_analytics_payload()` is the deep module interface for `/api/analytics-data`; blueprint is now ~7 lines; fully unit-tested
@@ -131,7 +131,7 @@ scripts/
 - `load_nlp_cache()` in `src/nlp_analysis.py` is the public entry point for NLP results — in-process singleton, detects staleness via mtime comparison, never raises, warns when accident data is newer than cache
 - `reload_route_presets()` in `src/routing.py` busts the in-process presets cache; `scripts/refresh_route_presets.py` re-queries OSRM and rewrites the file — run with `python -m scripts.refresh_route_presets`
 - `static/route_presets.json` refreshed from live OSRM (all 4 presets updated 2026-05-20)
-- **11 open tasks from the 2026-05-28 full-codebase review** (all 3 High closed 2026-05-28: grid-constant centralization, `RiskPredictor` tests, env/secrets centralization) — 0 High, 4 Medium (magic-number scoring, silent OSRM `except: pass`, `generate_safe_route` request-path fan-out, rate-limiter proxy-IP + unbounded growth), 5 Low, 2 maintenance. See Open Tasks for the ranked list.
+- **7 open tasks from the 2026-05-28 full-codebase review** (all 3 High + all 4 Medium closed 2026-05-28) — 0 High, 0 Medium, 5 Low, 2 maintenance. See Open Tasks for the ranked list.
 - Deployed/targeted for **Render** (Gunicorn, `PORT` env var set automatically)
 - Google Maps API key is optional — app degrades to OSRM + estimated travel times when absent
 - Project docs in `docs/ubiquitous-language.md` — 15 canonical domain terms, pass to Claude at session start
@@ -146,11 +146,11 @@ Ranked from a full-codebase senior review on 2026-05-28 (18 runtime modules read
 2. ~~**`RiskPredictor` (`ml_model.py`) has zero direct tests**~~ — **CLOSED 2026-05-28.** Added `tests/test_ml_model.py` (16 boundary tests): score-mapping helpers, model-load precedence (.ubj-first), `predict_risk` (out-of-bounds / ML / spatial), `fallback_to_spatial`, and `predict_batch` (incl. batch-vs-single consistency). ML-path tests `skip` gracefully when no model file is present. Still untested (lower priority): `chatbot_groq` guardrail helpers, `feature_engineering`/`grid_aggregation`.
 3. ~~**Secrets / env vars not centralized**~~ — **CLOSED 2026-05-28.** `GROQ_API_KEY`, `PORT`, `LOG_LEVEL`, `LOG_FILE`, and `GOOGLE_MAPS_SERVER_KEY_SOURCE` now live in `config.py`; `chatbot_groq.py`, `app.py`, and `logging_config.py` import them. Zero `os.getenv`/`os.environ` calls remain outside `config.py`; the dead `import os` was removed from all three. `.env.example` documents every key.
 
-### Medium
-4. **Unexplained magic numbers in risk scoring** — `risk.py` blends with undocumented literals (`*0.6/*0.4`, `1 - exp(-blended/25.0)`, `*2.0`, `*4.0`, level thresholds 50/25/60/30); the `/40` km/h time estimate is duplicated in `risk.py` and `routing.py`. Promote to named, commented module constants so the product's core scoring is auditable.
-5. **Silent OSRM failure swallowing** — `get_osrm_route` (`routing.py:242`), `get_osrm_route_from_waypoints` (`:271`), and `get_osrm_alternatives` (`:300`) use bare `except Exception: pass` with no logging, so "OSRM down" looks identical to "no route". Log at warning/debug like the GMaps clients do.
-6. **`generate_safe_route` fan-out on the request path** — `routing.py:512` can spawn ~200 synchronous OSRM calls per request (36 angles × 3 offsets × 2 legs). Cap candidate midpoints or add a time/call budget to bound latency and public-OSRM load.
-7. **Rate limiter weaknesses** — `utils/rate_limit.py` keys on `request.remote_addr`; behind Render's proxy that's the load-balancer IP, so the limit becomes global rather than per-client (add `ProxyFix`/`X-Forwarded-For`). The `_counters` dict also grows unbounded (no eviction of stale keys).
+### Medium — all closed 2026-05-28
+4. ~~**Unexplained magic numbers in risk scoring**~~ — **CLOSED.** The blend weights, exp-decay, segment multipliers, and level cutoffs are now named module constants in `risk.py` with a `_risk_level()` helper (deduped the 60/30 thresholds). `AVG_SPEED_KMH` moved to `config.py` and imported by both `risk.py` and `routing.py` (no more `/40` literals). Behavior-preserving — 303 tests stayed green.
+5. ~~**Silent OSRM failure swallowing**~~ — **CLOSED.** The three OSRM helpers now `logger.debug("OSRM request failed", exc_info=True)` instead of `pass` (debug level since they run in the safe-route fan-out loop).
+6. ~~**`generate_safe_route` fan-out on the request path**~~ — **CLOSED.** Candidate midpoints are capped at `_MAX_DETOUR_CANDIDATES = 16` (downsampled evenly to keep angular spread), bounding the synchronous OSRM calls to ≤32 per request. (The real grid is 12 angles × 3 offsets = 36 candidates, not 36 angles.) New `TestSafeRouteFanout` asserts the bound.
+7. ~~**Rate limiter weaknesses**~~ — **CLOSED.** `create_app()` now wraps `app.wsgi_app` in `ProxyFix(x_for=1)` so the limiter keys on the real client IP behind Render's proxy; `rate_limit.py` evicts expired counters every 10 min so `_counters` can't grow unbounded. Added `tests/test_rate_limit.py` (5 tests).
 
 ### Low
 8. **`/api/risk-zones` data shaping in blueprint** — `df[df["total_accidents"] > 0].copy()` + `df.where(pd.notna(df), None)` lives in the handler; belongs next to `load_grid_stats()` in `src/utils/data.py` (or a new `load_active_risk_zones()`).
