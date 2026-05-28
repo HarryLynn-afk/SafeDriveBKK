@@ -3,6 +3,7 @@ Spatial grid aggregation for Bangkok accident risk analysis.
 """
 
 import logging
+import math
 from pathlib import Path
 
 import numpy as np
@@ -61,13 +62,16 @@ def create_grid_cells(lat_min, lat_max, lon_min, lon_max, cell_size_km=1.0):
 
     step_deg = cell_size_km * DEGREES_PER_KM
 
-    lat_edges = [float(lat_min)]
-    while lat_edges[-1] < lat_max:
-        lat_edges.append(min(lat_edges[-1] + step_deg, float(lat_max)))
+    def _edges(start, stop):
+        # Count bins up front (rounding away float drift) so the boundary cell is
+        # never a zero-width sliver; the final edge is snapped exactly to *stop*.
+        n_bins = max(1, math.ceil(round((stop - start) / step_deg, 6)))
+        edges = [min(start + i * step_deg, stop) for i in range(n_bins + 1)]
+        edges[-1] = stop
+        return edges
 
-    lon_edges = [float(lon_min)]
-    while lon_edges[-1] < lon_max:
-        lon_edges.append(min(lon_edges[-1] + step_deg, float(lon_max)))
+    lat_edges = _edges(float(lat_min), float(lat_max))
+    lon_edges = _edges(float(lon_min), float(lon_max))
 
     cells = []
     for lat_idx in range(len(lat_edges) - 1):
