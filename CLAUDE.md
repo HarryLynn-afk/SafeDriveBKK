@@ -110,7 +110,7 @@ scripts/
 - **`calculate_segment_risk` trusts `predict_risk`'s internal fallback** — the outer try/except chain that called `fallback_to_spatial()` separately was redundant (predict_risk already does that internally when the model fails). Collapsed to a single call per branch; the misleading `{"method": "fallback"}` drift is gone — that string is now only returned when `ml_predictor` is None.
 - **`compare_predictions_payload(lat, lon)` in `src/risk.py` owns the /api/compare-predictions response** — the `USE_ML` gate, both `predict_risk`/`fallback_to_spatial` try/except calls, and the absolute+percentage difference math all live inside. Reads `extensions.ml_predictor` / `extensions.USE_ML` internally (same pattern as `score_route()`). Chosen over a `RiskPredictor` method because a method can't see the module-level `USE_ML` flag, and `predict_risk` falls back to spatial internally — so a method would mislabel a spatial result as `ml_prediction` when `USE_ML` is off. The `/api/compare-predictions` handler is now a thin wrapper.
 - **Non-root Docker user** — the container runs as `appuser`; the `/app` directory is chowned accordingly.
-- **Bangkok spatial grid: 0.009° cells** — this constant is replicated in `config.py`, `ml_model.py`, and `grid_aggregation.py`. All three must stay in sync.
+- **Bangkok spatial grid: 0.009° cells** — single-sourced in `config.py` as `DEGREES_PER_KM` / `CELL_SIZE_DEG` (closed 2026-05-28). Every other module imports it; the `latlon_to_grid_id` algorithm lives only in `utils/geo.py`. Offline scripts use a `try: from .config / except ImportError: from config` shim so they work under both `python -m src.foo` and `python src/foo.py`.
 - **Consistent API response shape** — all success responses include a `success: true` key or a top-level data key; all errors return `{"error": "..."}` with an appropriate HTTP status.
 
 ---
@@ -121,7 +121,7 @@ scripts/
 - Thai-language chatbot support via pythainlp + Groq
 - Docker image builds clean (multi-stage, non-root)
 - GitHub Actions CI runs pytest + Docker build on every push to `main`
-- **226 tests passing** across 10 modules — all previous + 6 `compare_predictions_payload` boundary tests
+- **250 tests passing** across 12 modules — added `test_chatbot_data_processor.py` (8) and `test_ml_model.py` (16, the RiskPredictor core)
 - `resolve_route()` and `score_route()` are the deep module interfaces for routing and risk; fully tested
 - `get_route_alternatives()` + `rank_and_annotate_routes()` are the deep module interfaces for `/api/compare-routes`; blueprint is now ~30 lines; fully unit-tested
 - `build_analytics_payload()` is the deep module interface for `/api/analytics-data`; blueprint is now ~7 lines; fully unit-tested
@@ -131,7 +131,7 @@ scripts/
 - `load_nlp_cache()` in `src/nlp_analysis.py` is the public entry point for NLP results — in-process singleton, detects staleness via mtime comparison, never raises, warns when accident data is newer than cache
 - `reload_route_presets()` in `src/routing.py` busts the in-process presets cache; `scripts/refresh_route_presets.py` re-queries OSRM and rewrites the file — run with `python -m scripts.refresh_route_presets`
 - `static/route_presets.json` refreshed from live OSRM (all 4 presets updated 2026-05-20)
-- **Three Low-priority architecture tasks open** — `/api/risk-zones` data shaping in blueprint, accuracy-string drift across ~6 files, and `/api/nlp/ml-metrics` direct file I/O in blueprint. No High/Medium items open. See Open Tasks.
+- **11 open tasks from the 2026-05-28 full-codebase review** (all 3 High closed 2026-05-28: grid-constant centralization, `RiskPredictor` tests, env/secrets centralization) — 0 High, 4 Medium (magic-number scoring, silent OSRM `except: pass`, `generate_safe_route` request-path fan-out, rate-limiter proxy-IP + unbounded growth), 5 Low, 2 maintenance. See Open Tasks for the ranked list.
 - Deployed/targeted for **Render** (Gunicorn, `PORT` env var set automatically)
 - Google Maps API key is optional — app degrades to OSRM + estimated travel times when absent
 - Project docs in `docs/ubiquitous-language.md` — 15 canonical domain terms, pass to Claude at session start
@@ -139,12 +139,29 @@ scripts/
 ---
 
 ## Open Tasks
-The 2026-05-23 High (`/api/compare-predictions` dispatch) was closed 2026-05-28. Three Lows remain — all good candidates to bundle into one "blueprint cleanup" run since #1 and #3 share the "blueprints do their own data/IO" smell.
-1. **Low — `/api/risk-zones` data shaping in blueprint** — `df[df["total_accidents"] > 0].copy()` + `df.where(pd.notna(df), None)` lives in the handler; belongs next to `load_grid_stats()` in `src/utils/data.py` (or a new `load_active_risk_zones()`).
-2. **Low — accuracy strings drift across ~6 files** — `"83.8%"` capture rate is hand-written with different wording in `risk.py` (`_MODEL_ACCURACY_BY_METHOD`), `api.py` (`model_info`), `chatbot_groq.py`, `chatbot_data_processor.py`, and `app.py` startup logs. Single-source it (e.g. a constant in `config.py`) so the number can't drift.
-3. **Low — `/api/nlp/ml-metrics` does direct file I/O in the blueprint** — `src/blueprints/nlp_bp.py:62-72` builds a path from `BASE_DIR` and runs `open()` + `json.load()` itself; the only NLP route still doing its own I/O. Move the read behind a loader in `src/nlp_analysis.py` (or `utils/data.py`) to match the `load_nlp_cache()` rule.
-4. Run `python -m src.nlp_analysis` to regenerate `nlp_cache.json` if accident data is updated (script exists; no CI automation yet).
-5. Add `scripts/refresh_route_presets.py` to a scheduled CI job so presets stay fresh automatically.
+Ranked from a full-codebase senior review on 2026-05-28 (18 runtime modules read in full + structural scan of the rest). Severity is about blast radius + correctness risk, not effort.
+
+### High
+1. ~~**Grid constant duplicated across 8 files**~~ — **CLOSED 2026-05-28.** Single-sourced in `config.py` (`DEGREES_PER_KM`/`CELL_SIZE_DEG`); all 8 files now import it. `latlon_to_grid_id` deduped — `ml_model.py` uses `utils/geo.py`'s copy (proven byte-identical across 100 sample points before deletion). Offline scripts use a `try/except ImportError` shim so they run under both `python -m src.foo` and `python src/foo.py`. 234 tests pass.
+2. ~~**`RiskPredictor` (`ml_model.py`) has zero direct tests**~~ — **CLOSED 2026-05-28.** Added `tests/test_ml_model.py` (16 boundary tests): score-mapping helpers, model-load precedence (.ubj-first), `predict_risk` (out-of-bounds / ML / spatial), `fallback_to_spatial`, and `predict_batch` (incl. batch-vs-single consistency). ML-path tests `skip` gracefully when no model file is present. Still untested (lower priority): `chatbot_groq` guardrail helpers, `feature_engineering`/`grid_aggregation`.
+3. ~~**Secrets / env vars not centralized**~~ — **CLOSED 2026-05-28.** `GROQ_API_KEY`, `PORT`, `LOG_LEVEL`, `LOG_FILE`, and `GOOGLE_MAPS_SERVER_KEY_SOURCE` now live in `config.py`; `chatbot_groq.py`, `app.py`, and `logging_config.py` import them. Zero `os.getenv`/`os.environ` calls remain outside `config.py`; the dead `import os` was removed from all three. `.env.example` documents every key.
+
+### Medium
+4. **Unexplained magic numbers in risk scoring** — `risk.py` blends with undocumented literals (`*0.6/*0.4`, `1 - exp(-blended/25.0)`, `*2.0`, `*4.0`, level thresholds 50/25/60/30); the `/40` km/h time estimate is duplicated in `risk.py` and `routing.py`. Promote to named, commented module constants so the product's core scoring is auditable.
+5. **Silent OSRM failure swallowing** — `get_osrm_route` (`routing.py:242`), `get_osrm_route_from_waypoints` (`:271`), and `get_osrm_alternatives` (`:300`) use bare `except Exception: pass` with no logging, so "OSRM down" looks identical to "no route". Log at warning/debug like the GMaps clients do.
+6. **`generate_safe_route` fan-out on the request path** — `routing.py:512` can spawn ~200 synchronous OSRM calls per request (36 angles × 3 offsets × 2 legs). Cap candidate midpoints or add a time/call budget to bound latency and public-OSRM load.
+7. **Rate limiter weaknesses** — `utils/rate_limit.py` keys on `request.remote_addr`; behind Render's proxy that's the load-balancer IP, so the limit becomes global rather than per-client (add `ProxyFix`/`X-Forwarded-For`). The `_counters` dict also grows unbounded (no eviction of stale keys).
+
+### Low
+8. **`/api/risk-zones` data shaping in blueprint** — `df[df["total_accidents"] > 0].copy()` + `df.where(pd.notna(df), None)` lives in the handler; belongs next to `load_grid_stats()` in `src/utils/data.py` (or a new `load_active_risk_zones()`).
+9. **`/api/nlp/ml-metrics` does direct file I/O in the blueprint** — `nlp_bp.py:62-72` builds a path from `BASE_DIR` and runs `open()`+`json.load()` itself; the only NLP route still doing its own I/O. Move behind a loader in `nlp_analysis.py`/`utils/data.py`.
+10. **Accuracy strings drift across ~6 files** — `"83.8%"` is hand-written with different wording in `risk.py` (`_MODEL_ACCURACY_BY_METHOD`), `api.py` (`model_info`), `chatbot_groq.py`, `chatbot_data_processor.py`, and `app.py` startup logs. Single-source as a `config.py` constant.
+11. **`chatbot_data.json` loaded twice** — once into `extensions.CHATBOT_DATA` at startup, again into `chatbot_intents.py:32`'s own cache. Have intents read `extensions.CHATBOT_DATA` instead.
+12. **`main.py:12` uses `from ..extensions import CHATBOT_DATA`** — captures the dict by value and only works because blueprint import happens after `_init_chatbot()`. Use `extensions.CHATBOT_DATA` attribute access like `chatbot.py` does.
+
+### Maintenance (not code smells)
+13. Run `python -m src.nlp_analysis` to regenerate `nlp_cache.json` when accident data changes (script exists; no CI automation yet).
+14. Add `scripts/refresh_route_presets.py` to a scheduled CI job so presets stay fresh automatically.
 
 ---
 
@@ -154,7 +171,7 @@ The 2026-05-23 High (`/api/compare-predictions` dispatch) was closed 2026-05-28.
 - **Never register routes directly on `app`** — use blueprints
 - **Never skip coordinate validation** (`validate_coordinates`) before passing user-supplied lat/lon into routing or ML code
 - **Never add new API keys** to the codebase without adding them to `src/config.py` and `.env.example`
-- **Never change the grid cell size (0.009°)** in one file without updating all three locations: `config.py`, `ml_model.py`, `grid_aggregation.py`
+- **Never redefine the grid cell size (0.009°) outside `config.py`** — it lives there as `DEGREES_PER_KM` / `CELL_SIZE_DEG`; every other module imports it. Never reintroduce a local `CELL_SIZE_DEG = 0.009` or a second copy of `latlon_to_grid_id` (it belongs only in `utils/geo.py`).
 - **Never load the XGBoost model with pickle** when `.ubj` is available — the native format is intentional
 - **Never commit secrets** — `.env` is gitignored; `.env.example` documents the required keys
 - **Never re-implement the route fallback chain inline** — always call `resolve_route()` from `src/routing.py`
