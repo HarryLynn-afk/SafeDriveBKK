@@ -496,3 +496,21 @@ class TestReloadRoutePresets:
             reload_route_presets()
             reload_route_presets()  # second call must not raise
             assert routing_mod._route_presets_cache is None
+
+
+# ---------------------------------------------------------------------------
+# generate_safe_route — bounded OSRM fan-out
+# ---------------------------------------------------------------------------
+
+class TestSafeRouteFanout:
+    def test_osrm_calls_are_bounded(self, sample_grid_df):
+        osrm = MagicMock(return_value=None)  # every OSRM leg "fails"
+        with patch.object(routing_mod, "get_osrm_route", osrm), \
+             patch.object(routing_mod, "get_osrm_alternatives", return_value=[]):
+            # Pass fast_waypoints so generate_fast_route adds no OSRM calls of its own.
+            fast = [[13.69, 100.44], [13.705, 100.455]]
+            routing_mod.generate_safe_route(
+                13.69, 100.44, 13.705, 100.455, sample_grid_df, fast_waypoints=fast,
+            )
+        # Each surviving candidate issues exactly two OSRM calls; the cap bounds it.
+        assert 0 < osrm.call_count <= 2 * routing_mod._MAX_DETOUR_CANDIDATES

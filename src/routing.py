@@ -23,6 +23,7 @@ from googlemaps.convert import decode_polyline
 
 from . import extensions
 from .config import (
+    AVG_SPEED_KMH,
     BKK_LAT_MAX,
     BKK_LAT_MIN,
     BKK_LON_MAX,
@@ -33,6 +34,10 @@ from .config import (
 from .utils.geo import find_grid_for_point, haversine_km
 
 logger = logging.getLogger(__name__)
+
+# Max safe-route detour midpoints evaluated per request. Each one issues two
+# OSRM calls, so this caps the synchronous fan-out (and public-OSRM load).
+_MAX_DETOUR_CANDIDATES = 16
 
 # ---------------------------------------------------------------------------
 # ResolvedRoute — the single return type of resolve_route()
@@ -240,7 +245,7 @@ def get_osrm_route(
                 "duration_min": int(route["duration"] / 60),
             }
     except Exception:
-        pass
+        logger.debug("OSRM request failed", exc_info=True)
     return None
 
 
@@ -269,7 +274,7 @@ def get_osrm_route_from_waypoints(waypoints: list) -> dict | None:
                 "duration_min": int(route["duration"] / 60),
             }
     except Exception:
-        pass
+        logger.debug("OSRM request failed", exc_info=True)
     return None
 
 
@@ -298,7 +303,7 @@ def get_osrm_alternatives(
                 })
             return routes
     except Exception:
-        pass
+        logger.debug("OSRM request failed", exc_info=True)
 
     cached = find_cached_route(start_lat, start_lon, end_lat, end_lon)
     return [cached] if cached else []
@@ -339,7 +344,7 @@ def resolve_route(
             haversine_km(waypoints[i - 1][0], waypoints[i - 1][1], waypoints[i][0], waypoints[i][1])
             for i in range(1, len(waypoints))
         )
-        duration_min = int((distance_km / 40) * 60) if distance_km > 0 else 0
+        duration_min = int((distance_km / AVG_SPEED_KMH) * 60) if distance_km > 0 else 0
         traffic_source = "estimated"
     else:
         osrm = get_osrm_route(start_lat, start_lon, end_lat, end_lon)
@@ -357,7 +362,7 @@ def resolve_route(
                                  cached["waypoints"][i][0], cached["waypoints"][i][1])
                     for i in range(1, len(cached["waypoints"]))
                 )
-                duration_min = int(cached.get("duration_min") or 0) or int((distance_km / 40) * 60)
+                duration_min = int(cached.get("duration_min") or 0) or int((distance_km / AVG_SPEED_KMH) * 60)
                 traffic_source = "cached_osrm"
             else:
                 waypoints = generate_dense_interpolation(start_lat, start_lon, end_lat, end_lon)
@@ -365,7 +370,7 @@ def resolve_route(
                     haversine_km(waypoints[i - 1][0], waypoints[i - 1][1], waypoints[i][0], waypoints[i][1])
                     for i in range(1, len(waypoints))
                 )
-                duration_min = int((distance_km / 40) * 60)
+                duration_min = int((distance_km / AVG_SPEED_KMH) * 60)
                 traffic_source = "estimated"
 
     # Layer GMaps timing on top whenever available
@@ -560,6 +565,13 @@ def generate_safe_route(
             if grid is not None and int(grid["total_accidents"]) > 5:
                 continue
             candidate_midpoints.append((mlat, mlon))
+
+    # Bound the OSRM fan-out: each candidate triggers two routing calls, so cap
+    # the count (downsampling evenly to keep angular spread) to limit request
+    # latency and load on the public OSRM server.
+    if len(candidate_midpoints) > _MAX_DETOUR_CANDIDATES:
+        stride = len(candidate_midpoints) // _MAX_DETOUR_CANDIDATES
+        candidate_midpoints = candidate_midpoints[::stride][:_MAX_DETOUR_CANDIDATES]
 
     # ---- Strategy 2: OSRM detour legs (parallel) ----
     best_detour: list[list[float]] | None = None

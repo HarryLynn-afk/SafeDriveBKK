@@ -60,6 +60,10 @@ NLP_CACHE_PATH = BASE_DIR / "static" / "nlp_cache.json"
 # ---------------------------------------------------------------------------
 OSRM_BASE_URL = "https://router.project-osrm.org"
 
+# Assumed average city driving speed for estimated travel times when no live
+# traffic data (Google Maps) is available. Used by routing + risk estimates.
+AVG_SPEED_KMH = 40.0
+
 # ---------------------------------------------------------------------------
 # Bangkok spatial grid
 # ---------------------------------------------------------------------------

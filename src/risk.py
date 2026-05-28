@@ -17,12 +17,39 @@ import numpy as np
 import pandas as pd
 
 from . import extensions
+from .config import AVG_SPEED_KMH
 from .utils.geo import find_grid_for_point, haversine_km
 
 if TYPE_CHECKING:
     from .routing import ResolvedRoute
 
 logger = logging.getLogger(__name__)
+
+# ---------------------------------------------------------------------------
+# Route-risk scoring constants (empirically tuned on the 2024 holdout)
+# ---------------------------------------------------------------------------
+# Overall route score blends the distance-weighted average with the single
+# worst point, so a mostly-safe route with one dangerous stretch still scores up.
+_ML_AVG_WEIGHT, _ML_PEAK_WEIGHT = 0.6, 0.4
+_DENSITY_AVG_WEIGHT, _DENSITY_PEAK_WEIGHT = 0.8, 0.2
+_DENSITY_DECAY = 25.0  # exp-decay constant mapping blended accident count → 0–100
+_HIGH_RISK_BONUS_CAP, _HIGH_RISK_BONUS_FACTOR = 15, 3
+# Per-segment scoring in analyze_route_segments.
+_SEG_AVG_WEIGHT, _SEG_PEAK_WEIGHT = 0.65, 0.35
+_SEG_ACCIDENT_MULT, _SEG_HIGH_RISK_MULT = 2.0, 4.0
+# Risk-level cutoffs on the 0–100 score (route-level vs. per-segment).
+_LEVEL_HIGH_MIN, _LEVEL_MEDIUM_MIN = 60, 30
+_SEG_HIGH_MIN, _SEG_MEDIUM_MIN = 50, 25
+
+
+def _risk_level(score: float) -> str:
+    """Map a 0–100 route risk score to a low/medium/high label."""
+    if score >= _LEVEL_HIGH_MIN:
+        return "high"
+    if score >= _LEVEL_MEDIUM_MIN:
+        return "medium"
+    return "low"
+
 
 # ---------------------------------------------------------------------------
 # Single-point risk
@@ -99,9 +126,9 @@ def calculate_route_risk_ml(waypoints: list[list[float]]) -> dict | None:
     else:
         weighted_avg = float(np.mean([r["risk_score"] for r in results])) if results else 0.0
 
-    blended = (weighted_avg * 0.6) + (max_score * 0.4)
+    blended = (weighted_avg * _ML_AVG_WEIGHT) + (max_score * _ML_PEAK_WEIGHT)
     risk_score = min(100, int(blended))
-    risk_level = "high" if risk_score >= 60 else ("medium" if risk_score >= 30 else "low")
+    risk_level = _risk_level(risk_score)
 
     return {
         "risk_score": risk_score,
@@ -163,12 +190,12 @@ def calculate_route_risk_density_aware(waypoints: list[list[float]], grid_df: pd
     else:
         weighted_avg = float(np.mean(point_accidents)) if point_accidents else 0.0
 
-    blended = (weighted_avg * 0.8 + max_accidents * 0.2) if max_accidents > 0 else weighted_avg
-    risk_score = min(100, int(100 * (1 - math.exp(-blended / 25.0))))
+    blended = (weighted_avg * _DENSITY_AVG_WEIGHT + max_accidents * _DENSITY_PEAK_WEIGHT) if max_accidents > 0 else weighted_avg
+    risk_score = min(100, int(100 * (1 - math.exp(-blended / _DENSITY_DECAY))))
     if high_risk_zones > 0:
-        risk_score = min(100, risk_score + min(15, int(math.sqrt(high_risk_zones) * 3)))
+        risk_score = min(100, risk_score + min(_HIGH_RISK_BONUS_CAP, int(math.sqrt(high_risk_zones) * _HIGH_RISK_BONUS_FACTOR)))
 
-    risk_level = "high" if risk_score >= 60 else ("medium" if risk_score >= 30 else "low")
+    risk_level = _risk_level(risk_score)
 
     return {
         "risk_score": risk_score,
@@ -254,12 +281,12 @@ def analyze_route_segments(
 
         avg_acc = float(np.mean(accident_counts)) if accident_counts else 0.0
         max_acc = float(max(accident_counts)) if accident_counts else 0.0
-        blended_acc = (avg_acc * 0.65) + (max_acc * 0.35)
-        seg_score = min(100, int((blended_acc * 2.0) + (float(high_risk_count) * 4.0)))
+        blended_acc = (avg_acc * _SEG_AVG_WEIGHT) + (max_acc * _SEG_PEAK_WEIGHT)
+        seg_score = min(100, int((blended_acc * _SEG_ACCIDENT_MULT) + (float(high_risk_count) * _SEG_HIGH_RISK_MULT)))
 
-        if seg_score >= 50:
+        if seg_score >= _SEG_HIGH_MIN:
             risk_level, color = "high", "#dc3545"
-        elif seg_score >= 25:
+        elif seg_score >= _SEG_MEDIUM_MIN:
             risk_level, color = "medium", "#ffc107"
         else:
             risk_level, color = "low", "#28a745"
@@ -338,7 +365,7 @@ def evaluate_route(route_points: list[list[float]], grid_df: pd.DataFrame) -> di
     """Score a route and return a full metrics dict."""
     total_distance = calculate_distance_from_waypoints(route_points)
     risk = calculate_route_risk_density_aware(route_points, grid_df)
-    time_min = int(round((total_distance / 40.0) * 60.0))
+    time_min = int(round((total_distance / AVG_SPEED_KMH) * 60.0))
     return {
         "waypoints": [[round(lat, 6), round(lon, 6)] for lat, lon in route_points],
         "distance_km": round(total_distance, 2),
