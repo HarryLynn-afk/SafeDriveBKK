@@ -60,7 +60,9 @@ class TestEviction:
         now = time.monotonic()
         rl._counters["old:1.2.3.4"] = {"count": 9, "reset_at": now - 10}    # window passed
         rl._counters["live:5.6.7.8"] = {"count": 1, "reset_at": now + 1000}  # still active
-        rl._last_cleanup = 0.0  # force a cleanup pass
+        # Force a cleanup pass relative to `now`; an absolute 0.0 fails on a
+        # freshly-booted host where time.monotonic() is still < the interval.
+        rl._last_cleanup = now - rl._CLEANUP_INTERVAL_SECONDS - 1
 
         rl._evict_expired(now)
 
