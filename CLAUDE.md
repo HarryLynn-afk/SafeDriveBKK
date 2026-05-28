@@ -61,7 +61,10 @@ templates/            → Jinja2: base.html, index.html, trip_planner.html, anal
 tests/                → conftest.py (flask app + sample fixtures), test_api.py,
                         test_risk.py, test_routing.py, test_data.py, test_geo.py,
                         test_chatbot_utils.py, test_chatbot_intents.py,
-                        test_chatbot_pipeline.py,
+                        test_chatbot_pipeline.py, test_chatbot_data_processor.py,
+                        test_chatbot_groq.py, test_ml_model.py,
+                        test_grid_aggregation.py, test_feature_engineering.py,
+                        test_rate_limit.py,
                         test_nlp_cache.py, test_refresh_presets.py
 scripts/
   refresh_route_presets.py → refresh_presets() re-queries OSRM and rewrites route_presets.json
@@ -172,6 +175,8 @@ Ranked from a full-codebase senior review on 2026-05-28 (18 runtime modules read
 - **Never skip coordinate validation** (`validate_coordinates`) before passing user-supplied lat/lon into routing or ML code
 - **Never add new API keys** to the codebase without adding them to `src/config.py` and `.env.example`
 - **Never redefine the grid cell size (0.009°) outside `config.py`** — it lives there as `DEGREES_PER_KM` / `CELL_SIZE_DEG`; every other module imports it. Never reintroduce a local `CELL_SIZE_DEG = 0.009` or a second copy of `latlon_to_grid_id` (it belongs only in `utils/geo.py`).
+- **Never hard-code the travel-speed estimate (`/40`)** — import `AVG_SPEED_KMH` from `config.py`. Likewise the risk-scoring weights/thresholds are named constants in `risk.py` (`_ML_AVG_WEIGHT`, `_DENSITY_DECAY`, `_SEG_*`, `_LEVEL_*`) and the level mapping is `_risk_level()` — don't reintroduce bare literals.
+- **Never swallow OSRM errors with a bare `except: pass`** — log at `logger.debug(..., exc_info=True)`; the safe-route fan-out is capped at `_MAX_DETOUR_CANDIDATES` in `routing.py`, don't remove the cap.
 - **Never load the XGBoost model with pickle** when `.ubj` is available — the native format is intentional
 - **Never commit secrets** — `.env` is gitignored; `.env.example` documents the required keys
 - **Never re-implement the route fallback chain inline** — always call `resolve_route()` from `src/routing.py`
@@ -205,3 +210,5 @@ Ranked from a full-codebase senior review on 2026-05-28 (18 runtime modules read
 | 2026-05-23 | /build-plan + /design-check + /tdd — closed both held items: collapsed `calculate_segment_risk` to a single call (no more `{"method": "fallback"}` drift) and extracted `build_route_analysis_payload(resolved, grid_df)` to `src/risk.py` | `/api/analyze-route` handler: 60 → 4 lines. 4 cross-module imports → 1. Added 4 boundary tests for `calculate_segment_risk` and 9 for `build_route_analysis_payload`. Test suite: 207 → 220. Open architecture tasks: 0. |
 | 2026-05-23 | /improve-codebase-architecture Phase 1 — scanned for remaining shallow modules | 1 High (`/api/compare-predictions` inline ML/spatial dispatch), 2 Lows (`/api/risk-zones` shaping, accuracy-string drift). Held all three for a focused next session. |
 | 2026-05-28 | /improve-codebase-architecture + /tdd — closed the High: extracted `compare_predictions_payload(lat, lon)` to `src/risk.py`; added 6 boundary tests in `test_risk.py::TestComparePredictionsPayload` | `/api/compare-predictions` handler is now a thin wrapper; no blueprint branches on `USE_ML`/`ml_predictor` anymore. Standalone fn over `RiskPredictor` method (preserves the `USE_ML` gate). Mutation-tested the gate. Test suite: 220 → 226. Phase 1 re-scan surfaced a new Low (`/api/nlp/ml-metrics` file I/O); 3 Lows now open, 0 High/Medium. |
+| 2026-05-28 | Full-codebase senior review (18 runtime modules read in full) → ranked 14-item backlog. Closed all 3 High + fixed `chatbot_data_processor` `zones_affected` bug | Single-sourced grid constants into `config.py` (`DEGREES_PER_KM`/`CELL_SIZE_DEG`, 8 files) + deduped `latlon_to_grid_id`; added `RiskPredictor` tests; centralized `GROQ_API_KEY`/`PORT`/`LOG_*` into `config.py` (no `os.getenv` outside config). Offline scripts use a `try/except ImportError` config-import shim. Test suite: 226 → 275. |
+| 2026-05-28 | /tdd — backfilled data-pipeline + guardrail coverage; closed all 4 Medium | Added tests for `chatbot_groq` guardrails (25), `grid_aggregation` (16), `feature_engineering` (12), `rate_limit` (5). Fixed a zero-area grid-cell bug in `create_grid_cells` (count-based edges). Named risk-scoring constants + shared `AVG_SPEED_KMH`; OSRM failures now logged; `generate_safe_route` fan-out capped at 16; rate limiter uses `ProxyFix` + counter eviction. Test suite: 275 → 309. Backlog: 0 High / 0 Medium / 5 Low / 2 maintenance. |
