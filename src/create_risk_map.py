@@ -14,12 +14,27 @@ import pandas as pd
 
 LOGGER = logging.getLogger(__name__)
 
-BKK_LAT_MIN = 13.6
-BKK_LAT_MAX = 13.95
-BKK_LON_MIN = 100.35
-BKK_LON_MAX = 100.9
+# Grid constants single-sourced from config.py; dual import supports both
+# `python -m src.create_risk_map` and `python src/create_risk_map.py`.
+try:
+    from .config import (
+        BKK_LAT_MAX,
+        BKK_LAT_MIN,
+        BKK_LON_MAX,
+        BKK_LON_MIN,
+        DEGREES_PER_KM,
+    )
+except ImportError:
+    from config import (
+        BKK_LAT_MAX,
+        BKK_LAT_MIN,
+        BKK_LON_MAX,
+        BKK_LON_MIN,
+        DEGREES_PER_KM,
+    )
+
 CELL_SIZE_KM = 1.0
-CELL_SIZE_DEG = CELL_SIZE_KM * 0.009
+CELL_SIZE_DEG = CELL_SIZE_KM * DEGREES_PER_KM
 
 RISK_COLORS = {
     "low": "#90EE90",

@@ -28,6 +28,22 @@ SECRET_KEY: str = os.getenv("SECRET_KEY") or secrets.token_hex(32)
 _LEGACY_KEY = os.getenv("GOOGLE_MAPS_API_KEY")
 GOOGLE_MAPS_BROWSER_KEY: str = os.getenv("GOOGLE_MAPS_BROWSER_KEY") or _LEGACY_KEY or ""
 GOOGLE_MAPS_SERVER_KEY: str = os.getenv("GOOGLE_MAPS_SERVER_KEY") or _LEGACY_KEY or ""
+# Records which env var supplied the server key (for startup logging only).
+GOOGLE_MAPS_SERVER_KEY_SOURCE: str = (
+    "GOOGLE_MAPS_SERVER_KEY"
+    if os.getenv("GOOGLE_MAPS_SERVER_KEY")
+    else ("legacy GOOGLE_MAPS_API_KEY" if _LEGACY_KEY else "none")
+)
+
+# Groq LLM key — enables open-ended chatbot answers; empty falls back to scripted/ML.
+GROQ_API_KEY: str = os.getenv("GROQ_API_KEY") or ""
+
+# ---------------------------------------------------------------------------
+# Runtime / logging
+# ---------------------------------------------------------------------------
+PORT: int = int(os.getenv("PORT", "5000"))
+LOG_LEVEL: str = os.getenv("LOG_LEVEL", "INFO").upper()
+LOG_FILE: str = os.getenv("LOG_FILE", "")
 
 # ---------------------------------------------------------------------------
 # File paths
@@ -51,7 +67,8 @@ BKK_LAT_MIN = 13.6
 BKK_LAT_MAX = 13.95
 BKK_LON_MIN = 100.35
 BKK_LON_MAX = 100.9
-CELL_SIZE_DEG = 0.009
+DEGREES_PER_KM = 0.009  # ~1 km in degrees near Bangkok's latitude (1° ≈ 111 km)
+CELL_SIZE_DEG = DEGREES_PER_KM  # grid cells are 1 km square
 
 # ---------------------------------------------------------------------------
 # Reference data

@@ -1,9 +1,10 @@
-import os
 import json
 from datetime import datetime
 from zoneinfo import ZoneInfo
 
 from groq import Groq
+
+from .config import GROQ_API_KEY
 
 BANGKOK_TZ = ZoneInfo("Asia/Bangkok")
 
@@ -374,11 +375,10 @@ def get_groq_response(user_message, chatbot_data, conversation_history=None):
 
     # 3. Try Groq API
     try:
-        api_key = os.environ.get("GROQ_API_KEY")
-        if not api_key or api_key == "gsk_your_key_here":
+        if not GROQ_API_KEY or GROQ_API_KEY == "gsk_your_key_here":
             return _groq_fallback("no_key")
 
-        client = Groq(api_key=api_key, timeout=10.0)
+        client = Groq(api_key=GROQ_API_KEY, timeout=10.0)
         context = prepare_context(user_message, chatbot_data)
         bangkok_now = _current_bangkok_datetime_context()
         limitations = _dataset_limitations_context(user_message)

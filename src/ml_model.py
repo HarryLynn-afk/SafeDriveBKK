@@ -16,14 +16,16 @@ import numpy as np
 import pandas as pd
 import xgboost as xgb
 
-LOGGER = logging.getLogger(__name__)
+from .config import (
+    BKK_LAT_MAX as LAT_MAX,
+    BKK_LAT_MIN as LAT_MIN,
+    BKK_LON_MAX as LON_MAX,
+    BKK_LON_MIN as LON_MIN,
+    CELL_SIZE_DEG,
+)
+from .utils.geo import latlon_to_grid_id
 
-# ---------------------------------------------------------------------------
-# Grid / spatial constants  (must match grid_aggregation & feature_engineering)
-# ---------------------------------------------------------------------------
-LAT_MIN, LAT_MAX = 13.6, 13.95
-LON_MIN, LON_MAX = 100.35, 100.9
-CELL_SIZE_DEG = 0.009
+LOGGER = logging.getLogger(__name__)
 
 BASE_DIR = Path(__file__).resolve().parent.parent
 DATA_DIR = BASE_DIR / "data" / "processed"
@@ -129,20 +131,6 @@ class RiskPredictor:
     # ------------------------------------------------------------------
     # Grid helpers
     # ------------------------------------------------------------------
-    @staticmethod
-    def _latlon_to_grid_id(lat, lon):
-        """Convert lat/lon to the matching grid_id string (or None)."""
-        if lat < LAT_MIN or lat > LAT_MAX or lon < LON_MIN or lon > LON_MAX:
-            return None
-        lat_idx = int((lat - LAT_MIN) / CELL_SIZE_DEG)
-        lon_idx = int((lon - LON_MIN) / CELL_SIZE_DEG)
-        # Clamp to valid indices
-        max_lat_idx = int((LAT_MAX - LAT_MIN) / CELL_SIZE_DEG) - 1
-        max_lon_idx = int((LON_MAX - LON_MIN) / CELL_SIZE_DEG) - 1
-        lat_idx = min(lat_idx, max_lat_idx)
-        lon_idx = min(lon_idx, max_lon_idx)
-        return f"G{lat_idx:03d}_{lon_idx:03d}"
-
     def _extract_features(self, grid_id):
         """Return a 1-row DataFrame with the 44 model features for *grid_id*.
 
@@ -188,7 +176,7 @@ class RiskPredictor:
         Returns a dict with risk_score (0-100), risk_level, confidence, and
         the method used ('xgboost' or 'spatial_fallback').
         """
-        grid_id = self._latlon_to_grid_id(lat, lon)
+        grid_id = latlon_to_grid_id(lat, lon)
 
         # No grid match → return a cautious medium with low confidence
         if grid_id is None:
@@ -237,7 +225,7 @@ class RiskPredictor:
 
         for i, loc in enumerate(locations):
             lat, lon = float(loc[0]), float(loc[1])
-            grid_id = self._latlon_to_grid_id(lat, lon)
+            grid_id = latlon_to_grid_id(lat, lon)
 
             if grid_id is None:
                 results[i] = {
@@ -302,7 +290,7 @@ class RiskPredictor:
 
     def fallback_to_spatial(self, lat, lon):
         """Simple spatial fallback using raw accident counts."""
-        grid_id = self._latlon_to_grid_id(lat, lon)
+        grid_id = latlon_to_grid_id(lat, lon)
 
         if grid_id is not None and not self._grid_stats.empty:
             match = self._grid_stats[self._grid_stats["grid_id"] == grid_id]

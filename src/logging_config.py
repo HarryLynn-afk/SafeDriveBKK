@@ -13,8 +13,9 @@ LOG_FILE    : path to write rotating log file            (default: no file)
 
 import logging
 import logging.handlers
-import os
 from pathlib import Path
+
+from .config import LOG_FILE, LOG_LEVEL
 
 
 def setup_logging() -> None:
@@ -23,8 +24,7 @@ def setup_logging() -> None:
     Safe to call multiple times — existing handlers are cleared first so
     calling ``create_app()`` in tests does not accumulate duplicate handlers.
     """
-    level_name = os.getenv("LOG_LEVEL", "INFO").upper()
-    level = getattr(logging, level_name, logging.INFO)
+    level = getattr(logging, LOG_LEVEL, logging.INFO)
 
     fmt = logging.Formatter(
         fmt="%(asctime)s [%(levelname)s] %(name)s: %(message)s",
@@ -43,9 +43,8 @@ def setup_logging() -> None:
     root.addHandler(console)
 
     # ── Rotating file handler (opt-in via LOG_FILE env var) ──────────────────
-    log_file = os.getenv("LOG_FILE", "")
-    if log_file:
-        log_path = Path(log_file)
+    if LOG_FILE:
+        log_path = Path(LOG_FILE)
         log_path.parent.mkdir(parents=True, exist_ok=True)
         file_handler = logging.handlers.RotatingFileHandler(
             log_path,

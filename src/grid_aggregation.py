@@ -8,6 +8,24 @@ from pathlib import Path
 import numpy as np
 import pandas as pd
 
+# Single-sourced from config.py; dual import supports `-m src.grid_aggregation` and `src/grid_aggregation.py`.
+try:
+    from .config import (
+        BKK_LAT_MAX,
+        BKK_LAT_MIN,
+        BKK_LON_MAX,
+        BKK_LON_MIN,
+        DEGREES_PER_KM,
+    )
+except ImportError:
+    from config import (
+        BKK_LAT_MAX,
+        BKK_LAT_MIN,
+        BKK_LON_MAX,
+        BKK_LON_MIN,
+        DEGREES_PER_KM,
+    )
+
 LOGGER = logging.getLogger(__name__)
 
 LOW_MAX = 1
@@ -41,7 +59,7 @@ def create_grid_cells(lat_min, lat_max, lon_min, lon_max, cell_size_km=1.0):
     if cell_size_km <= 0:
         raise ValueError("cell_size_km must be positive")
 
-    step_deg = cell_size_km * 0.009  # ~1km in degrees near Bangkok
+    step_deg = cell_size_km * DEGREES_PER_KM
 
     lat_edges = [float(lat_min)]
     while lat_edges[-1] < lat_max:
@@ -198,10 +216,10 @@ def main():
         LOGGER.info("Retained %d accidents with valid coordinates", len(accidents))
 
         grid = create_grid_cells(
-            lat_min=13.6,
-            lat_max=13.95,
-            lon_min=100.35,
-            lon_max=100.9,
+            lat_min=BKK_LAT_MIN,
+            lat_max=BKK_LAT_MAX,
+            lon_min=BKK_LON_MIN,
+            lon_max=BKK_LON_MAX,
             cell_size_km=1.0,
         )
 

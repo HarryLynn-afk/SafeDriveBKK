@@ -22,10 +22,24 @@ GRID_STATS_PATH = Path("data/processed/bangkok_grid_stats.csv")
 OUTPUT_FEATURES_PATH = Path("data/processed/ml_features.csv")
 OUTPUT_INFO_PATH = Path("data/processed/feature_info.json")
 
-# Grid constants (must match grid_aggregation.py)
-LAT_MIN, LAT_MAX = 13.6, 13.95
-LON_MIN, LON_MAX = 100.35, 100.9
-CELL_SIZE_DEG = 0.009
+# Grid constants — single-sourced from config.py. The dual import supports both
+# `python -m src.feature_engineering` (relative) and `python src/feature_engineering.py` (absolute).
+try:
+    from .config import (
+        BKK_LAT_MAX as LAT_MAX,
+        BKK_LAT_MIN as LAT_MIN,
+        BKK_LON_MAX as LON_MAX,
+        BKK_LON_MIN as LON_MIN,
+        CELL_SIZE_DEG,
+    )
+except ImportError:
+    from config import (
+        BKK_LAT_MAX as LAT_MAX,
+        BKK_LAT_MIN as LAT_MIN,
+        BKK_LON_MAX as LON_MAX,
+        BKK_LON_MIN as LON_MIN,
+        CELL_SIZE_DEG,
+    )
 
 # Bangkok center (approximate)
 BANGKOK_CENTER_LAT = 13.7563

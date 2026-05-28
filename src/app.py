@@ -11,11 +11,16 @@ The WSGI entry point (root app.py) and the dev server both call create_app().
 
 import json
 import logging
-import os
 
 from flask import Flask, jsonify, request
 
-from .config import BASE_DIR, GOOGLE_MAPS_SERVER_KEY, SECRET_KEY
+from .config import (
+    BASE_DIR,
+    GOOGLE_MAPS_SERVER_KEY,
+    GOOGLE_MAPS_SERVER_KEY_SOURCE,
+    PORT,
+    SECRET_KEY,
+)
 from . import extensions
 from .logging_config import setup_logging
 
@@ -124,8 +129,7 @@ def _init_gmaps() -> None:
     try:
         import googlemaps
         extensions.gmaps_client = googlemaps.Client(key=GOOGLE_MAPS_SERVER_KEY)
-        key_source = "GOOGLE_MAPS_SERVER_KEY" if os.getenv("GOOGLE_MAPS_SERVER_KEY") else "legacy GOOGLE_MAPS_API_KEY"
-        logger.info("Google Maps: loaded via %s (traffic-aware routing enabled)", key_source)
+        logger.info("Google Maps: loaded via %s (traffic-aware routing enabled)", GOOGLE_MAPS_SERVER_KEY_SOURCE)
     except Exception:
         logger.exception("Google Maps: failed to initialise client")
         extensions.gmaps_client = None
@@ -173,7 +177,7 @@ if __name__ == "__main__":
     print("  chatbot     → /api/chatbot, /api/chatbot/suggestions")
     print("=" * 64)
 
-    port = int(os.environ.get("PORT", 5000))
+    port = PORT
     print(f"Starting on http://0.0.0.0:{port}")
     print()
     _app.run(debug=False, host="0.0.0.0", port=port)

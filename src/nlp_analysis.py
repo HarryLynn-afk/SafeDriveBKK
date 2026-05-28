@@ -16,6 +16,8 @@ from pathlib import Path
 import joblib
 import pandas as pd
 
+from .config import BKK_LAT_MIN as LAT_MIN, BKK_LON_MIN as LON_MIN, CELL_SIZE_DEG
+
 LOGGER = logging.getLogger(__name__)
 
 # Joblib artifacts were serialized with `nlp_analysis.thai_tokenizer`.
@@ -479,10 +481,6 @@ class NLPAnalyzer:
 
     def _get_location_context(self, grid_id):
         """Extract most common location description for accidents in a grid."""
-        LAT_MIN = 13.6
-        LON_MIN = 100.35
-        CELL_SIZE_DEG = 0.009
-
         # Parse grid indices
         parts = grid_id.replace("G", "").split("_")
         lat_idx, lon_idx = int(parts[0]), int(parts[1])

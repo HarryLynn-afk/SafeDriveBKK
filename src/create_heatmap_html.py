@@ -10,9 +10,12 @@ BASE_DIR = Path(__file__).resolve().parent.parent
 ACCIDENTS_PATH = BASE_DIR / "data" / "processed" / "bangkok_accidents_clean.csv"
 GRID_STATS_PATH = BASE_DIR / "data" / "processed" / "bangkok_grid_stats.csv"
 OUTPUT_PATH = BASE_DIR / "static" / "bangkok_risk_heatmap.html"
-CELL_SIZE_DEG = 0.009
-BKK_LAT_MIN = 13.6
-BKK_LON_MIN = 100.35
+# Grid constants — single-sourced from config.py. The dual import supports both
+# `python -m src.create_heatmap_html` (relative) and `python src/create_heatmap_html.py` (absolute).
+try:
+    from .config import BKK_LAT_MIN, BKK_LON_MIN, CELL_SIZE_DEG
+except ImportError:
+    from config import BKK_LAT_MIN, BKK_LON_MIN, CELL_SIZE_DEG
 
 
 HEATMAP_PANEL_STYLES = """
