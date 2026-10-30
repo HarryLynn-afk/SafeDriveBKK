@@ -16,6 +16,7 @@ Your knowledge:
 - Thai NLP analysis for cause extraction
 
 CRITICAL RESPONSE GUIDELINES:
+- Historical crash counts are not adjusted for traffic volume or distance driven. Do not equate more recorded crashes with greater risk per trip or claim a safest time from counts alone.
 1. **Answer directly**
    - Start with the answer. Do not open with filler like "Great question", "Sure", or "Absolutely".
    - Lead with the recommendation, then support it with the most relevant fact.
@@ -300,17 +301,17 @@ def _needs_clarification(user_message):
 
 # ---------------------------------------------------------------------------
 # Fast cached responses for common questions
-# These fire before any API call, guaranteeing instant reliable answers.
+# These return saved wording before any API call.
 # ---------------------------------------------------------------------------
 _FAST_RESPONSE_CACHE = {
     # cause questions
-    "most dangerous zone":       "The most dangerous zone is **Lat Krabang / Motorway (Eastern)** with 156 accidents — 17× the city average. Speeding accounts for 78.6% of incidents there. Worth avoiding during rush hour (5–7 PM). Stay safe.",
-    "safest time to drive":      "**Peak hour: 10:00-11:00.** That is the busiest single hour in the dataset. The lowest hour is **3:00-4:00**, but for normal trips the practical move is to avoid the main spikes around **7-10 AM** and **4-8 PM**.",
-    "main cause":                "The #1 cause is **speeding — 78.8% of all Bangkok accidents** (2,104 incidents). Cutting in front is #2. Our ML model uses these NLP-extracted cause patterns as features to predict future danger zones.",
+    "most dangerous zone": 'Historical crash hotspots include Borommaratchachonnani Road in Thawi Watthana and the Lat Krabang / Motorway 7 corridor. Recorded crash counts do not establish an individual driver’s accident probability.',
+    "safest time to drive": 'The dataset records the most crashes during **10:00-11:00** and the fewest during **3:00-4:00**. Without traffic-volume data, these counts do not establish the safest time to drive.',
+    "main cause": 'The most commonly recorded cause is **speeding — 78.8%** (**2,104 records**) in the Bangkok dataset. These are historical recorded causes; future hotspot prediction has not been verified.',
     "how accurate":              "The **count-based spatial baseline** flagged grids with at least **5 Jan–Sep 2024 accidents**, capturing **477/569 (83.8%)** mapped Oct–Dec accidents. Its lift was **1.95×** relative to uniform selection among Jan–Sep observed grids. This does not establish XGBoost accuracy.",
-    "weekend":                   "**Saturday is the highest-risk day** with **450 accidents**. Weekends account for **28.6%** of total crashes, but late Saturday pressure still stands out, especially if you are traveling at night.",
+    "weekend": '**Saturday** had the most recorded crashes, with **450** in the 2024 dataset. Weekends account for **28.6%** of recorded crashes. These counts are not adjusted for traffic volume and do not establish risk per trip.',
     "nlp":                       "Our Thai NLP pipeline uses **pythainlp tokenization + TF-IDF + Logistic Regression** to categorize recorded cause descriptions into **6 categories**. The recorded cause is included in both the input and label construction, so the saved scores do not establish prediction of unknown causes.",
-    "xgboost":                   "XGBoost gradient boosting trains on **44 engineered features** per 1 km² grid cell — severity, spatial neighbors, temporal patterns, vehicle mix, and NLP cause categories. Key insight: severity_mean (54% importance) outweighs raw accident count.",
+    "xgboost": 'XGBoost scores approximately **1 km** grid cells using engineered spatial, temporal, severity, vehicle, and cause features. Its predictive performance has not been verified; historical hotspot concentration is not evidence of XGBoost accuracy.',
 }
 
 _TIME_SENSITIVE_CACHE_HINTS = (

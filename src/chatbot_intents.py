@@ -912,11 +912,11 @@ def handle_weekend_pattern(user_message=""):
     return {
         "type": "comparison",
         "message": (
-            f"**{tp['most_dangerous_day']}** is the highest-risk single day with **{tp['most_dangerous_day_count']} accidents**.\n\n"
-            f"Weekdays still make up **{tp['weekday_accidents']} crashes** overall because there are more weekday travel days, but weekend pressure is concentrated hardest on Saturday. If you are traveling on the weekend, Saturday deserves the most caution."
+            f"**{tp['most_dangerous_day']}** had the most recorded crashes in the 2024 dataset, with **{tp['most_dangerous_day_count']} accidents**.\n\n"
+            f"Weekdays account for **{tp['weekday_accidents']} recorded crashes** overall. These totals are not adjusted for traffic volume or distance driven, so they do not establish risk per trip."
         ),
         "data": [{"day": d, **daily[d]} for d in ["Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday", "Sunday"]],
-        "followup": "Want to see the riskiest weekend zones?",
+        "followup": "Want to see zones with the most recorded weekend crashes?",
     }
 
 

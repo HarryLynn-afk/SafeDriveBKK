@@ -39,7 +39,7 @@ This project connects those steps: explore a hotspot, compare routes through the
 | Risk map | Historical accident concentration across 276 grids with recorded accidents |
 | Trip planner | Route alternatives ranked by travel time and estimated risk using TOPSIS multi-criteria scoring |
 | Analytics | Accident patterns by time, location, severity, and recorded cause |
-| Safety assistant | Scripted answers, ML-assisted cause categorization, and optional Groq responses |
+| Safety assistant | Scripted answers, keyword cause matching with a classifier fallback, and optional Groq responses |
 | Thai NLP | Tokenization and TF-IDF + Logistic Regression categorization of recorded cause descriptions |
 
 ## Engineering highlights
@@ -51,6 +51,8 @@ This project connects those steps: explore a hotspot, compare routes through the
 - **Automated checks:** pytest covers API behavior, routing, scoring, spatial helpers, feature engineering, and chatbot behavior. GitHub Actions runs tests and builds the Docker image for changes targeting `main`.
 
 Read the [architecture, design decisions, and project layout](docs/engineering.md).
+
+The assistant uses historical summaries from the 2024 dataset. It tries scripted intents first, then keyword/classifier cause matching. The optional Groq path includes canned answers and selected dataset summaries; it does not look up live accident data or calculate route-specific risk. Use the Trip Planner for route analysis. Classifier performance on free-form questions and the factual accuracy of generated answers have not been established.
 
 ## Technology
 
@@ -150,6 +152,14 @@ node --test tests/browser/*.test.cjs
 ```
 
 The [CI workflow](.github/workflows/ci.yml) runs the Python and browser logic tests, then builds the Docker image after they pass. Browser logic tests use simulated Maps responses; they do not make billable API requests.
+
+Optional live chatbot checks require a configured `GROQ_API_KEY` and consume API quota:
+
+```bash
+python -m pytest tests/test_chatbot_groq_live.py --live-groq -q -s
+```
+
+These four checks cover the dataset total, an unavailable exposure-based statistic, redirection to the Trip Planner, and conversation history. They skip by default. Live answers vary, and rate limits or service errors can fail the checks; passing them is not a comprehensive factuality evaluation.
 
 ## Data
 

@@ -8,6 +8,10 @@ import pytest
 from src.app import create_app
 
 
+def pytest_addoption(parser):
+    parser.addoption("--live-groq", action="store_true", help="Run tests that consume Groq API quota")
+
+
 # ---------------------------------------------------------------------------
 # Flask test client
 # ---------------------------------------------------------------------------
