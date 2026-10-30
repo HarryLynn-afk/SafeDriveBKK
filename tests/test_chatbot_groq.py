@@ -1,12 +1,19 @@
 """
-Boundary tests for the chatbot_groq deterministic guardrails.
+Boundary tests for the chatbot_groq integration and deterministic guardrails.
 
 These pure functions run *before* any Groq API call and encode the bot's policy:
 what gets redirected as off-topic, which known data gaps get a canned answer,
 what counts as an ambiguous follow-up, and which questions are served from the
-fast cache. No external dependencies — no mocking needed.
+fast cache. The integration test mocks HTTP; guardrail tests are pure functions.
 """
 
+import json
+from functools import partial
+
+import httpx
+from groq import Groq
+
+from src import chatbot_groq
 from src.chatbot_groq import (
     _check_fast_response_cache,
     _check_known_data_gap,
@@ -15,6 +22,30 @@ from src.chatbot_groq import (
     _format_recent_history,
     _needs_clarification,
 )
+
+
+def test_open_ended_question_uses_available_model(monkeypatch):
+    requests = []
+
+    def groq_response(request):
+        body = json.loads(request.content)
+        requests.append(body)
+        if body["model"] != "openai/gpt-oss-120b":
+            return httpx.Response(404, json={"error": {"code": "model_not_found"}})
+        return httpx.Response(200, json={
+            "choices": [{"message": {"role": "assistant", "content": "Check your tyres before driving."}}],
+        })
+
+    with httpx.Client(transport=httpx.MockTransport(groq_response)) as http_client:
+        monkeypatch.setattr(chatbot_groq, "GROQ_API_KEY", "test-key")
+        monkeypatch.setattr(chatbot_groq, "Groq", partial(Groq, http_client=http_client))
+        response = chatbot_groq.get_groq_response(
+            "How can I prepare for a long drive?", {"stats": {"total_accidents": 2669}},
+        )
+
+    assert response["source"] == "groq"
+    assert response["message"] == "Check your tyres before driving."
+    assert requests[0]["reasoning_format"] == "hidden"
 
 
 class TestCheckUnrelatedTopic:
