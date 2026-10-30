@@ -91,17 +91,27 @@ def _register_request_hooks(app: Flask) -> None:
     @app.after_request
     def set_security_headers(response):
         """Attach security headers to every response."""
+        is_heatmap = (
+            request.endpoint == "static"
+            and (request.view_args or {}).get("filename") == "bangkok_risk_heatmap.html"
+        )
+        # The dashboard embeds this Folium document from our own origin.
+        map_scripts = " https://code.jquery.com https://cdnjs.cloudflare.com" if is_heatmap else ""
+        map_styles = " https://netdna.bootstrapcdn.com https://cdnjs.cloudflare.com" if is_heatmap else ""
+        map_fonts = " https://netdna.bootstrapcdn.com" if is_heatmap else ""
+        frame_ancestors = "'self'" if is_heatmap else "'none'"
         response.headers["X-Content-Type-Options"] = "nosniff"
-        response.headers["X-Frame-Options"] = "DENY"
+        response.headers["X-Frame-Options"] = "SAMEORIGIN" if is_heatmap else "DENY"
         response.headers["Referrer-Policy"] = "strict-origin-when-cross-origin"
         # Strict-Transport-Security: only sent over HTTPS (Render/Gunicorn enforces this)
         response.headers["Strict-Transport-Security"] = "max-age=31536000; includeSubDomains"
         # CSP: allow Maps JS, Chart.js CDN, and our own assets; block everything else.
         response.headers["Content-Security-Policy"] = (
             "default-src 'self'; "
-            "script-src 'self' 'unsafe-inline' cdn.jsdelivr.net maps.googleapis.com; "
-            "style-src 'self' 'unsafe-inline' fonts.googleapis.com cdn.jsdelivr.net; "
-            "font-src fonts.gstatic.com cdn.jsdelivr.net; "
+            f"script-src 'self' 'unsafe-inline' cdn.jsdelivr.net maps.googleapis.com{map_scripts}; "
+            f"style-src 'self' 'unsafe-inline' fonts.googleapis.com cdn.jsdelivr.net{map_styles}; "
+            f"font-src fonts.gstatic.com cdn.jsdelivr.net{map_fonts}; "
+            f"frame-ancestors {frame_ancestors}; "
             "img-src 'self' data: https:; "
             "connect-src 'self' router.project-osrm.org *.googleapis.com https://nominatim.openstreetmap.org"
         )
