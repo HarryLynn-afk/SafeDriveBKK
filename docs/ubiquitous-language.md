@@ -1,9 +1,6 @@
 # Ubiquitous Language — SafeDrive BKK
 
-> This file is the single source of truth for domain terminology.
-> Both the developer and Claude use these terms identically.
-> Update this file whenever a new concept is introduced.
-> Pass this file to Claude at the start of every session.
+Shared definitions for the domain terms used throughout the application.
 
 ---
 
