@@ -8,7 +8,7 @@ SafeDrive BKK turns **2,669 Bangkok accident records from 2024** into an interac
 
 ## My contribution
 
-Built as a three-member hackathon team, with me as the primary developer. I developed the application and conducted the research behind the project; my two teammates presented the work.
+I contributed to the research and was responsible for application development in our three-person team. I used AI coding assistants extensively to generate and revise the implementation, directing development through requirements, prompts, and iterative feedback. My teammates also contributed research and handled the presentation.
 
 ## Screenshots
 
