@@ -1,205 +1,135 @@
 # SafeDrive BKK
 
-SafeDrive BKK turns Bangkok road-accident data into a practical road-safety product. It combines machine learning, Thai-language NLP, and route visualisation to help users explore high-risk zones, compare route options, and understand when and why crashes are more likely to happen.
+**A Bangkok road-safety web application for exploring accident hotspots and comparing route risk.**
 
-![CI](https://github.com/HarryLynn-afk/hackathon-version-1/actions/workflows/ci.yml/badge.svg)
+[![CI](https://github.com/HarryLynn-afk/SafeDriveBKK/actions/workflows/ci.yml/badge.svg)](https://github.com/HarryLynn-afk/SafeDriveBKK/actions/workflows/ci.yml)
 
----
+SafeDrive BKK turns **2,669 Bangkok accident records from 2024** into an interactive risk map, route comparisons, and crash-pattern analytics. It brings together a Flask backend, XGBoost grid scoring, Thai-language NLP, and a browser interface in one application.
 
-## What It Does
+[Features](#features) · [Run locally](#run-locally) · [Engineering](#engineering-highlights) · [Evaluation](#evaluation) · [Tests](#tests)
 
-| Feature | Detail |
+## The problem
+
+An accident dataset tells you where crashes happened. Comparing two journeys also requires mapping those records to locations, resolving route geometry, and weighing travel time against historical accident concentration.
+
+This project connects those steps: explore a hotspot, compare routes through the city, and inspect the patterns behind the scores. It uses historical data; it does not provide live accident detection or guarantee a safe route.
+
+## Features
+
+| Feature | What you can explore |
 |---|---|
-| Risk map | XGBoost model scores 276 Bangkok grid zones; 83.8% holdout crash-capture rate |
-| Trip planner | Compares fast vs. safe routes using TOPSIS multi-criteria scoring |
-| Analytics dashboard | Temporal and spatial crash-pattern charts |
-| Hybrid chatbot | Scripted intents → ML cause detection → Groq LLM fallback |
-| Thai NLP | TF-IDF + Logistic Regression classifies accident causes from Thai text |
+| Risk map | Historical accident concentration across 276 grids with recorded accidents |
+| Trip planner | Route alternatives ranked by travel time and estimated risk using TOPSIS multi-criteria scoring |
+| Analytics | Accident patterns by time, location, severity, and recorded cause |
+| Safety assistant | Scripted answers, ML-assisted cause categorization, and optional Groq responses |
+| Thai NLP | Tokenization and TF-IDF + Logistic Regression categorization of recorded cause descriptions |
 
----
+## Engineering highlights
 
-## Architecture
+- **Modular Flask backend:** an application factory and separate blueprints for pages, analytics, routing, NLP, and chatbot endpoints.
+- **Route scoring:** route geometry is sampled across approximately 1 km grids, with segment risk and alerts returned to the interface.
+- **Dependency fallbacks:** routing can use live services, cached route presets, or interpolated geometry; risk scoring falls back to spatial counts when ML is unavailable. Interpolated geometry is an estimate and may not follow roads.
+- **Input handling:** coordinate validation, JSON request checks, payload size limits, security headers, and per-worker rate limiting.
+- **Automated checks:** pytest covers API behavior, routing, scoring, spatial helpers, feature engineering, and chatbot behavior. GitHub Actions runs tests and builds the Docker image for changes targeting `main`.
 
-```
-Browser
-  │
-  ├── GET  /                  → main_bp      (home, analytics, trip planner, NLP, about)
-  ├── GET  /api/analytics-data→ api_bp       (risk zones, temporal stats, model info)
-  ├── POST /api/analyze-route → routing_api  (single-route risk analysis)
-  ├── POST /api/compare-routes→ routing_api  (TOPSIS route comparison)
-  ├── POST /api/chatbot       → chatbot_bp   (hybrid assistant)
-  └── GET  /api/nlp/*         → nlp_bp       (NLP pipeline preview, word cloud, classify)
+Read the [architecture, design decisions, and project layout](docs/engineering.md).
 
-Flask Application Factory (src/app.py)
-  │
-  ├── Security layer          (Content-Type enforcement, security headers, rate limiting)
-  │
-  ├── src/blueprints/
-  │   ├── main.py             page routes
-  │   ├── api.py              data / analytics API
-  │   ├── routing_api.py      route analysis API
-  │   ├── chatbot_bp.py       chatbot API
-  │   └── nlp_bp.py           NLP API
-  │
-  ├── src/risk.py             route risk scoring, TOPSIS, segment analysis
-  ├── src/routing.py          OSRM → cached preset → interpolation fallback chain
-  ├── src/ml_model.py         XGBoost risk predictor
-  ├── src/nlp_analysis.py     Thai NLP cause classifier
-  ├── src/chatbot_groq.py     Groq LLM integration
-  │
-  └── src/utils/
-      ├── geo.py              spatial helpers (grid lookup, haversine, area assignment)
-      ├── data.py             data loading with module-level cache
-      ├── validators.py       coordinate range validation
-      └── rate_limit.py       in-memory fixed-window rate limiter
-```
+## Technology
 
----
+| Area | Tools |
+|---|---|
+| Backend | Python 3.11, Flask, Gunicorn |
+| Data and ML | pandas, NumPy, scikit-learn, XGBoost |
+| Thai NLP | pythainlp, TF-IDF, Logistic Regression |
+| Frontend | Jinja2, HTML, CSS, JavaScript, Chart.js, Google Maps |
+| External services | OSRM, optional Google Maps APIs, optional Groq API |
+| Packaging and checks | Docker, pytest, GitHub Actions |
 
-## Stack
+## Run locally
 
-- **Backend**: Python 3.11, Flask, gunicorn
-- **ML**: XGBoost, scikit-learn, pandas, NumPy
-- **NLP**: pythainlp, TF-IDF, Logistic Regression
-- **Routing**: OSRM (open-source), Google Maps Directions API (optional)
-- **LLM**: Groq API — `llama-3.3-70b-versatile` (optional)
-- **Frontend**: HTML/CSS/JS, Chart.js, Google Maps JS API
-- **Testing**: pytest — 112 tests
-- **CI/CD**: GitHub Actions — tests + Docker build on every push
-
----
-
-## Dataset
-
-- **Source**: Thai Ministry of Transport — [datagov.mot.go.th](https://datagov.mot.go.th/en/dataset/roadaccident)
-- **Year**: 2024
-- **Nationwide records**: 23,952
-- **Bangkok records analysed**: 2,669
-- **Output zones monitored**: 276
-
----
-
-## Local Setup
-
-### 1. Clone and install
+Use **Python 3.11**, the version configured in CI and Docker. Preprocessed data and inference model artifacts are included; retraining is not required to start the app.
 
 ```bash
-git clone https://github.com/HarryLynn-afk/hackathon-version-1.git
-cd hackathon-version-1
-python3 -m venv venv && source venv/bin/activate
-pip install -r requirements.txt
+git clone https://github.com/HarryLynn-afk/SafeDriveBKK.git
+cd SafeDriveBKK
+python3.11 -m venv venv
+source venv/bin/activate
+python -m pip install -r requirements.txt
+python -m flask --app app run --port 5000
 ```
 
-### 2. Configure environment variables
+On Windows, activate the environment with `venv\Scripts\activate` instead.
+
+Open **http://localhost:5000**. Start with the homepage risk map, then explore [analytics](http://localhost:5000/analytics) and the [safety assistant](http://localhost:5000/nlp).
+
+### Optional API keys
+
+The app starts without API keys. The trip planner's Google Maps display requires a browser key; server-side route requests can fall back to OSRM. Open-ended chatbot responses require Groq, while scripted responses remain available without it. Map tiles, charts loaded from CDNs, and live routing require network access.
+
+To enable integrations, copy the example configuration:
 
 ```bash
 cp .env.example .env
-# Edit .env — all keys are optional (see .env.example for details)
 ```
 
-| Variable | Required | Purpose |
-|---|---|---|
-| `GROQ_API_KEY` | No | Open-ended chatbot responses via Groq LLM |
-| `GOOGLE_MAPS_SERVER_KEY` | No | Traffic-aware routing; falls back to OSRM |
-| `GOOGLE_MAPS_BROWSER_KEY` | No | Trip planner map display |
-| `SECRET_KEY` | No | Flask session secret; auto-generated if unset |
-| `LOG_LEVEL` | No | `DEBUG`/`INFO`/`WARNING` (default: `INFO`) |
-| `LOG_FILE` | No | Path for rotating log file; console-only if unset |
+Replace the example values with your own, and **leave unused API keys empty**. Configuration details are in [.env.example](.env.example).
 
-### 3. Run
+| Variable | Purpose |
+|---|---|
+| `GOOGLE_MAPS_BROWSER_KEY` | Trip planner map; restrict the key to your allowed HTTP referrers |
+| `GOOGLE_MAPS_SERVER_KEY` | Google Maps routing and traffic estimates |
+| `GROQ_API_KEY` | Open-ended assistant responses |
+| `SECRET_KEY` | Fixed Flask signing secret; generated automatically when unset |
+| `LOG_LEVEL`, `LOG_FILE` | Optional logging configuration |
 
-```bash
-python3 app.py
-# Open http://localhost:5000
-```
-
----
-
-## Docker
+### Docker
 
 ```bash
-# Build
 docker build -t safedrive-bkk .
-
-# Run
-docker run -p 8000:8000 \
-  -e GROQ_API_KEY=your_key \
-  -e SECRET_KEY=your_secret \
-  safedrive-bkk
-
-# Open http://localhost:8000
+docker run --rm -p 8000:8000 safedrive-bkk
 ```
 
----
+Open **http://localhost:8000**. To supply configured keys, add `--env-file .env` before the image name in the run command.
+
+## Evaluation
+
+The verified result is for the **count-based spatial baseline**:
+
+| Evaluation detail | Result |
+|---|---|
+| Rule | Flag grids with at least five accidents in Jan–Sep 2024 |
+| Evaluation period | Oct–Dec 2024 |
+| Later mapped accidents inside flagged grids | **477 / 569 (83.8%)** |
+| Share of Jan–Sep observed grids flagged | **112 / 260 (43.1%)** |
+| Lift versus uniform selection among those grids | **1.95×** |
+
+Reproduce it from the repository root:
+
+```bash
+python -c 'from src.evidence_metrics import holdout_validation; print(holdout_validation())'
+```
+
+These figures do not establish XGBoost performance. Its evaluation artifacts are missing from this checkout. The NLP evaluation includes the recorded cause used to construct its labels, so its scores do not establish prediction of unknown causes.
+
+**Known scoring bug:** coordinate lookup maps the centers of 100 partial boundary cells to adjacent inner cells. Route scoring at those edges needs correction. See [evaluation methods and known limitations](docs/evaluation.md), including the distinction between historical concentration and predictive performance.
 
 ## Tests
 
+From the activated virtual environment:
+
 ```bash
-pytest --tb=short -q
-# 112 passed
+python -m pytest --tb=short -q
 ```
 
----
+The [CI workflow](.github/workflows/ci.yml) runs this suite on Python 3.11 and builds the Docker image after tests pass.
 
-## Engineering Trade-offs
+## Data
 
-Every design decision in this project involved a deliberate trade-off. These are documented here to be honest about what was chosen, what was left out, and why.
+The dataset comes from the [Thai Ministry of Transport road-accident dataset](https://datagov.mot.go.th/en/dataset/roadaccident).
 
-**In-memory rate limiting instead of Redis**
-The rate limiter uses a thread-safe in-memory counter rather than Redis or Flask-Limiter. This works correctly for a single-process deployment (which covers this project), but would not be shared across multiple gunicorn workers or horizontal replicas. The trade-off was avoiding an external infrastructure dependency (Redis) for a portfolio project, with the understanding that a production multi-instance deployment would require a distributed store.
+- **Period:** 2024.
+- **Bangkok records:** 2,669; spatial evaluation excludes records without valid dates or coordinates inside the configured bounds.
+- **Spatial representation:** 2,418 approximately 1 km grid cells, including 276 with recorded accidents.
+- **Storage:** preprocessed CSV files loaded into memory; no runtime database is required.
 
-**Grid-based spatial model instead of graph-based routing risk**
-Risk is scored per 500m grid cell rather than per road segment. This means two routes through the same cell receive the same risk score regardless of which specific road they use. A road-network graph (OSM + PostGIS) would be more accurate but would require significant infrastructure and data engineering beyond the scope of this project.
-
-**OSRM public instance instead of self-hosted**
-Routing calls go to the public OSRM demo server (`router.project-osrm.org`). This is rate-limited and not suitable for production traffic. A production deployment would self-host OSRM or use a paid routing API. The fallback chain (live OSRM → cached preset → dense interpolation) was built specifically to handle public instance unavailability.
-
-**TF-IDF + Logistic Regression instead of a Thai language model**
-The NLP classifier uses TF-IDF features and Logistic Regression rather than a fine-tuned Thai BERT model (e.g., WangchanBERTa). The simpler model trains in seconds, runs without a GPU, and achieves adequate accuracy on the accident-cause classification task. A transformer model would improve accuracy on ambiguous cases but would add significant serving complexity and memory requirements.
-
-**No persistent database**
-Accident data is loaded from pre-processed CSV files at startup and held in memory. There is no database write path — the app is read-only at runtime. This was intentional: the dataset is static (2024 snapshot), so a database would add operational complexity without meaningful benefit. A live-updating system would require a write pipeline and a proper database.
-
-**XGBoost pickle serialisation**
-The model is serialised as a Python pickle (`.pkl`) rather than XGBoost's native `.ubj` format. Pickle files are Python-version-sensitive and carry a minor security risk if loaded from untrusted sources. The trade-off was development speed; migrating to `Booster.save_model()` / `load_model()` is a known follow-up task.
-
----
-
-## Project Layout
-
-```
-hackathon-version-1/
-├── app.py                   WSGI entry point
-├── Dockerfile
-├── requirements.txt
-├── .env.example
-│
-├── src/
-│   ├── app.py               Flask application factory
-│   ├── config.py            Constants, paths, env vars
-│   ├── extensions.py        Shared app state (ML predictor, gmaps client)
-│   ├── logging_config.py    Structured logging setup
-│   ├── risk.py              Route risk scoring, TOPSIS
-│   ├── routing.py           OSRM / Google Maps routing clients
-│   ├── ml_model.py          XGBoost risk predictor
-│   ├── nlp_analysis.py      Thai NLP classifier
-│   ├── chatbot_groq.py      Groq LLM integration
-│   ├── chatbot_intents.py   Scripted intent matching
-│   ├── blueprints/
-│   │   ├── main.py          Page routes
-│   │   ├── api.py           Data / analytics API
-│   │   ├── routing_api.py   Route analysis API
-│   │   ├── chatbot_bp.py    Chatbot API
-│   │   └── nlp_bp.py        NLP API
-│   └── utils/
-│       ├── geo.py           Spatial helpers
-│       ├── data.py          Data loading + cache
-│       ├── validators.py    Input validation
-│       └── rate_limit.py    Rate limiter decorator
-│
-├── data/processed/          Pre-processed accident + grid data
-├── models/                  Trained XGBoost model
-├── templates/               Jinja2 HTML templates
-├── static/                  CSS, JS, images
-└── tests/                   pytest suite (112 tests)
-```
+The project explores recorded accident concentration. Without traffic-volume or distance-driven exposure data, its scores should not be interpreted as an individual driver's accident probability.
