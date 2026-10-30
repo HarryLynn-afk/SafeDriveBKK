@@ -421,9 +421,12 @@ Provide your answer:"""
 
         response = client.chat.completions.create(
             messages=[{"role": "user", "content": full_prompt}],
-            model="llama-3.3-70b-versatile",
+            model="openai/gpt-oss-120b",
             temperature=0.5,
-            max_tokens=300,
+            # Leave room for reasoning while returning only the final answer.
+            max_completion_tokens=1024,
+            reasoning_effort="low",
+            reasoning_format="hidden",
             top_p=0.9,
         )
 
