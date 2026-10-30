@@ -6,6 +6,10 @@
 
 SafeDrive BKK turns **2,669 Bangkok accident records from 2024** into an interactive risk map, route comparisons, and crash-pattern analytics. It brings together a Flask backend, XGBoost grid scoring, Thai-language NLP, and a browser interface in one application.
 
+## My contribution
+
+Built as a three-member hackathon team, with me as the primary developer. I developed the application and conducted the research behind the project; my two teammates presented the work.
+
 ## Screenshots
 
 **Dashboard:** explore historical accident hotspots across Bangkok.
