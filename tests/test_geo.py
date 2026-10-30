@@ -56,6 +56,24 @@ class TestClipToBangkokBounds:
 
 
 class TestLatlonToGridId:
+    def test_saved_grid_centers_map_to_their_own_cells(self):
+        from src.config import GRID_STATS_PATH
+        grid = pd.read_csv(GRID_STATS_PATH)
+        mismatches = [row.grid_id for row in grid.itertuples()
+                      if latlon_to_grid_id(row.center_lat, row.center_lon) != row.grid_id]
+        assert mismatches == []
+
+    @pytest.mark.parametrize("lat,lon,expected", [
+        (13.95, 100.35, "G038_000"),
+        (13.6, 100.9, "G000_061"),
+        (13.95, 100.9, "G038_061"),
+        (13.6, 100.35, "G000_000"),
+        (13.950001, 100.9, None),
+        (13.95, 100.900001, None),
+    ])
+    def test_outer_boundaries(self, lat, lon, expected):
+        assert latlon_to_grid_id(lat, lon) == expected
+
     def test_outside_bangkok_returns_none(self):
         assert latlon_to_grid_id(0.0, 0.0) is None
 

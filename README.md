@@ -115,7 +115,7 @@ python -c 'from src.evidence_metrics import holdout_validation; print(holdout_va
 
 These figures do not establish XGBoost performance. Its evaluation artifacts are missing from this checkout. The NLP evaluation includes the recorded cause used to construct its labels, so its scores do not establish prediction of unknown causes.
 
-**Known scoring bug:** coordinate lookup maps the centers of 100 partial boundary cells to adjacent inner cells. Route scoring at those edges needs correction. See [evaluation methods and known limitations](docs/evaluation.md), including the distinction between historical concentration and predictive performance.
+**Grid lookup validation:** regression tests verify that all 2,418 saved grid centres map to their own cells, including partial boundary cells. See [evaluation methods and known limitations](docs/evaluation.md), including the distinction between historical concentration and predictive performance.
 
 ## Tests
 

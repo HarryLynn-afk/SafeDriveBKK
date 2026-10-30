@@ -48,8 +48,9 @@ def latlon_to_grid_id(lat: float, lon: float) -> str | None:
     lat_idx = int((lat - BKK_LAT_MIN) / CELL_SIZE_DEG)
     lon_idx = int((lon - BKK_LON_MIN) / CELL_SIZE_DEG)
 
-    max_lat_idx = int((BKK_LAT_MAX - BKK_LAT_MIN) / CELL_SIZE_DEG) - 1
-    max_lon_idx = int((BKK_LON_MAX - BKK_LON_MIN) / CELL_SIZE_DEG) - 1
+    # Match grid generation: include partial edge cells and round away float drift.
+    max_lat_idx = math.ceil(round((BKK_LAT_MAX - BKK_LAT_MIN) / CELL_SIZE_DEG, 6)) - 1
+    max_lon_idx = math.ceil(round((BKK_LON_MAX - BKK_LON_MIN) / CELL_SIZE_DEG, 6)) - 1
     lat_idx = min(lat_idx, max_lat_idx)
     lon_idx = min(lon_idx, max_lon_idx)
     return f"G{lat_idx:03d}_{lon_idx:03d}"
