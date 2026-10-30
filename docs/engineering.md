@@ -10,6 +10,7 @@ Browser
   ├── GET  /                  → main_bp      (home, analytics, trip planner, NLP, about)
   ├── GET  /api/analytics-data → api_bp      (analytics payload)
   ├── POST /api/analyze-route → routing_api  (single-route risk analysis)
+  ├── POST /api/preview-route → routing_api  (road geometry before comparison)
   ├── POST /api/compare-routes→ routing_api  (TOPSIS route comparison)
   ├── POST /api/chatbot       → chatbot_bp   (hybrid assistant)
   ├── GET  /api/nlp/*         → nlp_bp       (NLP pipeline preview, word cloud, metrics)
@@ -51,7 +52,13 @@ Requests time out after five seconds. Missing keys, HTTP failures, invalid JSON,
 
 Enable **Routes API** and billing in the Google Cloud project, set `GOOGLE_MAPS_SERVER_KEY` locally, and restrict it to Routes API and the server's public outbound IP. The separate server-side geolocation fallback still requires **Geolocation API**. `TRAFFIC_AWARE` uses the higher-priced [Compute Routes Pro tier](https://developers.google.com/maps/documentation/routes/usage-and-billing).
 
-The frontend still uses legacy `google.maps.places.Autocomplete` for address search and `google.maps.DirectionsService` for an optional preview line. Those require a separate browser migration for compatibility with new Google Cloud projects. This backend change does not migrate them or require the server key to be exposed to the browser.
+The frontend uses [Autocomplete Data API (New)](https://developers.google.com/maps/documentation/javascript/place-autocomplete-data) with the existing address inputs and dropdowns. Suggestions are biased toward Bangkok and restricted to Thailand. Each input has its own autocomplete session token; selection fetches only `location` and ends that session. Editing clears the old coordinates, and outdated suggestions or selected-place responses cannot overwrite newer input. Suggestion text is inserted as text, and suggestion buttons support keyboard selection. Failed searches retain the predefined backup destinations.
+
+Enable **Maps JavaScript API** and **Places API (New)** for the browser key, restrict it to the allowed HTTP referrers, and optionally enable **Geocoding API** for reverse lookup of GPS coordinates. No legacy Places or Directions API is needed.
+
+The preview line calls `POST /api/preview-route` on this backend. That endpoint validates coordinates, applies a 60-request/hour per-worker limit, and requests one Google route with geometry instead of alternatives or risk scoring. It falls back to OSRM if Google is unavailable. If neither returns road geometry, the frontend keeps its dashed estimate. New input, a new preview, or clearing the map cancels the previous browser request and prevents stale results from redrawing the map. Cancelling a browser request does not guarantee cancellation of an already-dispatched billable Google request.
+
+Node's built-in test runner exercises autocomplete selection, session tokens, stale responses, and preview behavior with simulated Google and HTTP dependencies. CI runs these checks alongside pytest; no npm dependencies or live Google credentials are needed.
 
 **In-memory rate limiting instead of Redis**
 The rate limiter uses a thread-safe in-memory counter rather than Redis or Flask-Limiter. Docker starts two Gunicorn workers, each with its own counters, so configured limits apply per worker rather than across the deployment. Limits also reset when workers restart. A shared deployment-wide limit would require a distributed store such as Redis.

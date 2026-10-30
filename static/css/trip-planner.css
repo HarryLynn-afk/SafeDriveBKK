@@ -2695,6 +2695,10 @@ html[data-theme="light"] .planner-bg-map .gm-style .gm-fullscreen-control:hover 
     border: 1px solid var(--planner-border);
 }
 .planner-sheet .suggestion-item {
+    width: 100%;
+    text-align: left;
+    background: transparent;
+    border: 0;
     padding: 11px 14px;
     cursor: pointer;
     border-bottom: 1px solid var(--planner-border);
@@ -2704,6 +2708,7 @@ html[data-theme="light"] .planner-bg-map .gm-style .gm-fullscreen-control:hover 
     transition: background 0.15s;
 }
 .planner-sheet .suggestion-item:hover { background: var(--planner-menu-hover); }
+.planner-sheet .suggestion-item:focus-visible { outline: 2px solid #2563eb; outline-offset: -2px; }
 .planner-sheet .suggestion-item:last-child { border-bottom: none; }
 .planner-sheet .suggestion-name { color: var(--planner-text); font-size: 14px; font-weight: 500; }
 .planner-sheet .suggestion-address { color: var(--planner-muted); font-size: 12px; }

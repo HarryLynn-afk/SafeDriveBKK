@@ -11,6 +11,7 @@ let selectedRoute = null;
 let previewStartMarker = null;
 let previewEndMarker = null;
 let previewRouteLine = null;
+let activePreviewController = null;
 let tripCompareMap = null;
 let tripNavigationInterval = null;
 let tripCurrentDistance = 0;
@@ -32,7 +33,7 @@ const VOICE_ALERT_LEAD_BUFFER_SECONDS = 0.85;
 const VOICE_ALERT_CLUSTER_BUFFER_SECONDS = 1.4;
 const VOICE_ALERT_MIN_LOOKAHEAD_KM = 0.18;
 const DANGER_VOICE_MESSAGE = "Warning: high risk zone ahead. Drive carefully.";
-const TRIP_PLANNER_JS_VERSION = "2026-03-22.2";
+const TRIP_PLANNER_JS_VERSION = "2026-10-30.1";
 const ANALYSIS_STEP_MIN_MS = 1500;
 // Animation speed: adaptive so all routes finish in ~18 seconds
 const SIMULATION_TARGET_SECONDS = 18;
@@ -122,7 +123,16 @@ window.addEventListener("rr-theme-change", applyTripPlannerMapTheme);
 // ===== ADDRESS AUTOCOMPLETE =====
 let searchTimeout = null;
 let startSearchTimeout = null;
-let useGooglePlaces = false;  // Set true when Google Places API loads
+let useGooglePlaces = false;
+const autocompleteTokens = new Map();
+const locationSearchVersions = new Map();
+
+function invalidateLocationSearch(dropdownId) {
+    locationSearchVersions.set(dropdownId, (locationSearchVersions.get(dropdownId) || 0) + 1);
+    hideElement(dropdownId);
+    cancelPreviewRequest();
+    if (previewRouteLine) { previewRouteLine.setMap(null); previewRouteLine = null; }
+}
 
 // Default start location (used as fallback only)
 const DEFAULT_START = { name: "Siam Paragon", lat: 13.7467, lon: 100.5348 };
@@ -158,50 +168,8 @@ window.initGooglePlaces = function () {
     const destInput = document.getElementById("destination");
     if (!startInput || !destInput) return;
 
-    const options = {
-        types: ["geocode", "establishment"],
-        componentRestrictions: { country: "th" },
-        bounds: new google.maps.LatLngBounds(
-            new google.maps.LatLng(13.50, 100.30),
-            new google.maps.LatLng(13.95, 100.90)
-        ),
-        strictBounds: false,
-    };
-
-    const startAC = new google.maps.places.Autocomplete(startInput, options);
-    const destAC = new google.maps.places.Autocomplete(destInput, options);
-
-    startAC.addListener("place_changed", function () {
-        const place = startAC.getPlace();
-        if (!place.geometry) return;
-        const lat = place.geometry.location.lat();
-        const lon = place.geometry.location.lng();
-        const name = place.name || place.formatted_address || startInput.value;
-        startInput.value = name;
-        window.startLat = lat;
-        window.startLon = lon;
-        updateFindSaferRouteButton();
-        setPreviewMarker(lat, lon, true);
-    });
-
-    destAC.addListener("place_changed", function () {
-        const place = destAC.getPlace();
-        if (!place.geometry) return;
-        const lat = place.geometry.location.lat();
-        const lon = place.geometry.location.lng();
-        const name = place.name || place.formatted_address || destInput.value;
-        destInput.value = name;
-        window.endLat = lat;
-        window.endLon = lon;
-        updateFindSaferRouteButton();
-        setPreviewMarker(lat, lon, false);
-    });
-
-    // Disable the custom oninput search since Google handles it
-    startInput.removeAttribute("oninput");
-    destInput.removeAttribute("oninput");
-    useGooglePlaces = true;
-    console.log("Google Places Autocomplete initialized");
+    useGooglePlaces = Boolean(google.maps.places?.AutocompleteSuggestion);
+    console.log(useGooglePlaces ? "Places API (New) initialized" : "Using fallback address search");
 };
 
 // Timeout: if Google API fails to load, keep Nominatim fallback active
@@ -215,44 +183,49 @@ setTimeout(function () {
 // Nominatim fallback search (used when no Google API key)
 // ---------------------------------------------------------------------------
 async function searchLocations(query, dropdownId, onSelect) {
-    if (useGooglePlaces) return;  // Google handles its own dropdown
-    return new Promise((resolve) => {
-        const dropdown = document.getElementById(dropdownId);
-        if (!query || query.length < 2) {
-            hideElement(dropdownId);
-            resolve();
+    const version = locationSearchVersions.get(dropdownId);
+    if (!query || query.length < 2) {
+        hideElement(dropdownId);
+        return;
+    }
+    try {
+        if (useGooglePlaces) {
+            if (!autocompleteTokens.has(dropdownId)) {
+                autocompleteTokens.set(dropdownId, new google.maps.places.AutocompleteSessionToken());
+            }
+            const { suggestions } = await google.maps.places.AutocompleteSuggestion.fetchAutocompleteSuggestions({
+                input: query,
+                includedRegionCodes: ["th"],
+                locationBias: { south: 13.50, west: 100.30, north: 13.95, east: 100.90 },
+                sessionToken: autocompleteTokens.get(dropdownId),
+            });
+            if (version !== locationSearchVersions.get(dropdownId)) return;
+            displayLocationSuggestions(
+                suggestions.filter(suggestion => suggestion.placePrediction).map(suggestion => suggestion.placePrediction),
+                "google", dropdownId, onSelect,
+            );
             return;
         }
-
-        setTimeout(async () => {
-            try {
-                const response = await fetch(
-                    `https://nominatim.openstreetmap.org/search?`
-                    + `q=${encodeURIComponent(query + " Bangkok Thailand")}&`
-                    + `format=json&`
-                    + `limit=5&`
-                    + `addressdetails=1`
-                );
-
-                if (response.ok) {
-                    const results = await response.json();
-                    displayLocationSuggestions(results, "api", dropdownId, onSelect);
-                } else {
-                    throw new Error("API failed");
-                }
-            } catch (error) {
-                const filtered = BACKUP_DESTINATIONS.filter((destination) =>
-                    destination.name.toLowerCase().includes(query.toLowerCase())
-                );
-                displayLocationSuggestions(filtered, "backup", dropdownId, onSelect);
-            }
-            resolve();
-        }, 300);
-    });
+        const response = await fetch(
+            `https://nominatim.openstreetmap.org/search?`
+            + `q=${encodeURIComponent(query + " Bangkok Thailand")}&format=json&limit=5&addressdetails=1`
+        );
+        if (!response.ok) throw new Error("Address search failed");
+        const results = await response.json();
+        if (version !== locationSearchVersions.get(dropdownId)) return;
+        displayLocationSuggestions(results, "api", dropdownId, onSelect);
+    } catch (error) {
+        if (version !== locationSearchVersions.get(dropdownId)) return;
+        const filtered = BACKUP_DESTINATIONS.filter(destination =>
+            destination.name.toLowerCase().includes(query.toLowerCase())
+        );
+        displayLocationSuggestions(filtered, "backup", dropdownId, onSelect);
+    }
 }
 
 function displayLocationSuggestions(results, source, dropdownId, onSelect) {
     const dropdown = document.getElementById(dropdownId);
+    const version = locationSearchVersions.get(dropdownId);
 
     if (!results || results.length === 0) {
         hideElement(dropdownId);
@@ -262,7 +235,8 @@ function displayLocationSuggestions(results, source, dropdownId, onSelect) {
     dropdown.innerHTML = "";
 
     results.forEach((result) => {
-        const item = document.createElement("div");
+        const item = document.createElement("button");
+        item.type = "button";
         item.className = "suggestion-item";
 
         let name;
@@ -270,7 +244,10 @@ function displayLocationSuggestions(results, source, dropdownId, onSelect) {
         let lat;
         let lon;
 
-        if (source === "api") {
+        if (source === "google") {
+            name = result.mainText?.text || result.text.text;
+            address = result.secondaryText?.text || "";
+        } else if (source === "api") {
             name = result.display_name.split(",")[0];
             address = result.display_name;
             lat = parseFloat(result.lat);
@@ -282,14 +259,35 @@ function displayLocationSuggestions(results, source, dropdownId, onSelect) {
             lon = result.lon;
         }
 
-        item.innerHTML = `
-            <div class="suggestion-text">
-                <div class="suggestion-name">${name}</div>
-                <div class="suggestion-address">${address}</div>
-            </div>
-        `;
+        const text = document.createElement("div");
+        text.className = "suggestion-text";
+        const title = document.createElement("div");
+        title.className = "suggestion-name";
+        title.textContent = name;
+        const detail = document.createElement("div");
+        detail.className = "suggestion-address";
+        detail.textContent = address;
+        text.appendChild(title);
+        text.appendChild(detail);
+        item.appendChild(text);
 
-        item.onclick = () => onSelect(name, lat, lon);
+        item.onclick = async () => {
+            try {
+                if (version !== locationSearchVersions.get(dropdownId)) return;
+                if (source === "google") {
+                    const place = result.toPlace();
+                    autocompleteTokens.delete(dropdownId);
+                    await place.fetchFields({ fields: ["location"] });
+                    if (version !== locationSearchVersions.get(dropdownId)) return;
+                    if (!place.location) return;
+                    lat = place.location.lat();
+                    lon = place.location.lng();
+                }
+                onSelect(name, lat, lon);
+            } catch (error) {
+                console.warn("Could not load the selected location");
+            }
+        };
         dropdown.appendChild(item);
     });
 
@@ -297,20 +295,25 @@ function displayLocationSuggestions(results, source, dropdownId, onSelect) {
 }
 
 async function searchStartLocations(query) {
-    if (useGooglePlaces) return;
+    invalidateLocationSearch("start-suggestions-dropdown");
+    window.startLat = window.startLon = null;
+    if (previewStartMarker) { previewStartMarker.setMap(null); previewStartMarker = null; }
+    updateFindSaferRouteButton();
     if (startSearchTimeout) {
         clearTimeout(startSearchTimeout);
     }
     if (!query || query.length < 2) {
+        autocompleteTokens.delete("start-suggestions-dropdown");
         hideElement("start-suggestions-dropdown");
         return;
     }
-    startSearchTimeout = setTimeout(() => {
-        searchLocations(query, "start-suggestions-dropdown", selectStartLocation);
-    }, 300);
+    startSearchTimeout = setTimeout(() =>
+        searchLocations(query, "start-suggestions-dropdown", selectStartLocation), 300);
 }
 
 function selectStartLocation(name, lat, lon) {
+    invalidateLocationSearch("start-suggestions-dropdown");
+    autocompleteTokens.delete("start-suggestions-dropdown");
     document.getElementById("start-location").value = name;
     hideElement("start-suggestions-dropdown");
     window.startLat = lat;
@@ -320,20 +323,25 @@ function selectStartLocation(name, lat, lon) {
 }
 
 async function searchDestinations(query) {
-    if (useGooglePlaces) return;
+    invalidateLocationSearch("suggestions-dropdown");
+    window.endLat = window.endLon = null;
+    if (previewEndMarker) { previewEndMarker.setMap(null); previewEndMarker = null; }
+    updateFindSaferRouteButton();
     if (searchTimeout) {
         clearTimeout(searchTimeout);
     }
     if (!query || query.length < 2) {
+        autocompleteTokens.delete("suggestions-dropdown");
         hideElement("suggestions-dropdown");
         return;
     }
-    searchTimeout = setTimeout(() => {
-        searchLocations(query, "suggestions-dropdown", selectDestination);
-    }, 300);
+    searchTimeout = setTimeout(() =>
+        searchLocations(query, "suggestions-dropdown", selectDestination), 300);
 }
 
 function selectDestination(name, lat, lon) {
+    invalidateLocationSearch("suggestions-dropdown");
+    autocompleteTokens.delete("suggestions-dropdown");
     document.getElementById("destination").value = name;
     hideElement("suggestions-dropdown");
     window.endLat = lat;
@@ -342,9 +350,8 @@ function selectDestination(name, lat, lon) {
     setPreviewMarker(lat, lon, false);
 }
 
-// Close suggestions when clicking outside (for Nominatim fallback)
+// Close address suggestions when clicking outside
 document.addEventListener("click", (event) => {
-    if (useGooglePlaces) return;
     const destDropdown = document.getElementById("suggestions-dropdown");
     const destInput = document.getElementById("destination");
     const startDropdown = document.getElementById("start-suggestions-dropdown");
@@ -954,7 +961,13 @@ function displayRouteOnMap(route, routeId, color, opacity) {
     routeLayers[routeId] = routeLine;
 }
 
+function cancelPreviewRequest() {
+    if (activePreviewController) activePreviewController.abort();
+    activePreviewController = null;
+}
+
 function clearPreviewMarkers() {
+    cancelPreviewRequest();
     if (previewStartMarker) { previewStartMarker.setMap(null); previewStartMarker = null; }
     if (previewEndMarker)   { previewEndMarker.setMap(null);   previewEndMarker = null;   }
     if (previewRouteLine)   { previewRouteLine.setMap(null);   previewRouteLine = null;   }
@@ -992,35 +1005,45 @@ function drawStraightPreviewLine() {
     });
 }
 
-// Async upgrade: replace straight line with real OSRM road geometry.
-function fetchAndDrawPreviewRoute() {
+// Replace the dashed preview with road geometry fetched by the backend.
+async function fetchAndDrawPreviewRoute() {
     if (!tripCompareMap || !previewStartMarker || !previewEndMarker) return;
-    if (typeof google === "undefined" || !google.maps || !google.maps.DirectionsService) return;
-    const sPos = previewStartMarker.getPosition();
-    const ePos = previewEndMarker.getPosition();
-    const svc = new google.maps.DirectionsService();
-    svc.route({
-        origin:      sPos,
-        destination: ePos,
-        travelMode:  google.maps.TravelMode.DRIVING,
-    }, function (result, status) {
-        if (status !== "OK") return;
+    cancelPreviewRequest();
+    const controller = new AbortController();
+    activePreviewController = controller;
+    const start = previewStartMarker.getPosition();
+    const end = previewEndMarker.getPosition();
+    try {
+        const response = await fetch("/api/preview-route", {
+            method: "POST",
+            signal: controller.signal,
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({
+                start_lat: start.lat(), start_lon: start.lng(),
+                end_lat: end.lat(), end_lon: end.lng(),
+            }),
+        });
+        if (!response.ok) return;
+        const data = await response.json();
+        if (activePreviewController !== controller || controller.signal.aborted) return;
+        if (!data.success || !Array.isArray(data.waypoints) || data.waypoints.length < 2) return;
         if (!previewStartMarker || !previewEndMarker) return;
-        if (previewRouteLine) { previewRouteLine.setMap(null); }
-        const path = google.maps.geometry.encoding.decodePath(result.routes[0].overview_polyline);
+        if (previewRouteLine) previewRouteLine.setMap(null);
         previewRouteLine = new google.maps.Polyline({
-            path,
-            strokeColor: "#15803D",
-            strokeWeight: 7,
-            strokeOpacity: 0.85,
+            path: data.waypoints.map(([lat, lng]) => ({ lat, lng })),
+            strokeColor: "#15803D", strokeWeight: 7, strokeOpacity: 0.85,
             map: tripCompareMap,
         });
         fitBoundsAboveSheet([previewStartMarker, previewEndMarker, previewRouteLine]);
-    });
+    } catch (error) {
+        if (error.name !== "AbortError") console.warn("Road preview unavailable; keeping the dashed estimate");
+    } finally {
+        if (activePreviewController === controller) activePreviewController = null;
+    }
 }
 
 // Place a green (start) or red (end) circle marker on the background map.
-// When both markers exist: draw straight line instantly, then upgrade with Google Directions.
+// When both markers exist, draw a dashed line then fetch the backend road preview.
 function setPreviewMarker(lat, lon, isStart, zoom) {
     if (!tripCompareMap) return;
     const color = isStart ? "#34D399" : "#EF4444";

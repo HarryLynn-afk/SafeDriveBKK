@@ -76,7 +76,7 @@ Replace the example values with your own, and **leave unused API keys empty**. C
 
 | Variable | Purpose |
 |---|---|
-| `GOOGLE_MAPS_BROWSER_KEY` | Trip planner map; restrict the key to your allowed HTTP referrers |
+| `GOOGLE_MAPS_BROWSER_KEY` | Maps JavaScript API + Places API (New); restrict to your allowed HTTP referrers |
 | `GOOGLE_MAPS_SERVER_KEY` | Routes API driving routes and traffic estimates; optional Geolocation API fallback |
 | `GROQ_API_KEY` | Open-ended assistant responses |
 | `SECRET_KEY` | Fixed Flask signing secret; generated automatically when unset |
@@ -84,7 +84,7 @@ Replace the example values with your own, and **leave unused API keys empty**. C
 
 For backend Google routing, enable **Routes API** in the key's Cloud project and restrict the server key to that API and the server's public outbound IP. Requests use `TRAFFIC_AWARE`, which is billed under [Compute Routes Pro](https://developers.google.com/maps/documentation/routes/usage-and-billing). Leave the key empty to use OSRM and estimated timing.
 
-This migrates backend route requests. The browser's Places autocomplete and optional route preview still use legacy Google services; creating a new browser key does not migrate those features. See [routing integration notes](docs/engineering.md#google-routes-api).
+For address suggestions, enable **Places API (New)** alongside **Maps JavaScript API** on the browser key. Optionally enable **Geocoding API** for GPS address lookup. Suggestions use the new Autocomplete Data API; road previews are fetched through the backend, so the server key stays private. Legacy Places and Directions APIs are not required. See [routing integration notes](docs/engineering.md#google-routes-api).
 
 ### Docker
 
@@ -125,7 +125,13 @@ From the activated virtual environment:
 python -m pytest --tb=short -q
 ```
 
-The [CI workflow](.github/workflows/ci.yml) runs this suite on Python 3.11 and builds the Docker image after tests pass.
+Browser logic tests use Node.js 24 and require no npm packages:
+
+```bash
+node --test tests/browser/*.test.cjs
+```
+
+The [CI workflow](.github/workflows/ci.yml) runs the Python and browser logic tests, then builds the Docker image after they pass. Browser logic tests use simulated Maps responses; they do not make billable API requests.
 
 ## Data
 
