@@ -534,11 +534,11 @@ class TestBuildRouteAnalysisPayload:
             result = build_route_analysis_payload(_make_resolved(), sample_grid_df)
         assert result["route"]["risk_score"] == 100
 
-    def test_summary_xgboost_uses_holdout_accuracy_string(self, sample_grid_df):
+    def test_summary_xgboost_does_not_claim_baseline_performance(self, sample_grid_df):
         with patch("src.risk.score_route", return_value=self._mock_score(method="xgboost")):
             result = build_route_analysis_payload(_make_resolved(), sample_grid_df)
         assert result["summary"]["prediction_method"] == "xgboost"
-        assert "holdout" in result["summary"]["model_accuracy"]
+        assert result["summary"]["model_accuracy"] == "XGBoost predictive performance not verified"
 
     def test_summary_spatial_uses_baseline_accuracy_string(self, sample_grid_df):
         with patch("src.risk.score_route", return_value=self._mock_score(method="spatial")):

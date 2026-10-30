@@ -216,9 +216,12 @@ def main():
     metrics = {
         "model_type": "TF-IDF + Logistic Regression",
         "description": (
-            "Thai text classifier trained on 2,466 accident reports. "
-            "Uses pythainlp tokenization and TF-IDF vectorization to classify "
-            "accident cause categories from Thai report text."
+            "Thai text classifier trained on 2,466 accident reports using "
+            "pythainlp, TF-IDF, and Logistic Regression. The recorded cause is "
+            "included in the input and used to derive the label. Scores describe "
+            "categorization with the cause supplied, not prediction of unknown "
+            "causes. Cross-validation reuses a pre-fitted vectorizer; it is not "
+            "an independent end-to-end evaluation."
         ),
         "tokenizer": "pythainlp newmm (Thai word segmentation)",
         "accuracy": round(float(accuracy), 4),

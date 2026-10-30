@@ -2,12 +2,11 @@
 Route generation and external routing API clients.
 
 Responsibility:
-  - Wrap the OSRM and Google Maps Directions APIs.
+  - Wrap the OSRM and Google Routes APIs.
   - Generate fast / safe route geometries.
   - Handle the fallback chain: live OSRM → cached preset → dense interpolation.
 
-This module reads `extensions.gmaps_client` rather than creating its own
-client so there is a single shared instance per process.
+Google Routes requests run server-side using the configured server API key.
 """
 
 from __future__ import annotations
@@ -15,13 +14,14 @@ from __future__ import annotations
 import json
 import logging
 import math
+import re
 from concurrent.futures import ThreadPoolExecutor
 from dataclasses import dataclass
 
 import requests
 from googlemaps.convert import decode_polyline
 
-from . import extensions
+from . import config
 from .config import (
     AVG_SPEED_KMH,
     BKK_LAT_MAX,
@@ -136,8 +136,67 @@ def generate_dense_interpolation(
 
 
 # ---------------------------------------------------------------------------
-# Google Maps client wrappers
+# Google Routes API client wrappers
 # ---------------------------------------------------------------------------
+
+def _compute_google_routes(
+    origin_lat: float,
+    origin_lon: float,
+    dest_lat: float,
+    dest_lon: float,
+    alternatives: bool = False,
+) -> list[dict]:
+    """Fetch Routes API results in the existing internal format, or [] on failure."""
+    if not config.GOOGLE_MAPS_SERVER_KEY:
+        return []
+    fields = "routes.duration,routes.distanceMeters,fallbackInfo"
+    if alternatives:
+        fields += ",routes.polyline.encodedPolyline,routes.description"
+    try:
+        response = requests.post(
+            "https://routes.googleapis.com/directions/v2:computeRoutes",
+            headers={
+                "Content-Type": "application/json",
+                "X-Goog-Api-Key": config.GOOGLE_MAPS_SERVER_KEY,
+                "X-Goog-FieldMask": fields,
+            },
+            json={
+                "origin": {"location": {"latLng": {"latitude": origin_lat, "longitude": origin_lon}}},
+                "destination": {"location": {"latLng": {"latitude": dest_lat, "longitude": dest_lon}}},
+                "travelMode": "DRIVE",
+                "routingPreference": "TRAFFIC_AWARE",
+                "computeAlternativeRoutes": alternatives,
+            },
+            timeout=5,
+        )
+        response.raise_for_status()
+        data = response.json()
+        has_traffic = data.get("fallbackInfo", {}).get("routingMode") != "FALLBACK_TRAFFIC_UNAWARE"
+        routes = []
+        for route in data.get("routes", []):
+            duration = route["duration"]
+            distance = route["distanceMeters"]
+            if not re.fullmatch(r"\d+(?:\.\d{1,9})?s", duration):
+                raise ValueError("Invalid route duration")
+            if type(distance) is not int or distance < 0:
+                raise ValueError("Invalid route distance")
+            parsed = {
+                "duration_minutes": round(float(duration[:-1]) / 60),
+                "distance_km": round(distance / 1000, 2),
+                "has_traffic": has_traffic,
+            }
+            if alternatives:
+                decoded = decode_polyline(route["polyline"]["encodedPolyline"])
+                if len(decoded) < 2:
+                    raise ValueError("Route geometry needs at least two points")
+                parsed["waypoints"] = [[point["lat"], point["lng"]] for point in decoded]
+                parsed["summary"] = route.get("description", "")
+            routes.append(parsed)
+        return routes
+    except Exception as exc:
+        logger.warning("Google Routes API request failed (%s)", type(exc).__name__)
+        return []
+
 
 def get_google_maps_travel_time(
     origin_lat: float,
@@ -145,34 +204,9 @@ def get_google_maps_travel_time(
     dest_lat: float,
     dest_lon: float,
 ) -> dict | None:
-    """Return traffic-aware travel time from Google Maps, or None if unavailable."""
-    if not extensions.gmaps_client:
-        return None
-    try:
-        result = extensions.gmaps_client.directions(
-            origin=f"{origin_lat},{origin_lon}",
-            destination=f"{dest_lat},{dest_lon}",
-            mode="driving",
-            departure_time="now",
-            traffic_model="best_guess",
-        )
-        if not result:
-            return None
-        leg = result[0]["legs"][0]
-        if "duration_in_traffic" in leg:
-            duration_sec = leg["duration_in_traffic"]["value"]
-            has_traffic = True
-        else:
-            duration_sec = leg["duration"]["value"]
-            has_traffic = False
-        return {
-            "duration_minutes": round(duration_sec / 60),
-            "distance_km": round(leg["distance"]["value"] / 1000, 2),
-            "has_traffic": has_traffic,
-        }
-    except Exception:
-        logger.warning("Google Maps travel-time request failed", exc_info=True)
-        return None
+    """Return traffic-aware travel time from Routes API, or None if unavailable."""
+    routes = _compute_google_routes(origin_lat, origin_lon, dest_lat, dest_lon)
+    return routes[0] if routes else None
 
 
 def get_google_maps_routes(
@@ -181,43 +215,8 @@ def get_google_maps_routes(
     dest_lat: float,
     dest_lon: float,
 ) -> list[dict]:
-    """Return alternative routes from Google Maps Directions API."""
-    if not extensions.gmaps_client:
-        return []
-    try:
-        results = extensions.gmaps_client.directions(
-            origin=f"{origin_lat},{origin_lon}",
-            destination=f"{dest_lat},{dest_lon}",
-            mode="driving",
-            departure_time="now",
-            traffic_model="best_guess",
-            alternatives=True,
-        )
-        if not results:
-            return []
-
-        routes = []
-        for route in results:
-            decoded = decode_polyline(route["overview_polyline"]["points"])
-            waypoints = [[pt["lat"], pt["lng"]] for pt in decoded]
-            leg = route["legs"][0]
-            if "duration_in_traffic" in leg:
-                duration_sec = leg["duration_in_traffic"]["value"]
-                has_traffic = True
-            else:
-                duration_sec = leg["duration"]["value"]
-                has_traffic = False
-            routes.append({
-                "waypoints": waypoints,
-                "distance_km": round(leg["distance"]["value"] / 1000, 2),
-                "duration_minutes": round(duration_sec / 60),
-                "has_traffic": has_traffic,
-                "summary": route.get("summary", ""),
-            })
-        return routes
-    except Exception:
-        logger.warning("Google Maps routes request failed", exc_info=True)
-        return []
+    """Return alternative driving routes from Google Routes API."""
+    return _compute_google_routes(origin_lat, origin_lon, dest_lat, dest_lon, alternatives=True)
 
 
 # ---------------------------------------------------------------------------
@@ -460,7 +459,7 @@ def get_route_alternatives(
 ) -> tuple[list[dict], int]:
     """Return scored route alternatives between two points.
 
-    Tries Google Maps Directions first (multiple alternatives). Falls back to
+    Tries Google Routes API first (multiple alternatives). Falls back to
     a fast + safe pair generated locally, with GMaps timing layered on top of
     the fast leg when available.
 

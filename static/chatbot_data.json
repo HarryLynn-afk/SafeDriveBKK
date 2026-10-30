@@ -16,8 +16,8 @@
     "minor_injuries": 1685,
     "total_injuries": 1730,
     "model_accuracy": 83.8,
-    "model_lift": 17.5,
-    "danger_zones_detected": "39/39"
+    "model_lift": 1.95,
+    "danger_zones_detected": "Not verified"
   },
   "causes": {
     "speeding": {

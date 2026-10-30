@@ -126,6 +126,33 @@ class TestCompareRoutes:
         "end_lon":   100.55,
     }
 
+    def test_routes_api_response_reaches_route_comparison(self, client, monkeypatch):
+        monkeypatch.setattr("src.config.GOOGLE_MAPS_SERVER_KEY", "test-server-key")
+        response = MagicMock()
+        response.json.return_value = {"routes": [{
+            "duration": "720s", "distanceMeters": 7012,
+            "polyline": {"encodedPolyline": "op|rA_|kdRg{Cg{Cg{Cg{C"},
+            "description": "Bangkok test route",
+        }]}
+        with (
+            patch("src.routing.requests.post", return_value=response) as post,
+            patch("src.routing.requests.get") as osrm,
+        ):
+            result = client.post("/api/compare-routes", json=self._VALID_PAYLOAD)
+
+        assert result.status_code == 200
+        payload = result.get_json()
+        assert payload["alternatives_analyzed"] == 1
+        route = payload["fast_route"]
+        assert route["time_min"] == 12 and route["distance_km"] == 7.01
+        assert route["traffic_source"] == "google_maps_traffic"
+        assert route["summary"] == "Bangkok test route"
+        assert route["waypoints"][0] == pytest.approx([13.75, 100.50])
+        assert route["waypoints"][-1] == pytest.approx([13.80, 100.55])
+        assert "test-server-key" not in result.get_data(as_text=True)
+        post.assert_called_once()
+        osrm.assert_not_called()
+
     def test_same_start_end_returns_400(self, client):
         payload = {
             "start_lat": 13.75, "start_lon": 100.50,

@@ -164,9 +164,10 @@ def build_stats(accidents):
         "serious_injuries": serious,
         "minor_injuries": minor,
         "total_injuries": serious + minor,
+        # Legacy keys describe the count-based spatial holdout, not XGBoost accuracy.
         "model_accuracy": 83.8,
-        "model_lift": 17.5,
-        "danger_zones_detected": "39/39",
+        "model_lift": 1.95,
+        "danger_zones_detected": "Not verified",
     }
 
 
