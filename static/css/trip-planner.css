@@ -2690,7 +2690,7 @@ html[data-theme="light"] .planner-bg-map .gm-style .gm-fullscreen-control:hover 
     max-height: 200px;
     overflow-y: auto;
     z-index: 100;
-    position: relative;
+    position: static;
     margin-top: 4px;
     border: 1px solid var(--planner-border);
 }
