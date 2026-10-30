@@ -50,6 +50,156 @@ _GMAPS_RESPONSE = {
 }
 
 
+class TestGoogleRoutesApi:
+    def test_startup_does_not_create_legacy_directions_client(self, monkeypatch):
+        from src.app import create_app
+
+        monkeypatch.setattr("src.app.GOOGLE_MAPS_SERVER_KEY", "test-server-key")
+        with patch("googlemaps.Client") as legacy_client:
+            create_app()
+        legacy_client.assert_not_called()
+
+    def test_traffic_aware_time_uses_compute_routes(self, monkeypatch):
+        monkeypatch.setattr("src.config.GOOGLE_MAPS_SERVER_KEY", "test-server-key")
+        response = MagicMock()
+        response.json.return_value = {
+            "routes": [{"duration": "720.5s", "distanceMeters": 7012}]
+        }
+        with patch("src.routing.requests.post", return_value=response) as post:
+            result = routing_mod.get_google_maps_travel_time(*_START, *_END)
+
+        assert result == {
+            "duration_minutes": 12, "distance_km": 7.01, "has_traffic": True,
+        }
+        args, kwargs = post.call_args
+        assert args == ("https://routes.googleapis.com/directions/v2:computeRoutes",)
+        assert kwargs["headers"]["X-Goog-Api-Key"] == "test-server-key"
+        assert kwargs["headers"]["Content-Type"] == "application/json"
+        mask = kwargs["headers"]["X-Goog-FieldMask"].split(",")
+        assert "routes.duration" in mask and "routes.distanceMeters" in mask
+        assert "*" not in mask
+        assert kwargs["json"] == {
+            "origin": {"location": {"latLng": {"latitude": 13.75, "longitude": 100.50}}},
+            "destination": {"location": {"latLng": {"latitude": 13.80, "longitude": 100.55}}},
+            "travelMode": "DRIVE",
+            "routingPreference": "TRAFFIC_AWARE",
+            "computeAlternativeRoutes": False,
+        }
+        assert 0 < kwargs["timeout"] <= 10
+        response.raise_for_status.assert_called_once()
+
+    def test_alternatives_include_geometry_and_keep_existing_shape(self, monkeypatch):
+        monkeypatch.setattr("src.config.GOOGLE_MAPS_SERVER_KEY", "test-server-key")
+        route = {
+            "duration": "780s", "distanceMeters": 9200,
+            "polyline": {"encodedPolyline": "_p~iF~ps|U_ulLnnqC_mqNvxq`@"},
+            "description": "Main road",
+        }
+        response = MagicMock()
+        response.json.return_value = {"routes": [route, {**route, "duration": "900s"}]}
+        with patch("src.routing.requests.post", return_value=response) as post:
+            routes = routing_mod.get_google_maps_routes(*_START, *_END)
+
+        assert len(routes) == 2
+        assert {key: value for key, value in routes[0].items() if key != "waypoints"} == {
+            "distance_km": 9.2, "duration_minutes": 13,
+            "has_traffic": True, "summary": "Main road",
+        }
+        expected = [[38.5, -120.2], [40.7, -120.95], [43.252, -126.453]]
+        assert len(routes[0]["waypoints"]) == len(expected)
+        for actual, point in zip(routes[0]["waypoints"], expected):
+            assert actual == pytest.approx(point)
+        assert routes[1]["duration_minutes"] == 15
+        kwargs = post.call_args.kwargs
+        assert kwargs["json"]["computeAlternativeRoutes"] is True
+        assert "routes.polyline.encodedPolyline" in kwargs["headers"]["X-Goog-FieldMask"]
+        assert "routes.description" in kwargs["headers"]["X-Goog-FieldMask"]
+
+    def test_google_traffic_fallback_is_labelled_without_traffic(self, monkeypatch):
+        monkeypatch.setattr("src.config.GOOGLE_MAPS_SERVER_KEY", "test-server-key")
+        response = MagicMock()
+        response.json.return_value = {
+            "routes": [{"duration": "600s", "distanceMeters": 5000}],
+            "fallbackInfo": {"routingMode": "FALLBACK_TRAFFIC_UNAWARE"},
+        }
+        with patch("src.routing.requests.post", return_value=response) as post:
+            result = routing_mod.get_google_maps_travel_time(*_START, *_END)
+
+        assert result["has_traffic"] is False
+        assert "fallbackInfo" in post.call_args.kwargs["headers"]["X-Goog-FieldMask"]
+
+    @pytest.mark.parametrize("route", [
+        {"duration": "720x", "distanceMeters": 5000},
+        {"duration": "-60s", "distanceMeters": 5000},
+        {"duration": "600s", "distanceMeters": -1},
+    ])
+    def test_invalid_timing_is_unavailable_for_fallback(self, monkeypatch, route):
+        monkeypatch.setattr("src.config.GOOGLE_MAPS_SERVER_KEY", "test-server-key")
+        response = MagicMock()
+        response.json.return_value = {"routes": [route]}
+        with patch("src.routing.requests.post", return_value=response):
+            assert routing_mod.get_google_maps_travel_time(*_START, *_END) is None
+
+    @pytest.mark.parametrize("polyline", ["", "_p~iF~ps|U"])
+    def test_incomplete_geometry_is_unavailable_for_fallback(self, monkeypatch, polyline):
+        monkeypatch.setattr("src.config.GOOGLE_MAPS_SERVER_KEY", "test-server-key")
+        response = MagicMock()
+        response.json.return_value = {"routes": [{
+            "duration": "600s", "distanceMeters": 5000,
+            "polyline": {"encodedPolyline": polyline},
+        }]}
+        with patch("src.routing.requests.post", return_value=response):
+            assert routing_mod.get_google_maps_routes(*_START, *_END) == []
+
+    @pytest.mark.parametrize("status", [400, 403, 429, 500])
+    def test_http_errors_preserve_resolver_fallback(self, monkeypatch, caplog, status):
+        monkeypatch.setattr("src.config.GOOGLE_MAPS_SERVER_KEY", "private-test-key")
+        response = MagicMock()
+        response.raise_for_status.side_effect = routing_mod.requests.HTTPError(
+            f"{status}: private-test-key"
+        )
+        waypoints = [[13.75, 100.50], [13.80, 100.55]]
+        with patch("src.routing.requests.post", return_value=response):
+            result = resolve_route(*_START, *_END, client_waypoints=waypoints)
+            assert routing_mod.get_google_maps_routes(*_START, *_END) == []
+
+        assert result.waypoints == waypoints
+        assert result.traffic_source == "estimated"
+        assert result.distance_km > 0 and result.duration_min > 0
+        assert "private-test-key" not in caplog.text
+        response.json.assert_not_called()
+
+    def test_timeout_returns_no_routes(self, monkeypatch):
+        monkeypatch.setattr("src.config.GOOGLE_MAPS_SERVER_KEY", "test-server-key")
+        with patch("src.routing.requests.post", side_effect=routing_mod.requests.Timeout):
+            assert routing_mod.get_google_maps_travel_time(*_START, *_END) is None
+            assert routing_mod.get_google_maps_routes(*_START, *_END) == []
+
+    @pytest.mark.parametrize("payload", [{}, {"routes": []}, {"routes": [{}]}])
+    def test_empty_or_missing_route_data_returns_no_routes(self, monkeypatch, payload):
+        monkeypatch.setattr("src.config.GOOGLE_MAPS_SERVER_KEY", "test-server-key")
+        response = MagicMock()
+        response.json.return_value = payload
+        with patch("src.routing.requests.post", return_value=response):
+            assert routing_mod.get_google_maps_travel_time(*_START, *_END) is None
+            assert routing_mod.get_google_maps_routes(*_START, *_END) == []
+
+    def test_invalid_json_returns_no_routes(self, monkeypatch):
+        monkeypatch.setattr("src.config.GOOGLE_MAPS_SERVER_KEY", "test-server-key")
+        response = MagicMock()
+        response.json.side_effect = ValueError("Invalid JSON")
+        with patch("src.routing.requests.post", return_value=response):
+            assert routing_mod.get_google_maps_travel_time(*_START, *_END) is None
+            assert routing_mod.get_google_maps_routes(*_START, *_END) == []
+
+    def test_missing_key_skips_google_requests(self, monkeypatch):
+        monkeypatch.setattr("src.config.GOOGLE_MAPS_SERVER_KEY", "")
+        with patch("src.routing.requests.post") as post:
+            assert routing_mod.get_google_maps_travel_time(*_START, *_END) is None
+            assert routing_mod.get_google_maps_routes(*_START, *_END) == []
+        post.assert_not_called()
+
+
 class TestResolveRoute:
     def _no_external(self, **overrides):
         """Helper: patch all external calls to return nothing by default."""

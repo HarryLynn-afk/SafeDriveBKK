@@ -2,7 +2,7 @@
 Lightweight in-memory rate limiter.
 
 Uses a fixed-window counter per (endpoint, client IP). Thread-safe via a
-threading.Lock. This is sufficient for a single-process Gunicorn deployment.
+threading.Lock. Counters are per process; Docker starts two Gunicorn workers.
 For multi-process or distributed deployments, replace the in-memory store
 with Redis (e.g. flask-limiter with RedisStorage).
 

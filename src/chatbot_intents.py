@@ -353,15 +353,15 @@ def handle_model_reliability(user_message=""):
 
     if is_thai:
         message = (
-            f"ในการทดสอบแบบ **Jan-Sep 2024 train / Oct-Dec 2024 holdout** ระบบจับครอบคลุมอุบัติเหตุที่เกิดภายหลังได้ **{accuracy}%** "
-            f"และให้ **lift {lift}x** เทียบกับการสุ่มหาโซนเสี่ยง.\n\n"
-            "สรุปคือโมเดลมีสัญญาณเชิงเวลาและทำได้ดีกว่าการเลือกโซนแบบสุ่มอย่างชัดเจน."
+            f"ในการทดสอบแบบ **Jan-Sep 2024 train / Oct-Dec 2024 holdout** วิธีนับอุบัติเหตุรายกริดครอบคลุมอุบัติเหตุที่เกิดภายหลังได้ **{accuracy}%** "
+            f"และให้ **lift {lift}x** เทียบกับการสุ่มเลือกจากกริดที่พบอุบัติเหตุในช่วง Jan-Sep.\n\n"
+            "ตัวเลขนี้เป็นผลของวิธีนับอุบัติเหตุรายกริด ไม่ใช่ความแม่นยำของ XGBoost."
         )
     else:
         message = (
-            f"On a **Jan-Sep 2024 train / Oct-Dec 2024 holdout**, SafeDrive BKK captured **{accuracy}%** of later mapped crashes inside flagged high-risk grids "
-            f"with **{lift}x lift** over random danger-zone selection.\n\n"
-            "The short version is that the model shows temporal signal and performs materially better than random zone selection."
+            f"On a **Jan-Sep 2024 train / Oct-Dec 2024 holdout**, the count-based spatial baseline captured **{accuracy}%** of later mapped crashes inside flagged high-risk grids "
+            f"with **{lift}x lift** relative to uniform selection among grids observed in Jan-Sep.\n\n"
+            "These results describe the spatial baseline, not XGBoost accuracy or a guarantee of route safety."
         )
 
     return {
@@ -1001,7 +1001,7 @@ def handle_how_it_works(user_message=""):
         message = (
             "ระบบนี้ใช้ AI หลัก 2 ส่วน:\n"
             "1. **Thai NLP** สำหรับอ่านรายงานอุบัติเหตุและจัดกลุ่มสาเหตุ เพื่อช่วยตอบคำถามใน Safety Assistant\n"
-            f"2. **XGBoost ML** สำหรับให้คะแนนความเสี่ยงของแต่ละโซนขนาดประมาณ 1 กม. ({data['stats']['model_accuracy']}% holdout capture)\n\n"
+            f"2. **XGBoost ML** สำหรับให้คะแนนความเสี่ยงของแต่ละโซนขนาดประมาณ 1 กม. (ผลประเมิน XGBoost ยังไม่ได้รับการยืนยัน)\n\n"
             "ทั้งสองส่วนทำงานร่วมกันในแผนที่ความเสี่ยง Trip Planner และหน้า Analytics."
         )
         followup = "อยากรู้ต่อว่าข้อมูลมาจากไหนไหม?"
@@ -1009,7 +1009,7 @@ def handle_how_it_works(user_message=""):
         message = (
             f"We combine 2 core AI techniques:\n"
             f"1. **Thai NLP** - reads accident reports to classify causes and power our Safety Assistant chatbot\n"
-            f"2. **XGBoost ML** - predicts risk scores for every 1km zone ({data['stats']['model_accuracy']}% holdout capture)\n\n"
+            f"2. **XGBoost ML** - scores approximately 1km grids (predictive performance not verified)\n\n"
             f"Together, they power our risk map, trip planner, and analytics dashboard."
         )
         followup = "Want to know about our data source?"

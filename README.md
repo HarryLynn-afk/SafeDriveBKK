@@ -77,10 +77,14 @@ Replace the example values with your own, and **leave unused API keys empty**. C
 | Variable | Purpose |
 |---|---|
 | `GOOGLE_MAPS_BROWSER_KEY` | Trip planner map; restrict the key to your allowed HTTP referrers |
-| `GOOGLE_MAPS_SERVER_KEY` | Google Maps routing and traffic estimates |
+| `GOOGLE_MAPS_SERVER_KEY` | Routes API driving routes and traffic estimates; optional Geolocation API fallback |
 | `GROQ_API_KEY` | Open-ended assistant responses |
 | `SECRET_KEY` | Fixed Flask signing secret; generated automatically when unset |
 | `LOG_LEVEL`, `LOG_FILE` | Optional logging configuration |
+
+For backend Google routing, enable **Routes API** in the key's Cloud project and restrict the server key to that API and the server's public outbound IP. Requests use `TRAFFIC_AWARE`, which is billed under [Compute Routes Pro](https://developers.google.com/maps/documentation/routes/usage-and-billing). Leave the key empty to use OSRM and estimated timing.
+
+This migrates backend route requests. The browser's Places autocomplete and optional route preview still use legacy Google services; creating a new browser key does not migrate those features. See [routing integration notes](docs/engineering.md#google-routes-api).
 
 ### Docker
 

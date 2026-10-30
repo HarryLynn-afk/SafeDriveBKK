@@ -41,6 +41,18 @@ Flask Application Factory (src/app.py)
 
 ## Design decisions
 
+### Google Routes API
+
+The backend calls `POST https://routes.googleapis.com/directions/v2:computeRoutes` using the installed `requests` library. The server key is sent in `X-Goog-Api-Key`, never in the browser request or a query string. `X-Goog-FieldMask` requests duration, distance, and fallback information; alternative-route requests also request encoded geometry and a description. See [Google's request documentation](https://developers.google.com/maps/documentation/routes/compute_route_directions).
+
+Requests use `DRIVE` with `TRAFFIC_AWARE`. Duration strings are converted from seconds to rounded minutes, distance from meters to kilometers, and encoded polylines to the existing latitude/longitude waypoint format. Google's traffic-unaware fallback is labelled without traffic. Public routing function names, route payloads, and traffic-source labels remain compatible with their callers.
+
+Requests time out after five seconds. Missing keys, HTTP failures, invalid JSON, and unusable route responses return control to the existing OSRM/cache/interpolation fallback chain. Errors are logged without response bodies or exception messages that could expose the server key. The `googlemaps` package is retained only for its polyline decoder; no legacy backend Directions client is constructed.
+
+Enable **Routes API** and billing in the Google Cloud project, set `GOOGLE_MAPS_SERVER_KEY` locally, and restrict it to Routes API and the server's public outbound IP. The separate server-side geolocation fallback still requires **Geolocation API**. `TRAFFIC_AWARE` uses the higher-priced [Compute Routes Pro tier](https://developers.google.com/maps/documentation/routes/usage-and-billing).
+
+The frontend still uses legacy `google.maps.places.Autocomplete` for address search and `google.maps.DirectionsService` for an optional preview line. Those require a separate browser migration for compatibility with new Google Cloud projects. This backend change does not migrate them or require the server key to be exposed to the browser.
+
 **In-memory rate limiting instead of Redis**
 The rate limiter uses a thread-safe in-memory counter rather than Redis or Flask-Limiter. Docker starts two Gunicorn workers, each with its own counters, so configured limits apply per worker rather than across the deployment. Limits also reset when workers restart. A shared deployment-wide limit would require a distributed store such as Redis.
 

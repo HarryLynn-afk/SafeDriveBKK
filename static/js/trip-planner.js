@@ -1182,7 +1182,7 @@ function showRouteSelectionUI(data) {
                 <button class="sheet-back-btn" onclick="setSheetState(1)">Change route</button>
                 <div class="route-header-meta">
                     <strong>AI-Powered Route Analysis</strong>
-                    <span class="ml-model">XGBoost ML &bull; 83.8% Validated</span>
+                    <span class="ml-model">XGBoost ML &bull; Historical grid-risk scoring</span>
                 </div>
             </div>
 

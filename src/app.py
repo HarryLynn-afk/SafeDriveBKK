@@ -48,7 +48,7 @@ def create_app() -> Flask:
 
     _register_request_hooks(app)
     _init_ml()
-    _init_gmaps()
+    _log_routing_config()
     _init_chatbot()
 
     from .blueprints.main import main_bp
@@ -119,7 +119,7 @@ def _init_ml() -> None:
         extensions.ml_predictor = predictor
         extensions.USE_ML = predictor._model is not None
         if extensions.USE_ML:
-            logger.info("ML predictor: XGBoost loaded (83.8% holdout crash capture, 17.5x lift)")
+            logger.info("ML predictor: XGBoost loaded (predictive performance not verified)")
         else:
             logger.warning("ML predictor: model file missing, spatial fallback active")
     except Exception:
@@ -128,17 +128,11 @@ def _init_ml() -> None:
         extensions.USE_ML = False
 
 
-def _init_gmaps() -> None:
+def _log_routing_config() -> None:
     if not GOOGLE_MAPS_SERVER_KEY:
         logger.info("Google Maps: No server API key — using OSRM/estimated travel times.")
         return
-    try:
-        import googlemaps
-        extensions.gmaps_client = googlemaps.Client(key=GOOGLE_MAPS_SERVER_KEY)
-        logger.info("Google Maps: loaded via %s (traffic-aware routing enabled)", GOOGLE_MAPS_SERVER_KEY_SOURCE)
-    except Exception:
-        logger.exception("Google Maps: failed to initialise client")
-        extensions.gmaps_client = None
+    logger.info("Google Routes API: configured via %s (TRAFFIC_AWARE requests)", GOOGLE_MAPS_SERVER_KEY_SOURCE)
 
 
 def _init_chatbot() -> None:
@@ -166,12 +160,11 @@ if __name__ == "__main__":
 
     if extensions.USE_ML:
         print("Prediction: XGBoost (Machine Learning)")
-        print("  Holdout:     83.8% crash capture, 17.5x lift vs random")
-        print("  Improvement: +16.2% vs spatial baseline")
+        print("  Evaluation: predictive performance not verified")
         print("  Features:    44-feature gradient boosting")
     else:
         print("Prediction: Spatial Analysis (Grid-based)")
-        print("  Accuracy: 83.8%")
+        print("  Spatial baseline: 83.8% temporal crash capture (not accuracy)")
 
     print("-" * 64)
     print("Blueprints registered:")

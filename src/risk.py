@@ -595,7 +595,7 @@ def rank_and_annotate_routes(scored_routes: list[dict]) -> dict:
 # ---------------------------------------------------------------------------
 
 _MODEL_ACCURACY_BY_METHOD = {
-    "xgboost": "83.8% holdout crash capture",
+    "xgboost": "XGBoost predictive performance not verified",
     "spatial": "83.8% spatial baseline capture",
 }
 

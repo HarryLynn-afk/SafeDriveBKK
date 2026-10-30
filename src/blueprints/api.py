@@ -75,25 +75,25 @@ def model_info():
             "status": "success",
             "model": "xgboost",
             "version": "1.0",
-            "accuracy": "83.8% holdout crash capture rate",
+            "accuracy": "XGBoost predictive performance not verified",
             "test_performance": {
-                "holdout_split": "Jan-Sep 2024 train / Oct-Dec 2024 validation",
-                "capture": "83.8% of later mapped crashes fell inside flagged high-risk grids",
-                "lift": "17.5x over random selection",
+                "holdout_split": "Spatial baseline: Jan-Sep 2024 counts / Oct-Dec 2024 evaluation",
+                "capture": "Spatial baseline only: 477/569 mapped accidents (83.8%) in grids with at least 5 Jan-Sep accidents",
+                "lift": "Spatial baseline only: 1.95x versus uniform selection among Jan-Sep observed grids",
             },
             "comparison": {
                 "spatial_baseline": "83.8% capture rate",
-                "xgboost": "Primary temporal holdout model",
-                "improvement": "+16.2% over spatial baseline",
+                "xgboost": "Predictive performance not verified; evaluation artifacts unavailable",
+                "improvement": "Not established; grid recall and accident capture are different metrics",
             },
             "top_features": top_features,
             "fallback_available": True,
-            "prediction_time": "<100ms",
+            "prediction_time": "Not benchmarked",
         })
     return jsonify({
         "status": "success",
         "model": "spatial_analysis",
-        "accuracy": "83.8%",
+        "accuracy": "83.8% spatial baseline temporal accident capture (not classification accuracy)",
         "method": "grid_based_counting",
         "ml_available": False,
     })

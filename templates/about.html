@@ -384,23 +384,23 @@ html[data-theme="dark"] .cta-section {
             <div class="metric-card">
                 <div>
                     <span class="metric-value">83.8%</span>
-                    <span class="metric-label">Holdout crash capture</span>
+                    <span class="metric-label">Spatial baseline capture</span>
                 </div>
-                <p class="metric-description">On the Jan-Sep to Oct-Dec 2024 holdout, flagged high-risk grids captured 83.8% of later mapped crashes.</p>
+                <p class="metric-description">Grids with at least five Jan-Sep accidents captured 477 of 569 mapped Oct-Dec 2024 accidents. This is a count-based baseline, not XGBoost accuracy.</p>
             </div>
             <div class="metric-card">
                 <div>
-                    <span class="metric-value">17.5×</span>
-                    <span class="metric-label">Prediction lift</span>
+                    <span class="metric-value">1.95×</span>
+                    <span class="metric-label">Spatial holdout lift</span>
                 </div>
-                <p class="metric-description">The model performs far above random zone selection.</p>
+                <p class="metric-description">The spatial baseline flagged 43.1% of grids observed in Jan-Sep and captured 83.8% of mapped Oct-Dec accidents.</p>
             </div>
             <div class="metric-card">
                 <div>
                     <span class="metric-value">Oct-Dec</span>
                     <span class="metric-label">Validation window</span>
                 </div>
-                <p class="metric-description">Performance is summarized against a held-out Oct to Dec 2024 period rather than a random split.</p>
+                <p class="metric-description">The count-based spatial baseline uses Jan-Sep counts and evaluates mapped accidents in Oct-Dec 2024.</p>
             </div>
         </div>
     </div>
@@ -458,8 +458,8 @@ html[data-theme="dark"] .cta-section {
                 <ul>
                     <li>44 engineered features per 1 km² zone</li>
                     <li>Severity, spatial, temporal, and vehicle mix inputs</li>
-                    <li>Trained on 2,089 records and tested on 569</li>
-                    <li>17.5× lift over baseline zone selection</li>
+                    <li>Saved XGBoost evaluation artifacts are unavailable in this checkout</li>
+                    <li>XGBoost predictive performance and improvement over the baseline are not verified</li>
                 </ul>
             </div>
             <div class="ai-card">
@@ -468,7 +468,7 @@ html[data-theme="dark"] .cta-section {
                     <li>pythainlp tokenization on accident reports</li>
                     <li>TF-IDF with Logistic Regression classification</li>
                     <li>Six cause categories surfaced in the Safety Assistant and crash analytics</li>
-                    <li>Used to interpret Thai crash-report language for assistant responses</li>
+                    <li>Evaluation includes the recorded cause as input; prediction of unknown causes is not established</li>
                 </ul>
             </div>
             <div class="ai-card">
