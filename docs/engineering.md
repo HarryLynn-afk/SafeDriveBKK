@@ -66,7 +66,7 @@ The rate limiter uses a thread-safe in-memory counter rather than Redis or Flask
 **Grid-based spatial model instead of graph-based routing risk**
 Risk is scored per approximately 1 km grid cell rather than per road segment. Cells use a 0.009° latitude/longitude step, approximately 1.00 km north–south and 0.97 km east–west near central Bangkok. Two routes through the same cell receive the same grid score regardless of which specific road they use. Road-segment scoring would require road-network data and a separate evaluation.
 
-Known boundary limitation: grid generation includes partial cells at the northern and eastern bounds, but runtime coordinate lookup clamps indices using complete-cell counts. The centers of 100 of the 2,418 saved cells consequently map to adjacent inner cells. This needs a separate scoring fix before relying on results at those edges; the [spatial holdout calculation](evaluation.md#spatial-baseline) uses its own assignment with partial cells included.
+Grid generation and runtime lookup both count partial cells at the northern and eastern bounds. Regression tests verify all 2,418 saved grid centres and exact outer-bound coordinates, preventing edge locations from being assigned to adjacent inner cells. See [evaluation notes](evaluation.md#grid-boundaries).
 
 **OSRM public instance instead of self-hosted**
 Routing calls go to the public OSRM demo server (`router.project-osrm.org`). This is rate-limited and not suitable for production traffic. A production deployment would self-host OSRM or use a paid routing API. The fallback chain (live OSRM → cached preset → dense interpolation) was built specifically to handle public instance unavailability.

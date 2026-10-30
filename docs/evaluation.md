@@ -28,7 +28,7 @@ The NLP labels are derived from `มูลเหตุสันนิษฐา�
 
 Cells use a 0.009° latitude/longitude step, approximately 1.00 km north–south and 0.97 km east–west near central Bangkok. Partial cells exist at the northern and eastern bounds.
 
-Runtime coordinate lookup clamps indices using complete-cell counts. Consequently, the centers of 100 of the 2,418 saved cells map to adjacent inner cells. This remains an open scoring bug. The spatial holdout calculation uses its own assignment with partial cells included, so its reported result does not validate runtime lookup at those edges.
+Runtime coordinate lookup includes the partial northern and eastern cells. A regression test checks all 2,418 saved grid centres against their recorded IDs, with additional checks for the outer bounds and points just outside them. This fixes the earlier mismatch affecting 100 cell centres. The spatial holdout calculation uses its own assignment with partial cells included; the lookup fix does not establish predictive model accuracy.
 
 ## Scope of the results
 
