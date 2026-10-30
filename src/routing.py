@@ -145,12 +145,13 @@ def _compute_google_routes(
     dest_lat: float,
     dest_lon: float,
     alternatives: bool = False,
+    include_geometry: bool = False,
 ) -> list[dict]:
     """Fetch Routes API results in the existing internal format, or [] on failure."""
     if not config.GOOGLE_MAPS_SERVER_KEY:
         return []
     fields = "routes.duration,routes.distanceMeters,fallbackInfo"
-    if alternatives:
+    if alternatives or include_geometry:
         fields += ",routes.polyline.encodedPolyline,routes.description"
     try:
         response = requests.post(
@@ -185,7 +186,7 @@ def _compute_google_routes(
                 "distance_km": round(distance / 1000, 2),
                 "has_traffic": has_traffic,
             }
-            if alternatives:
+            if alternatives or include_geometry:
                 decoded = decode_polyline(route["polyline"]["encodedPolyline"])
                 if len(decoded) < 2:
                     raise ValueError("Route geometry needs at least two points")
@@ -214,9 +215,13 @@ def get_google_maps_routes(
     origin_lon: float,
     dest_lat: float,
     dest_lon: float,
+    alternatives: bool = True,
 ) -> list[dict]:
     """Return alternative driving routes from Google Routes API."""
-    return _compute_google_routes(origin_lat, origin_lon, dest_lat, dest_lon, alternatives=True)
+    return _compute_google_routes(
+        origin_lat, origin_lon, dest_lat, dest_lon,
+        alternatives=alternatives, include_geometry=True,
+    )
 
 
 # ---------------------------------------------------------------------------

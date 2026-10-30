@@ -103,7 +103,7 @@ def _register_request_hooks(app: Flask) -> None:
             "style-src 'self' 'unsafe-inline' fonts.googleapis.com cdn.jsdelivr.net; "
             "font-src fonts.gstatic.com cdn.jsdelivr.net; "
             "img-src 'self' data: https:; "
-            "connect-src 'self' router.project-osrm.org *.googleapis.com"
+            "connect-src 'self' router.project-osrm.org *.googleapis.com https://nominatim.openstreetmap.org"
         )
         return response
 

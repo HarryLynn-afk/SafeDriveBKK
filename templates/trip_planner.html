@@ -3,7 +3,7 @@
 {% block title %}Plan Your Trip{% endblock %}
 
 {% block extra_css %}
-<link rel="stylesheet" href="{{ url_for('static', filename='css/trip-planner.css', v='20260322g') }}">
+<link rel="stylesheet" href="{{ url_for('static', filename='css/trip-planner.css', v='20261030a') }}">
 <style>
 /* ── Trip planner page: break out of base layout ── */
 .rr-navbar, .rr-footer, footer { display: none !important; }
@@ -105,6 +105,7 @@ main { background: transparent !important; position: relative; z-index: auto; }
                     <input
                         type="text"
                         id="start-location"
+                        aria-label="Start location"
                         class="dark-input"
                         placeholder="Search start location..."
                         autocomplete="off"
@@ -129,6 +130,7 @@ main { background: transparent !important; position: relative; z-index: auto; }
                     <input
                         type="text"
                         id="destination"
+                        aria-label="Destination"
                         class="dark-input"
                         placeholder="Where to?"
                         autocomplete="off"
@@ -429,16 +431,13 @@ main { background: transparent !important; position: relative; z-index: auto; }
        http://localhost:5000/*   (dev only)
   4. Under "API restrictions" → "Restrict key" → select only:
        - Maps JavaScript API
-       - Places API
+       - Places API (New)
        - Geocoding API
 
   An unrestricted key can be used by anyone who views your page source.
 -->
+<script src="{{ url_for('static', filename='js/trip-planner.js', v='20261030a') }}"></script>
 {% if google_maps_api_key %}
-<script>window.__GMAPS_KEY__ = "{{ google_maps_api_key }}";</script>
-{% endif %}
-<script src="{{ url_for('static', filename='js/trip-planner.js', v='20260322j') }}"></script>
-{% if google_maps_api_key %}
-<script src="https://maps.googleapis.com/maps/api/js?key={{ google_maps_api_key }}&libraries=places,geometry&loading=async&callback=initGooglePlaces" async></script>
+<script src="https://maps.googleapis.com/maps/api/js?key={{ google_maps_api_key }}&libraries=places&loading=async&callback=initGooglePlaces" async></script>
 {% endif %}
 {% endblock %}

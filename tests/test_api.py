@@ -184,6 +184,59 @@ class TestCompareRoutes:
 # POST /api/chatbot
 # ---------------------------------------------------------------------------
 
+class TestPreviewRoute:
+    _PAYLOAD = {"start_lat": 13.75, "start_lon": 100.50,
+                "end_lat": 13.80, "end_lon": 100.55}
+
+    def test_preview_uses_server_routes_api_without_alternatives(self, client, monkeypatch):
+        monkeypatch.setattr("src.config.GOOGLE_MAPS_SERVER_KEY", "private-server-key")
+        response = MagicMock()
+        response.json.return_value = {"routes": [{
+            "duration": "720s", "distanceMeters": 7012,
+            "polyline": {"encodedPolyline": "op|rA_|kdRg{Cg{Cg{Cg{C"},
+        }]}
+        with patch("src.routing.requests.post", return_value=response) as post:
+            result = client.post("/api/preview-route", json=self._PAYLOAD)
+        assert result.status_code == 200
+        assert result.get_json()["waypoints"][0] == pytest.approx([13.75, 100.50])
+        assert result.get_json()["waypoints"][-1] == pytest.approx([13.80, 100.55])
+        assert post.call_args.kwargs["json"]["computeAlternativeRoutes"] is False
+        assert "private-server-key" not in result.get_data(as_text=True)
+
+    @pytest.mark.parametrize("payload", [
+        {}, [1], {"start_lat": "bad"},
+        {"start_lat": 91, "start_lon": 100, "end_lat": 13.8, "end_lon": 100.55},
+        {"start_lat": 13.75, "start_lon": 100.5, "end_lat": 13.75, "end_lon": 100.5},
+    ])
+    def test_invalid_preview_does_not_call_google(self, client, payload):
+        with patch("src.routing.requests.post") as post:
+            assert client.post("/api/preview-route", json=payload).status_code == 400
+        post.assert_not_called()
+
+    def test_preview_falls_back_to_osrm_without_google_key(self, client, monkeypatch):
+        monkeypatch.setattr("src.config.GOOGLE_MAPS_SERVER_KEY", "")
+        response = MagicMock()
+        response.json.return_value = {"code": "Ok", "routes": [{
+            "geometry": {"coordinates": [[100.50, 13.75], [100.55, 13.80]]},
+            "distance": 7000, "duration": 720,
+        }]}
+        with (
+            patch("src.routing.requests.post") as post,
+            patch("src.routing.requests.get", return_value=response),
+        ):
+            result = client.post("/api/preview-route", json=self._PAYLOAD)
+        assert result.status_code == 200
+        assert result.get_json()["waypoints"] == [[13.75, 100.50], [13.80, 100.55]]
+        post.assert_not_called()
+
+    def test_no_road_geometry_returns_unavailable(self, client, monkeypatch):
+        monkeypatch.setattr("src.config.GOOGLE_MAPS_SERVER_KEY", "")
+        with patch("src.routing.requests.get", side_effect=TimeoutError):
+            result = client.post("/api/preview-route", json=self._PAYLOAD)
+        assert result.status_code == 503
+        assert "waypoints" not in result.get_json()
+
+
 class TestChatbot:
     def test_empty_message_returns_400(self, client):
         resp = client.post("/api/chatbot", json={"message": ""})

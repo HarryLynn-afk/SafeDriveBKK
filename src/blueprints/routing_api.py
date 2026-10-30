@@ -4,6 +4,7 @@ Route analysis and comparison API endpoints.
 Routes:
     POST /api/analyze-route
     POST /api/compare-routes
+    POST /api/preview-route
 """
 
 import logging
@@ -14,7 +15,7 @@ from ..risk import (
     build_route_analysis_payload,
     rank_and_annotate_routes,
 )
-from ..routing import get_route_alternatives, resolve_route
+from ..routing import get_google_maps_routes, get_osrm_route, get_route_alternatives, resolve_route
 from ..utils.data import load_grid_stats
 from ..utils.rate_limit import rate_limit
 from ..utils.validators import validate_coordinates
@@ -46,6 +47,34 @@ def _parse_coordinates(payload: dict) -> tuple[float, float, float, float]:
     validate_coordinates(end_lat, end_lon)
 
     return start_lat, start_lon, end_lat, end_lon
+
+
+# ---------------------------------------------------------------------------
+# POST /api/preview-route
+# ---------------------------------------------------------------------------
+
+@routing_api_bp.route("/preview-route", methods=["POST"])
+@rate_limit(max_calls=60, window_seconds=3600)
+def preview_route():
+    try:
+        data = request.get_json(silent=True) or {}
+        try:
+            if not isinstance(data, dict):
+                raise ValueError("Expected an object")
+            coordinates = _parse_coordinates(data)
+            if coordinates[:2] == coordinates[2:]:
+                raise ValueError("Endpoints must differ")
+        except ValueError:
+            return jsonify({"error": "Invalid or missing coordinates."}), 400
+
+        routes = get_google_maps_routes(*coordinates, alternatives=False)
+        route = routes[0] if routes else get_osrm_route(*coordinates)
+        if not route:
+            return jsonify({"error": "Route preview unavailable."}), 503
+        return jsonify(success=True, waypoints=route["waypoints"])
+    except Exception:
+        logger.exception("Unhandled error in /api/preview-route")
+        return jsonify({"error": "Route preview unavailable."}), 500
 
 
 # ---------------------------------------------------------------------------

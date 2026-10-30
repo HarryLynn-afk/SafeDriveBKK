@@ -24,6 +24,15 @@ jobs:
       - name: Install dependencies
         run: pip install -r requirements.txt
 
+      - name: Set up Node.js for browser logic tests
+        uses: actions/setup-node@v6
+        with:
+          node-version: "24"
+          package-manager-cache: false
+
+      - name: Run browser logic tests
+        run: node --test tests/browser/*.test.cjs
+
       - name: Run pytest
         env:
           # Provide dummy values so app initialisation doesn't fail during tests.
