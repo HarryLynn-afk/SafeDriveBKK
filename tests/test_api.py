@@ -18,6 +18,21 @@ import pytest
 from src.routing import ResolvedRoute
 
 
+def test_dashboard_heatmap_can_be_embedded_with_its_libraries(client):
+    response = client.get('/static/bangkok_risk_heatmap.html')
+    assert response.status_code == 200
+    assert response.headers['X-Frame-Options'] == 'SAMEORIGIN'
+    policy = response.headers['Content-Security-Policy']
+    assert "frame-ancestors 'self'" in policy
+    directives = dict(part.strip().split(' ', 1) for part in policy.split(';') if part.strip())
+    assert 'https://code.jquery.com' in directives['script-src'].split()
+    assert 'https://cdnjs.cloudflare.com' in directives['script-src'].split()
+    assert 'https://cdnjs.cloudflare.com' in directives['style-src'].split()
+    assert 'https://netdna.bootstrapcdn.com' in directives['style-src'].split()
+    assert 'https://netdna.bootstrapcdn.com' in directives['font-src'].split()
+    assert client.get('/').headers['X-Frame-Options'] == 'DENY'
+
+
 # ---------------------------------------------------------------------------
 # GET /api/temporal-stats
 # ---------------------------------------------------------------------------
